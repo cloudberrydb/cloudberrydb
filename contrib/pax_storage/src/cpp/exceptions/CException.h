@@ -114,6 +114,7 @@ class CException {
     kExTypeFileOperationError,
     kExTypeCompressError,
     kExTypeArrowExportError,
+    kExTypeArrowBatchSizeTooSmall,
   };
 
   explicit CException(ExType extype);

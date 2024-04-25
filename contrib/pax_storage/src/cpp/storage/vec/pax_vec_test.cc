@@ -156,12 +156,13 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
     visimap = PAX_NEW<Bitmap8>(VEC_BATCH_LENGTH + 1000);
   }
 
-  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
-  columns = new PaxColumns();
+  adapter =
+      PAX_NEW<VecAdapter>(tuple_slot->tts_tupleDescriptor, VEC_BATCH_LENGTH);
+  columns = PAX_NEW<PaxColumns>();
   if (is_fixed) {
-    column = new PaxCommColumn<int32>(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = new PaxNonFixedColumn(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
@@ -359,8 +360,8 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
 
   DeleteTupleSlot(tuple_slot);
 
-  delete columns;
-  delete adapter;
+  PAX_DELETE(columns);
+  PAX_DELETE(adapter);
 }
 
 TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
@@ -372,12 +373,13 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
 
   TupleTableSlot *tuple_slot = CreateTupleSlot(is_fixed);
 
-  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
-  columns = new PaxColumns();
+  adapter =
+      PAX_NEW<VecAdapter>(tuple_slot->tts_tupleDescriptor, VEC_BATCH_LENGTH);
+  columns = PAX_NEW<PaxColumns>();
   if (is_fixed) {
-    column = new PaxCommColumn<int32>(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = new PaxNonFixedColumn(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
@@ -619,8 +621,8 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
 
   DeleteTupleSlot(tuple_slot);
 
-  delete columns;
-  delete adapter;
+  PAX_DELETE(columns);
+  PAX_DELETE(adapter);
 }
 
 TEST_P(PaxVecTest, PaxColumnToVecNoFull) {
@@ -631,12 +633,13 @@ TEST_P(PaxVecTest, PaxColumnToVecNoFull) {
   auto is_fixed = ::testing::get<0>(GetParam());
   auto tuple_slot = CreateTupleSlot(is_fixed);
 
-  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
-  columns = new PaxColumns();
+  adapter =
+      PAX_NEW<VecAdapter>(tuple_slot->tts_tupleDescriptor, VEC_BATCH_LENGTH);
+  columns = PAX_NEW<PaxColumns>();
   if (is_fixed) {
-    column = new PaxCommColumn<int32>(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = new PaxNonFixedColumn(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < 1000; i++) {
@@ -720,8 +723,8 @@ TEST_P(PaxVecTest, PaxColumnToVecNoFull) {
 
   DeleteTupleSlot(tuple_slot);
 
-  delete columns;
-  delete adapter;
+  PAX_DELETE(columns);
+  PAX_DELETE(adapter);
 }
 
 TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
@@ -733,12 +736,13 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
   auto is_fixed = ::testing::get<0>(GetParam());
   auto tuple_slot = CreateTupleSlot(is_fixed);
 
-  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
-  columns = new PaxColumns();
+  adapter =
+      PAX_NEW<VecAdapter>(tuple_slot->tts_tupleDescriptor, VEC_BATCH_LENGTH);
+  columns = PAX_NEW<PaxColumns>();
   if (is_fixed) {
-    column = new PaxCommColumn<int32>(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = new PaxNonFixedColumn(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < 1000; i++) {
@@ -871,8 +875,8 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
 
   DeleteTupleSlot(tuple_slot);
 
-  delete columns;
-  delete adapter;
+  PAX_DELETE(columns);
+  PAX_DELETE(adapter);
 }
 
 TEST_P(PaxVecTest, PaxColumnAllNullToVec) {
@@ -883,12 +887,13 @@ TEST_P(PaxVecTest, PaxColumnAllNullToVec) {
   auto is_fixed = ::testing::get<0>(GetParam());
   auto tuple_slot = CreateTupleSlot(is_fixed);
 
-  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
-  columns = new PaxColumns();
+  adapter =
+      PAX_NEW<VecAdapter>(tuple_slot->tts_tupleDescriptor, VEC_BATCH_LENGTH);
+  columns = PAX_NEW<PaxColumns>();
   if (is_fixed) {
-    column = new PaxCommColumn<int32>(1000);
+    column = PAX_NEW<PaxCommColumn<int32>>(1000);
   } else {
-    column = new PaxNonFixedColumn(1000);
+    column = PAX_NEW<PaxNonFixedColumn>(1000);
   }
 
   for (size_t i = 0; i < 1000; i++) {
@@ -970,8 +975,8 @@ TEST_P(PaxVecTest, PaxColumnAllNullToVec) {
 
   DeleteTupleSlot(tuple_slot);
 
-  delete columns;
-  delete adapter;
+  PAX_DELETE(columns);
+  PAX_DELETE(adapter);
 }
 
 TEST_P(PaxVecTest, DecimalTest) {
@@ -980,10 +985,11 @@ TEST_P(PaxVecTest, DecimalTest) {
 
   TupleTableSlot *tuple_slot = CreateDecimalTupleSlot();
 
-  auto adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
-  auto columns = new PaxColumns();
+  auto adapter =
+      PAX_NEW<VecAdapter>(tuple_slot->tts_tupleDescriptor, VEC_BATCH_LENGTH);
+  auto columns = PAX_NEW<PaxColumns>();
   auto column =
-      new PaxShortNumericColumn(VEC_BATCH_LENGTH + 1000, encoding_option);
+      PAX_NEW<PaxShortNumericColumn>(VEC_BATCH_LENGTH + 1000, encoding_option);
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH; i++) {
     auto numeric = int64_to_numeric(i);
@@ -1044,8 +1050,8 @@ TEST_P(PaxVecTest, DecimalTest) {
 
   DeleteTupleSlot(tuple_slot);
 
-  delete columns;
-  delete adapter;
+  PAX_DELETE(columns);
+  PAX_DELETE(adapter);
 }
 
 TEST_P(PaxVecTest, PaxColumnWithNullAndVisimapToVec) {
@@ -1062,12 +1068,13 @@ TEST_P(PaxVecTest, PaxColumnWithNullAndVisimapToVec) {
 
   TupleTableSlot *tuple_slot = CreateTupleSlot(is_fixed);
 
-  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
-  columns = new PaxColumns();
+  adapter =
+      PAX_NEW<VecAdapter>(tuple_slot->tts_tupleDescriptor, VEC_BATCH_LENGTH);
+  columns = PAX_NEW<PaxColumns>();
   if (is_fixed) {
-    column = new PaxCommColumn<int32>(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = new PaxNonFixedColumn(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
@@ -1202,8 +1209,8 @@ TEST_P(PaxVecTest, PaxColumnWithNullAndVisimapToVec) {
   }
   DeleteTupleSlot(tuple_slot);
 
-  delete columns;
-  delete adapter;
+  PAX_DELETE(columns);
+  PAX_DELETE(adapter);
 }
 
 TEST_P(PaxVecTest, PaxColumnBuildCtidToVec) {
@@ -1222,12 +1229,13 @@ TEST_P(PaxVecTest, PaxColumnBuildCtidToVec) {
   int64 base_ctid = 1;
   pax::SetTupleOffset(&tuple_slot->tts_tid, base_ctid);
 
-  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor, true);
-  columns = new PaxColumns();
+  adapter = PAX_NEW<VecAdapter>(tuple_slot->tts_tupleDescriptor,
+                                VEC_BATCH_LENGTH, true);
+  columns = PAX_NEW<PaxColumns>();
   if (is_fixed) {
-    column = new PaxCommColumn<int32>(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = new PaxNonFixedColumn(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
@@ -1321,7 +1329,7 @@ class MockTableWriter : public TableWriter {
   MockTableWriter(const Relation relation, WriteSummaryCallback callback)
       : TableWriter(relation) {
     SetWriteSummaryCallback(callback);
-    SetFileSplitStrategy(new PaxDefaultSplitStrategy());
+    SetFileSplitStrategy(PAX_NEW<PaxDefaultSplitStrategy>());
   }
 
   MOCK_METHOD(std::string, GenFilePath, (const std::string &), (override));
@@ -1363,7 +1371,7 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
         callback_called = true;
       };
 
-  auto writer = new MockTableWriter(relation, callback);
+  auto writer = PAX_NEW<MockTableWriter>(relation, callback);
   EXPECT_CALL(*writer, GenFilePath(_))
       .Times(AtLeast(1))
       .WillRepeatedly(Return(file_name_));
@@ -1383,10 +1391,11 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
   ASSERT_TRUE(callback_called);
 
   DeleteTupleSlot(tuple_slot);
-  delete writer;
+  PAX_DELETE(writer);
 
   tuple_slot = CreateTupleSlot(is_fixed);
-  auto adapter = std::make_shared<VecAdapter>(tuple_slot->tts_tupleDescriptor);
+  auto adapter = std::make_shared<VecAdapter>(tuple_slot->tts_tupleDescriptor,
+                                              VEC_BATCH_LENGTH);
 
   std::vector<MicroPartitionMetadata> meta_info_list;
   MicroPartitionMetadata meta_info;
@@ -1397,7 +1406,7 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
 
   std::unique_ptr<IteratorBase<MicroPartitionMetadata>> meta_info_iterator =
       std::unique_ptr<IteratorBase<MicroPartitionMetadata>>(
-          new MockReaderInterator(meta_info_list));
+          PAX_NEW<MockReaderInterator>(meta_info_list));
 
   TableReader *reader;
   TableReader::ReaderOptions reader_options{};
@@ -1406,7 +1415,7 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
   reader_options.is_vec = true;
   reader_options.adapter = adapter;
 
-  reader = new TableReader(std::move(meta_info_iterator), reader_options);
+  reader = PAX_NEW<TableReader>(std::move(meta_info_iterator), reader_options);
   reader->Open();
 
   bool ok = reader->ReadTuple(tuple_slot);
@@ -1419,8 +1428,9 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
 
   reader->Close();
   DeleteTupleSlot(tuple_slot);
-  delete relation;
-  delete reader;
+  PAX_DELETE(relation);
+
+  PAX_DELETE(reader);
 }
 
 INSTANTIATE_TEST_CASE_P(PaxVecTestCombine, PaxVecTest,

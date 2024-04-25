@@ -208,9 +208,17 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
 
 #ifdef VEC_BUILD
   if (flags & SO_TYPE_VECTOR) {
+    auto max_batch_size = VecAdapter::GetMaxBatchSizeFromStr(
+        cbdb::GetGUCConfigOptionByName(VECTOR_MAX_BATCH_SIZE_GUC_NAME, NULL,
+                                       true),
+        VEC_BATCH_LENGTH);
+    // The max of record batch size must align with 8
+    // Because the begin bits of the null bitmap in pax must be aligned 8
+    CBDB_CHECK(max_batch_size > 0 && (max_batch_size % MEMORY_ALIGN_SIZE == 0),
+               cbdb::CException::kExTypeInvalid);
     reader_options.is_vec = true;
     reader_options.adapter = std::make_shared<VecAdapter>(
-        cbdb::RelationGetTupleDesc(relation), build_bitmap);
+        cbdb::RelationGetTupleDesc(relation), max_batch_size, build_bitmap);
   }
 #endif  // VEC_BUILD
 
@@ -340,10 +348,10 @@ TableScanDesc PaxScanDesc::BeginScanExtractColumns(
     auto ok = pax::BuildScanKeys(rel, qual, false, &scan_keys, &n_scan_keys);
     if (ok) filter->SetScanKeys(scan_keys, n_scan_keys);
 
-// FIXME: enable predicate pushdown can filter rows immediately without assigning
-// all columns. But it may mess the filter orders for multiple conditions.
-// For example: ... where a = 2 and f_leak(b)
-// the second condition may be executed before the first one.
+// FIXME: enable predicate pushdown can filter rows immediately without
+// assigning all columns. But it may mess the filter orders for multiple
+// conditions. For example: ... where a = 2 and f_leak(b) the second condition
+// may be executed before the first one.
 #if 0
     if (gp_enable_predicate_pushdown
 #ifdef VEC_BUILD
@@ -453,7 +461,7 @@ bool PaxScanDesc::ScanSampleNextTuple(SampleScanState * /*scanstate*/,
     if (!ok) break;
     next_tuple_id_++;
   }
-  
+
   if (next_tuple_id_ == fetch_tuple_id_) {
     ok = GetNextSlot(slot);
     next_tuple_id_++;

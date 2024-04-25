@@ -464,13 +464,26 @@ void cbdb::TableClose(Relation rel, LOCKMODE lockmode) {
 }
 
 void cbdb::RelOpenSmgr(Relation rel) {
-  RelationOpenSmgr(rel);
+  CBDB_WRAP_START;
+  { RelationOpenSmgr(rel); }
+  CBDB_WRAP_END;
 }
 
 void cbdb::RelCloseSmgr(Relation rel) {
-  RelationCloseSmgr(rel);
+  CBDB_WRAP_START;
+  { RelationCloseSmgr(rel); }
+  CBDB_WRAP_END;
 }
 
 void cbdb::RelDropStorage(Relation rel) {
-  RelationDropStorage(rel);
+  CBDB_WRAP_START;
+  { RelationDropStorage(rel); }
+  CBDB_WRAP_END;
+}
+
+char *cbdb::GetGUCConfigOptionByName(const char *name, const char **varname,
+                                     bool missing_ok) {
+  CBDB_WRAP_START;
+  { return GetConfigOptionByName(name, varname, missing_ok); }
+  CBDB_WRAP_END;
 }

@@ -16,8 +16,17 @@ MicroPartitionReader *MicroPartitionFileFactory::CreateMicroPartitionReader(
   MicroPartitionReader *reader = PAX_NEW<OrcReader>(file);
 #ifdef VEC_BUILD
   if (flags & ReaderFlags::FLAGS_VECTOR) {
+    auto max_batch_size = VecAdapter::GetMaxBatchSizeFromStr(
+        cbdb::GetGUCConfigOptionByName(VECTOR_MAX_BATCH_SIZE_GUC_NAME, NULL,
+                                       true),
+        VEC_BATCH_LENGTH);
+    // The max of record batch size must align with 8
+    // Because the begin bits of the null bitmap in pax must be aligned 8
+    CBDB_CHECK(max_batch_size > 0 && (max_batch_size % MEMORY_ALIGN_SIZE == 0),
+               cbdb::CException::kExTypeInvalid);
     auto vec_adapter_ptr = std::make_shared<VecAdapter>(
-        options.desc, (flags & ReaderFlags::FLAGS_HAS_CTID) != 0);
+        options.desc, max_batch_size,
+        (flags & ReaderFlags::FLAGS_HAS_CTID) != 0);
     reader = PAX_NEW<PaxVecReader>(reader, vec_adapter_ptr, options.filter);
   }
 #endif

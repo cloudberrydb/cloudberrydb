@@ -142,6 +142,11 @@ namespace pax {
 #define DECIMAL_BUFFER_SIZE 16
 #define DECIMAL_BUFFER_BITS 128
 
+int VecAdapter::GetMaxBatchSizeFromStr(char *max_batch_size_str,
+                                       int default_value) {
+  return max_batch_size_str ? atoi(max_batch_size_str) : default_value;
+}
+
 static void CopyFixedRawBufferWithNull(PaxColumn *column,
                                        const Bitmap8 *visibility_map_bitset,
                                        size_t bitset_index_begin,
@@ -508,9 +513,7 @@ static void CopyDecimalRawBuffer(PaxColumn *column,
 
 static void CopyBitmap(const Bitmap8 *bitmap, size_t range_begin,
                        size_t range_lens, DataBuffer<char> *null_bits_buffer) {
-  // VEC_BATCH_LENGTH must align with 8
   // So the `range_begin % 8` must be 0
-  static_assert(VEC_BATCH_LENGTH % 8 == 0, "Assumption is broken.");
   Assert(range_begin % 8 == 0);
 
   auto null_buffer = reinterpret_cast<char *>(bitmap->Raw().bitmap);
@@ -741,8 +744,10 @@ static void ConvSchemaAndDataToVec(
   }
 }
 
-VecAdapter::VecAdapter(TupleDesc tuple_desc, bool build_ctid)
+VecAdapter::VecAdapter(TupleDesc tuple_desc, const int max_batch_size,
+                       bool build_ctid)
     : rel_tuple_desc_(tuple_desc),
+      max_batch_size_(max_batch_size),
       cached_batch_lens_(0),
       vec_cache_buffer_(nullptr),
       vec_cache_buffer_lens_(0),
@@ -750,6 +755,7 @@ VecAdapter::VecAdapter(TupleDesc tuple_desc, bool build_ctid)
       current_cached_pax_columns_index_(0),
       build_ctid_(build_ctid) {
   Assert(rel_tuple_desc_);
+  Assert(max_batch_size_ > 0);
 };
 
 VecAdapter::~VecAdapter() {
@@ -786,10 +792,12 @@ int VecAdapter::AppendToVecBuffer() {
   PaxColumns *columns;
   PaxColumn *column;
   size_t range_begin = current_cached_pax_columns_index_;
-  size_t range_lens = VEC_BATCH_LENGTH;
+  size_t range_lens = max_batch_size_;
+  size_t filter_count;
+  size_t out_range_lens;
 
   columns = process_columns_;
-  Assert(cached_batch_lens_ <= VEC_BATCH_LENGTH);
+  Assert((int)cached_batch_lens_ <= max_batch_size_);
 
   // There are three cases to direct return
   // 1. no call `DataSource`, then no source setup
@@ -807,15 +815,15 @@ int VecAdapter::AppendToVecBuffer() {
     return AppendVecFormat();
   }
 
-  // recompute `range_lens`, if remain data LT `VEC_BATCH_LENGTH`
+  // recompute `range_lens`, if remain data LT `max_batch_size_`
   // then should reduce `range_lens`
   if ((range_begin + range_lens) > columns->GetRows()) {
     range_lens = columns->GetRows() - range_begin;
   }
 
-  size_t filter_count = GetInvisibleNumber(range_begin, range_lens);
-
-  size_t out_range_lens = range_lens - filter_count;
+  filter_count = GetInvisibleNumber(range_begin, range_lens);
+  Assert(range_lens >= filter_count);
+  out_range_lens = range_lens - filter_count;
 
   if (out_range_lens == 0) {
     current_cached_pax_columns_index_ = range_begin + range_lens;
@@ -1012,10 +1020,8 @@ int VecAdapter::AppendVecFormat() {
 
   columns = process_columns_;
   Assert(cached_batch_lens_ == 0);
-  Assert(columns->GetRows() <= VEC_BATCH_LENGTH);
 
   size_t total_rows = columns->GetRows();
-
   auto null_align_bytes =
       TYPEALIGN(MEMORY_ALIGN_SIZE, BITS_TO_BYTES(total_rows));
 

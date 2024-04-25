@@ -205,6 +205,9 @@ void RelCloseSmgr(Relation rel);
 
 void RelDropStorage(Relation rel);
 
+char *GetGUCConfigOptionByName(const char *name, const char **varname,
+                               bool missing_ok);
+
 }  // namespace cbdb
 
 // clang-format off

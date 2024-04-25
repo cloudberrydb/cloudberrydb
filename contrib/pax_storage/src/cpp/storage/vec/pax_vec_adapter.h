@@ -23,7 +23,8 @@ class VecAdapter final {
     void SetMemoryTakeOver(bool take);
   };
 
-  VecAdapter(TupleDesc tuple_desc, bool build_ctid = false);
+  VecAdapter(TupleDesc tuple_desc, const int max_batch_size,
+             bool build_ctid = false);
 
   ~VecAdapter();
 
@@ -53,6 +54,9 @@ class VecAdapter final {
     micro_partition_visibility_bitmap_ = visibility_bitmap;
   }
 
+  static int GetMaxBatchSizeFromStr(char *max_batch_size_str,
+                                    int default_value);
+
  private:
   void FullWithCTID(TupleTableSlot *slot, VecBatchBuffer *batch_buffer);
   int AppendVecFormat();
@@ -72,6 +76,7 @@ class VecAdapter final {
 
  private:
   TupleDesc rel_tuple_desc_;
+  const int max_batch_size_;
   size_t cached_batch_lens_;
   VecBatchBuffer *vec_cache_buffer_;
   int vec_cache_buffer_lens_;
