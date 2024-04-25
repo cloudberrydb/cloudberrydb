@@ -162,7 +162,7 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
   if (is_fixed) {
     column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000, VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
@@ -379,7 +379,7 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
   if (is_fixed) {
     column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000, VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
@@ -639,7 +639,7 @@ TEST_P(PaxVecTest, PaxColumnToVecNoFull) {
   if (is_fixed) {
     column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000, VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < 1000; i++) {
@@ -742,7 +742,7 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
   if (is_fixed) {
     column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000, VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < 1000; i++) {
@@ -893,7 +893,7 @@ TEST_P(PaxVecTest, PaxColumnAllNullToVec) {
   if (is_fixed) {
     column = PAX_NEW<PaxCommColumn<int32>>(1000);
   } else {
-    column = PAX_NEW<PaxNonFixedColumn>(1000);
+    column = PAX_NEW<PaxNonFixedColumn>(1000, 1000);
   }
 
   for (size_t i = 0; i < 1000; i++) {
@@ -1074,7 +1074,7 @@ TEST_P(PaxVecTest, PaxColumnWithNullAndVisimapToVec) {
   if (is_fixed) {
     column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000, VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
@@ -1235,7 +1235,7 @@ TEST_P(PaxVecTest, PaxColumnBuildCtidToVec) {
   if (is_fixed) {
     column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000, VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {

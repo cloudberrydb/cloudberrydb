@@ -33,6 +33,8 @@ class PaxVecCommColumn : public PaxColumn {
 
   int64 GetOriginLength() const override;
 
+  int64 GetLengthsOriginLength() const override;
+
   int32 GetTypeLength() const override;
 
   // directly pass the buffer to vec
@@ -55,7 +57,7 @@ extern template class PaxVecCommColumn<double>;
 
 class PaxVecNonFixedColumn : public PaxColumn {
  public:
-  explicit PaxVecNonFixedColumn(uint32 capacity);
+  explicit PaxVecNonFixedColumn(uint32 data_capacity, uint32 lengths_capacity);
 
   PaxVecNonFixedColumn();
 
@@ -76,6 +78,8 @@ class PaxVecNonFixedColumn : public PaxColumn {
 
   int64 GetOriginLength() const override;
 
+  int64 GetLengthsOriginLength() const override;
+
   int32 GetTypeLength() const override;
 
   std::pair<char *, size_t> GetBuffer() override;
@@ -85,10 +89,16 @@ class PaxVecNonFixedColumn : public PaxColumn {
   std::pair<char *, size_t> GetRangeBuffer(size_t start_pos,
                                            size_t len) override;
 
-  DataBuffer<int32> *GetOffsetBuffer(bool append_last = false);
+  virtual std::pair<char *, size_t> GetOffsetBuffer(bool append_last);
 
   // directly pass the buffer to vec
   DataBuffer<char> *GetDataBuffer();
+#ifndef RUN_GTEST
+ protected:
+#endif
+  void AppendLastOffset();
+
+  DataBuffer<int32> *GetOffsetDataBuffer() { return offsets_; }
 
  protected:
   size_t estimated_size_;

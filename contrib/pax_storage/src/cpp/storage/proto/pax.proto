@@ -19,4 +19,8 @@ message ColumnEncoding {
   optional Kind kind = 1;
   optional uint64 length = 2; // data origin size
   optional uint64 compress_lvl = 3;  // work for compress 
+
+  optional Kind length_stream_kind = 4;
+  optional uint64 length_stream_length = 5;
+  optional uint64 length_stream_compress_lvl = 6;
 }

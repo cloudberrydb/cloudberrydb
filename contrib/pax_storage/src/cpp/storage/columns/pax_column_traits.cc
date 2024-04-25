@@ -39,12 +39,12 @@ Impl::CreateFunc<PaxVecCommColumn<float>>
 Impl::CreateFunc<PaxVecCommColumn<double>>
     ColumnCreateTraits<PaxVecCommColumn, double>::create =
         Impl::CreateImpl<PaxVecCommColumn<double>>;
-Impl::CreateFunc<PaxNonFixedColumn>
+Impl::CreateFunc2<PaxNonFixedColumn>
     ColumnCreateTraits2<PaxNonFixedColumn>::create =
-        Impl::CreateImpl<PaxNonFixedColumn>;
-Impl::CreateFunc<PaxVecNonFixedColumn>
+        Impl::CreateImpl2<PaxNonFixedColumn>;
+Impl::CreateFunc2<PaxVecNonFixedColumn>
     ColumnCreateTraits2<PaxVecNonFixedColumn>::create =
-        Impl::CreateImpl<PaxVecNonFixedColumn>;
+        Impl::CreateImpl2<PaxVecNonFixedColumn>;
 
 Impl::CreateEncodingFunc<PaxEncodingColumn<int8>>
     ColumnOptCreateTraits<PaxEncodingColumn, int8>::create_encoding =
@@ -96,32 +96,32 @@ Impl::CreateDecodingFunc<PaxVecEncodingColumn<int64>>
     ColumnOptCreateTraits<PaxVecEncodingColumn, int64>::create_decoding =
         Impl::CreateDecodingImpl<PaxVecEncodingColumn<int64>>;
 
-Impl::CreateEncodingFunc<PaxNonFixedEncodingColumn>
+Impl::CreateEncodingFunc2<PaxNonFixedEncodingColumn>
     ColumnOptCreateTraits2<PaxNonFixedEncodingColumn>::create_encoding =
-        Impl::CreateEncodingImpl<PaxNonFixedEncodingColumn>;
-Impl::CreateDecodingFunc<PaxNonFixedEncodingColumn>
+        Impl::CreateEncodingImpl2<PaxNonFixedEncodingColumn>;
+Impl::CreateDecodingFunc2<PaxNonFixedEncodingColumn>
     ColumnOptCreateTraits2<PaxNonFixedEncodingColumn>::create_decoding =
-        Impl::CreateDecodingImpl<PaxNonFixedEncodingColumn>;
-Impl::CreateEncodingFunc<PaxVecNonFixedEncodingColumn>
+        Impl::CreateDecodingImpl2<PaxNonFixedEncodingColumn>;
+Impl::CreateEncodingFunc2<PaxVecNonFixedEncodingColumn>
     ColumnOptCreateTraits2<PaxVecNonFixedEncodingColumn>::create_encoding =
-        Impl::CreateEncodingImpl<PaxVecNonFixedEncodingColumn>;
-Impl::CreateDecodingFunc<PaxVecNonFixedEncodingColumn>
+        Impl::CreateEncodingImpl2<PaxVecNonFixedEncodingColumn>;
+Impl::CreateDecodingFunc2<PaxVecNonFixedEncodingColumn>
     ColumnOptCreateTraits2<PaxVecNonFixedEncodingColumn>::create_decoding =
-        Impl::CreateDecodingImpl<PaxVecNonFixedEncodingColumn>;
+        Impl::CreateDecodingImpl2<PaxVecNonFixedEncodingColumn>;
 
-Impl::CreateEncodingFunc<PaxBpCharColumn>
+Impl::CreateEncodingFunc2<PaxBpCharColumn>
     ColumnOptCreateTraits2<PaxBpCharColumn>::create_encoding =
-        Impl::CreateEncodingImpl<PaxBpCharColumn>;
-Impl::CreateDecodingFunc<PaxBpCharColumn>
+        Impl::CreateEncodingImpl2<PaxBpCharColumn>;
+Impl::CreateDecodingFunc2<PaxBpCharColumn>
     ColumnOptCreateTraits2<PaxBpCharColumn>::create_decoding =
-        Impl::CreateDecodingImpl<PaxBpCharColumn>;
+        Impl::CreateDecodingImpl2<PaxBpCharColumn>;
 
-Impl::CreateEncodingFunc<PaxPgNumericColumn>
+Impl::CreateEncodingFunc2<PaxPgNumericColumn>
     ColumnOptCreateTraits2<PaxPgNumericColumn>::create_encoding =
-        Impl::CreateEncodingImpl<PaxPgNumericColumn>;
-Impl::CreateDecodingFunc<PaxPgNumericColumn>
+        Impl::CreateEncodingImpl2<PaxPgNumericColumn>;
+Impl::CreateDecodingFunc2<PaxPgNumericColumn>
     ColumnOptCreateTraits2<PaxPgNumericColumn>::create_decoding =
-        Impl::CreateDecodingImpl<PaxPgNumericColumn>;
+        Impl::CreateDecodingImpl2<PaxPgNumericColumn>;
 
 Impl::CreateEncodingFunc<PaxShortNumericColumn>
     ColumnOptCreateTraits2<PaxShortNumericColumn>::create_encoding =

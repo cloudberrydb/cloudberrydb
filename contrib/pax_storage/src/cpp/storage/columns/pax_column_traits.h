@@ -16,33 +16,64 @@ namespace pax::traits {
 namespace Impl {
 
 template <typename T>
-using CreateFunc = std::function<T *(uint64)>;
+using CreateFunc = std::function<T *(uint32)>;
 
 template <typename T>
-static T *CreateImpl(uint64 cap) {
+using CreateFunc2 = std::function<T *(uint32, uint32)>;
+
+template <typename T>
+static T *CreateImpl(uint32 cap) {
   auto t = PAX_NEW<T>(cap);
   return t;
 }
 
 template <typename T>
+static T *CreateImpl2(uint32 data_cap, uint32 lengths_cap) {
+  auto t = PAX_NEW<T>(data_cap, lengths_cap);
+  return t;
+}
+
+template <typename T>
 using CreateEncodingFunc =
-    std::function<T *(uint64, const PaxEncoder::EncodingOption &)>;
+    std::function<T *(uint32, const PaxEncoder::EncodingOption &)>;
 
 template <typename T>
 using CreateDecodingFunc =
-    std::function<T *(uint64, const PaxDecoder::DecodingOption &)>;
+    std::function<T *(uint32, const PaxDecoder::DecodingOption &)>;
 
 template <typename T>
-static T *CreateEncodingImpl(uint64 cap,
+using CreateEncodingFunc2 =
+    std::function<T *(uint32, uint32, const PaxEncoder::EncodingOption &)>;
+
+template <typename T>
+using CreateDecodingFunc2 =
+    std::function<T *(uint32, uint32, const PaxDecoder::DecodingOption &)>;
+
+template <typename T>
+static T *CreateEncodingImpl(uint32 cap,
                              const PaxEncoder::EncodingOption &encoding_opt) {
   auto t = PAX_NEW<T>(cap, encoding_opt);
   return t;
 }
 
 template <typename T>
-static T *CreateDecodingImpl(uint64 cap,
+static T *CreateDecodingImpl(uint32 cap,
                              const PaxDecoder::DecodingOption &decoding_opt) {
   auto t = PAX_NEW<T>(cap, decoding_opt);
+  return t;
+}
+
+template <typename T>
+static T *CreateEncodingImpl2(uint32 cap, uint32 length_cap,
+                              const PaxEncoder::EncodingOption &encoding_opt) {
+  auto t = PAX_NEW<T>(cap, length_cap, encoding_opt);
+  return t;
+}
+
+template <typename T>
+static T *CreateDecodingImpl2(uint32 cap, uint32 length_cap,
+                              const PaxDecoder::DecodingOption &decoding_opt) {
+  auto t = PAX_NEW<T>(cap, length_cap, decoding_opt);
   return t;
 }
 
@@ -60,10 +91,10 @@ struct ColumnCreateTraits2 {};
     static Impl::CreateFunc<_class<_type>> create; \
   }
 
-#define TRAITS_DECL2(_class)                \
-  template <>                               \
-  struct ColumnCreateTraits2<_class> {      \
-    static Impl::CreateFunc<_class> create; \
+#define TRAITS_DECL2(_class)                 \
+  template <>                                \
+  struct ColumnCreateTraits2<_class> {       \
+    static Impl::CreateFunc2<_class> create; \
   }
 
 TRAITS_DECL(PaxCommColumn, int8);
@@ -96,11 +127,18 @@ struct ColumnOptCreateTraits2 {};
     static Impl::CreateDecodingFunc<_class<_type>> create_decoding; \
   }
 
-#define TRAITS_OPT_DECL2(_class)                             \
+#define TRAITS_OPT_DECL_NO_TYPE(_class)                      \
   template <>                                                \
   struct ColumnOptCreateTraits2<_class> {                    \
     static Impl::CreateEncodingFunc<_class> create_encoding; \
     static Impl::CreateDecodingFunc<_class> create_decoding; \
+  }
+
+#define TRAITS_OPT_DECL2(_class)                              \
+  template <>                                                 \
+  struct ColumnOptCreateTraits2<_class> {                     \
+    static Impl::CreateEncodingFunc2<_class> create_encoding; \
+    static Impl::CreateDecodingFunc2<_class> create_decoding; \
   }
 
 TRAITS_OPT_DECL(PaxEncodingColumn, int8);
@@ -115,10 +153,10 @@ TRAITS_OPT_DECL(PaxVecEncodingColumn, int64);
 
 TRAITS_OPT_DECL2(PaxNonFixedEncodingColumn);
 TRAITS_OPT_DECL2(PaxVecNonFixedEncodingColumn);
-TRAITS_OPT_DECL2(PaxShortNumericColumn);
+TRAITS_OPT_DECL_NO_TYPE(PaxShortNumericColumn);
 TRAITS_OPT_DECL2(PaxPgNumericColumn);
 TRAITS_OPT_DECL2(PaxBpCharColumn);
-TRAITS_OPT_DECL2(PaxBitPackedColumn);
-TRAITS_OPT_DECL2(PaxVecBitPackedColumn);
+TRAITS_OPT_DECL_NO_TYPE(PaxBitPackedColumn);
+TRAITS_OPT_DECL_NO_TYPE(PaxVecBitPackedColumn);
 
 }  // namespace pax::traits

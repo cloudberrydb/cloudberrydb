@@ -50,7 +50,12 @@ message Stream {
   // the number of entry in stream
   optional uint32 column = 2;
   // the bytes of stream
-  optional uint64 length = 3;
+  optional uint64 length = 101;
+  // the bytes of padding.
+  // The length stream is placed before the data stream. When the data stream
+  // of column specifies align size, the length stream may add padding bytes 
+  // to ensure that the data stream is aligned according to the align size.
+  optional uint32 padding = 102;
 }
 
 message StripeFooter {

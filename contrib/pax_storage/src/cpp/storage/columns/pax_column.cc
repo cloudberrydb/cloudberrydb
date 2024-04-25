@@ -17,6 +17,9 @@ PaxColumn::PaxColumn()
       non_null_rows_(0),
       encoded_type_(ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED),
       compress_level_(0),
+      lengths_encoded_type_(
+          ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED),
+      lengths_compress_level_(0),
       type_align_size_(PAX_DATA_NO_ALIGN) {}
 
 PaxColumn::~PaxColumn() { PAX_DELETE(null_bitmap_); }
@@ -143,6 +146,11 @@ int64 PaxCommColumn<T>::GetOriginLength() const {
 }
 
 template <typename T>
+int64 PaxCommColumn<T>::GetLengthsOriginLength() const {
+  return 0;
+}
+
+template <typename T>
 int32 PaxCommColumn<T>::GetTypeLength() const {
   return sizeof(T);
 }
@@ -176,12 +184,14 @@ template class PaxCommColumn<int64>;
 template class PaxCommColumn<float>;
 template class PaxCommColumn<double>;
 
-PaxNonFixedColumn::PaxNonFixedColumn(uint32 capacity) : estimated_size_(0) {
-  data_ = PAX_NEW<DataBuffer<char>>(capacity * sizeof(char));
-  lengths_ = PAX_NEW<DataBuffer<int32>>(capacity * sizeof(char));
-}
+PaxNonFixedColumn::PaxNonFixedColumn(uint32 data_capacity,
+                                     uint32 lengths_capacity)
+    : estimated_size_(0),
+      data_(PAX_NEW<DataBuffer<char>>(data_capacity)),
+      lengths_(PAX_NEW<DataBuffer<int32>>(lengths_capacity)) {}
 
-PaxNonFixedColumn::PaxNonFixedColumn() : PaxNonFixedColumn(DEFAULT_CAPACITY) {}
+PaxNonFixedColumn::PaxNonFixedColumn()
+    : PaxNonFixedColumn(DEFAULT_CAPACITY, DEFAULT_CAPACITY) {}
 
 PaxNonFixedColumn::~PaxNonFixedColumn() {
   PAX_DELETE(data_);
@@ -239,8 +249,8 @@ void PaxNonFixedColumn::Append(char *buffer, size_t size) {
   Assert(offsets_.size() == lengths_->GetSize());
 }
 
-DataBuffer<int32> *PaxNonFixedColumn::GetLengthBuffer() const {
-  return lengths_;
+std::pair<char *, size_t> PaxNonFixedColumn::GetLengthBuffer() {
+  return std::make_pair((char *)lengths_->GetBuffer(), lengths_->Used());
 }
 
 PaxColumnTypeInMem PaxNonFixedColumn::GetPaxColumnTypeInMem() const {
@@ -259,8 +269,10 @@ size_t PaxNonFixedColumn::GetNonNullRows() const { return lengths_->GetSize(); }
 
 size_t PaxNonFixedColumn::PhysicalSize() const { return estimated_size_; }
 
-int64 PaxNonFixedColumn::GetOriginLength() const {
-  return data_->Used();
+int64 PaxNonFixedColumn::GetOriginLength() const { return data_->Used(); }
+
+int64 PaxNonFixedColumn::GetLengthsOriginLength() const {
+  return lengths_->Used();
 }
 
 int32 PaxNonFixedColumn::GetTypeLength() const { return -1; }

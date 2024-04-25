@@ -199,7 +199,7 @@ class PaxColumnCompressTest
 
 class PaxNonFixedColumnCompressTest
     : public ::testing::TestWithParam<
-          ::testing::tuple<uint8, ColumnEncoding_Kind, bool>> {
+          ::testing::tuple<uint8, ColumnEncoding_Kind, bool, bool>> {
  public:
   void SetUp() override { CreateMemoryContext(); }
 };
@@ -290,9 +290,9 @@ TEST_P(PaxColumnTest, NonFixColumnGetRangeBufferTest) {
   size_t buffer_len = 0;
 
   if (storage_type == PaxStorageFormat::kTypeStoragePorcNonVec) {
-    column = ColumnCreateTraits2<PaxNonFixedColumn>::create(200);
+    column = ColumnCreateTraits2<PaxNonFixedColumn>::create(200, 200);
   } else {
-    column = ColumnCreateTraits2<PaxVecNonFixedColumn>::create(200);
+    column = ColumnCreateTraits2<PaxVecNonFixedColumn>::create(200, 200);
   }
 
   for (int64 i = 0; i < 16; i++) {
@@ -312,9 +312,9 @@ TEST_P(PaxColumnTest, NonFixColumnGetRangeBufferTest) {
   delete column;
 
   if (storage_type == PaxStorageFormat::kTypeStoragePorcNonVec) {
-    column = ColumnCreateTraits2<PaxNonFixedColumn>::create(200);
+    column = ColumnCreateTraits2<PaxNonFixedColumn>::create(200, 200);
   } else {
-    column = ColumnCreateTraits2<PaxVecNonFixedColumn>::create(200);
+    column = ColumnCreateTraits2<PaxVecNonFixedColumn>::create(200, 200);
   }
 
   for (int64 i = 0; i < 16; i++) {
@@ -682,25 +682,30 @@ TEST_P(PaxNonFixedColumnCompressTest,
   auto number = ::testing::get<0>(GetParam());
   auto kind = ::testing::get<1>(GetParam());
   auto verify_range = ::testing::get<2>(GetParam());
-
-  const size_t buffer_len = 1024;
+  auto enable_lengths_encoding = ::testing::get<2>(GetParam());
+  const size_t number_of_rows = 1024;
 
   PaxEncoder::EncodingOption encoding_option;
   encoding_option.column_encode_type = kind;
   encoding_option.compress_level = 5;
   encoding_option.is_sign = true;
 
-  non_fixed_column =
-      new PaxNonFixedEncodingColumn(1024, std::move(encoding_option));
+  if (enable_lengths_encoding) {
+    encoding_option.lengths_encode_type = kind;
+    encoding_option.lengths_compress_level = 5;
+  }
+
+  non_fixed_column = new PaxNonFixedEncodingColumn(
+      number_of_rows, number_of_rows, std::move(encoding_option));
 
   std::srand(static_cast<unsigned int>(std::time(0)));
-  char *data = reinterpret_cast<char *>(cbdb::Palloc(buffer_len * number));
+  char *data = reinterpret_cast<char *>(cbdb::Palloc(number_of_rows * number));
 
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<> dis(0, 255);
 
-  for (size_t i = 0; i < buffer_len; ++i) {
+  for (size_t i = 0; i < number_of_rows; ++i) {
     for (size_t j = 0; j < number; ++j) {
       data[j + i * number] = static_cast<char>(dis(gen));
     }
@@ -710,23 +715,36 @@ TEST_P(PaxNonFixedColumnCompressTest,
   char *encoded_buff;
   size_t encoded_len;
   std::tie(encoded_buff, encoded_len) = non_fixed_column->GetBuffer();
-  auto length_buffer = non_fixed_column->GetLengthBuffer();
+  char *length_stream_buff;
+  size_t length_stream_len;
+  std::tie(length_stream_buff, length_stream_len) =
+      non_fixed_column->GetLengthBuffer();
   ASSERT_NE(encoded_buff, nullptr);
 
   auto origin_len = non_fixed_column->GetOriginLength();
-  ASSERT_EQ(origin_len, buffer_len * number);
+  ASSERT_EQ(origin_len, number_of_rows * number);
+  auto lengths_origin_len = non_fixed_column->GetLengthsOriginLength();
+  ASSERT_EQ(lengths_origin_len, sizeof(int32) * number_of_rows);
 
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type = kind;
   decoding_option.is_sign = true;
   decoding_option.compress_level = 5;
 
+  if (enable_lengths_encoding) {
+    decoding_option.lengths_encode_type = kind;
+    decoding_option.lengths_compress_level = 5;
+  }
+
   auto non_fixed_column_for_read = new PaxNonFixedEncodingColumn(
-      buffer_len * number, std::move(decoding_option));
+      number_of_rows * number, sizeof(int32) * number_of_rows,
+      std::move(decoding_option));
   auto data_buffer_for_read =
       new DataBuffer<char>(encoded_buff, encoded_len, false, false);
   data_buffer_for_read->Brush(encoded_len);
-  auto length_buffer_cpy = new DataBuffer<int32>(*length_buffer);
+  auto length_buffer_cpy = new DataBuffer<int32>(
+      (int32 *)length_stream_buff, length_stream_len, false, false);
+  length_buffer_cpy->BrushAll();
   non_fixed_column_for_read->Set(data_buffer_for_read, length_buffer_cpy,
                                  origin_len);
   ASSERT_EQ(non_fixed_column_for_read->GetCompressLevel(), 5);
@@ -743,9 +761,9 @@ TEST_P(PaxNonFixedColumnCompressTest,
     }
   } else {
     std::tie(verify_buff, verify_len) = non_fixed_column_for_read->GetBuffer();
-    ASSERT_EQ(verify_len, buffer_len * number);
+    ASSERT_EQ(verify_len, number_of_rows * number);
 
-    for (size_t i = 0; i < buffer_len * number; ++i) {
+    for (size_t i = 0; i < number_of_rows * number; ++i) {
       EXPECT_EQ(verify_buff[i], data[i]);
     }
   }
@@ -779,6 +797,7 @@ INSTANTIATE_TEST_CASE_P(
                      testing::Values(ColumnEncoding_Kind_NO_ENCODED,
                                      ColumnEncoding_Kind_COMPRESS_ZSTD,
                                      ColumnEncoding_Kind_COMPRESS_ZLIB),
+                     testing::Values(true, false),
                      testing::Values(true, false)));
 
 };  // namespace pax::tests

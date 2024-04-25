@@ -76,6 +76,11 @@ int64 PaxVecCommColumn<T>::GetOriginLength() const {
 }
 
 template <typename T>
+int64 PaxVecCommColumn<T>::GetLengthsOriginLength() const {
+  return 0;
+}
+
+template <typename T>
 int32 PaxVecCommColumn<T>::GetTypeLength() const {
   return sizeof(T);
 }
@@ -113,17 +118,18 @@ template class PaxVecCommColumn<int64>;
 template class PaxVecCommColumn<float>;
 template class PaxVecCommColumn<double>;
 
-PaxVecNonFixedColumn::PaxVecNonFixedColumn(uint32 capacity)
+PaxVecNonFixedColumn::PaxVecNonFixedColumn(uint32 data_capacity,
+                                           uint32 lengths_capacity)
     : estimated_size_(0),
       data_(PAX_NEW<DataBuffer<char>>(
-          TYPEALIGN(MEMORY_ALIGN_SIZE, capacity * sizeof(char)))),
-      offsets_(PAX_NEW<DataBuffer<int32>>(capacity)),
+          TYPEALIGN(MEMORY_ALIGN_SIZE, data_capacity))),
+      offsets_(PAX_NEW<DataBuffer<int32>>(lengths_capacity)),
       next_offsets_(0) {
-  Assert(capacity % sizeof(int64) == 0);
+  Assert(data_capacity % sizeof(int64) == 0);
 }
 
 PaxVecNonFixedColumn::PaxVecNonFixedColumn()
-    : PaxVecNonFixedColumn(DEFAULT_CAPACITY) {}
+    : PaxVecNonFixedColumn(DEFAULT_CAPACITY, DEFAULT_CAPACITY) {}
 
 PaxVecNonFixedColumn::~PaxVecNonFixedColumn() {
   PAX_DELETE(data_);
@@ -181,18 +187,24 @@ void PaxVecNonFixedColumn::AppendNull() {
   offsets_->Brush(sizeof(next_offsets_));
 }
 
-DataBuffer<int32> *PaxVecNonFixedColumn::GetOffsetBuffer(bool append_last) {
+void PaxVecNonFixedColumn::AppendLastOffset() {
+  Assert(next_offsets_ != -1);
+  Assert(offsets_->Capacity() >= sizeof(int32));
+  if (offsets_->Available() == 0) {
+    offsets_->ReSize(offsets_->Capacity() + sizeof(int32));
+  }
+  offsets_->Write(next_offsets_);
+  offsets_->Brush(sizeof(next_offsets_));
+  next_offsets_ = -1;
+}
+
+std::pair<char *, size_t> PaxVecNonFixedColumn::GetOffsetBuffer(
+    bool append_last) {
   if (append_last) {
-    Assert(offsets_->Capacity() >= sizeof(int32));
-    if (offsets_->Available() == 0) {
-      offsets_->ReSize(offsets_->Capacity() + sizeof(int32));
-    }
-    offsets_->Write(next_offsets_);
-    offsets_->Brush(sizeof(next_offsets_));
-    next_offsets_ = -1;
+    AppendLastOffset();
   }
 
-  return offsets_;
+  return std::make_pair((char *)offsets_->GetBuffer(), offsets_->Used());
 }
 
 PaxColumnTypeInMem PaxVecNonFixedColumn::GetPaxColumnTypeInMem() const {
@@ -210,6 +222,11 @@ std::pair<char *, size_t> PaxVecNonFixedColumn::GetBuffer() {
 size_t PaxVecNonFixedColumn::PhysicalSize() const { return estimated_size_; }
 
 int64 PaxVecNonFixedColumn::GetOriginLength() const { return data_->Used(); }
+
+int64 PaxVecNonFixedColumn::GetLengthsOriginLength() const {
+  Assert(next_offsets_ == -1);
+  return offsets_->Used();
+}
 
 int32 PaxVecNonFixedColumn::GetTypeLength() const { return -1; }
 

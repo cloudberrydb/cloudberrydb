@@ -158,8 +158,11 @@ class PaxColumn {
   // Get current storage type
   virtual PaxStorageFormat GetStorageFormat() const = 0;
 
-  // Get the data size without encoding/compress
+  // Get the data part size without encoding/compress
   virtual int64 GetOriginLength() const = 0;
+
+  // Get the lengths part size without encoding/compress
+  virtual int64 GetLengthsOriginLength() const = 0;
 
   // Get the type length, used to identify sub-class
   // - `PaxCommColumn<T>` will return the <T> length
@@ -184,11 +187,19 @@ class PaxColumn {
 
   virtual void SetAlignSize(size_t align_size);
 
-  // Get current encoding type
+  // Get current data part encoding type
   inline ColumnEncoding_Kind GetEncodingType() const { return encoded_type_; }
 
-  // Get current compress level
+  // Get current length part encoding type
+  inline ColumnEncoding_Kind GetLengthsEncodingType() const {
+    return lengths_encoded_type_;
+  }
+
+  // Get current data part compress level
   inline int GetCompressLevel() const { return compress_level_; }
+
+  // Get current length part compress level
+  inline int GetLengthsCompressLevel() const { return lengths_compress_level_; }
 
  protected:
   // The encoding option should pass in sub-class
@@ -198,6 +209,14 @@ class PaxColumn {
 
   inline void SetCompressLevel(int compress_level) {
     compress_level_ = compress_level;
+  }
+
+  inline void SetLengthsEncodeType(ColumnEncoding_Kind encoding_type) {
+    lengths_encoded_type_ = encoding_type;
+  }
+
+  inline void SetLengthsCompressLevel(int compress_level) {
+    lengths_compress_level_ = compress_level;
   }
 
  private:
@@ -215,11 +234,17 @@ class PaxColumn {
   // but can direct get not null rows by data part.
   size_t non_null_rows_;
 
-  // the column encoded type
+  // the column data encoded type
   ColumnEncoding_Kind encoded_type_;
 
-  // the column compress level
+  // the column data compress level
   int compress_level_;
+
+  // the column lengths encoded type
+  ColumnEncoding_Kind lengths_encoded_type_;
+
+  // the column lengths compress level
+  int lengths_compress_level_;
 
   // data part align size.
   // This field only takes effect when current column is no encoding/compress.
@@ -269,6 +294,8 @@ class PaxCommColumn : public PaxColumn {
 
   int64 GetOriginLength() const override;
 
+  int64 GetLengthsOriginLength() const override;
+
   std::pair<char *, size_t> GetBuffer() override;
 
   int32 GetTypeLength() const override;
@@ -287,7 +314,7 @@ extern template class PaxCommColumn<double>;
 
 class PaxNonFixedColumn : public PaxColumn {
  public:
-  explicit PaxNonFixedColumn(uint32 capacity);
+  PaxNonFixedColumn(uint32 data_capacity, uint32 lengths_capacity);
 
   PaxNonFixedColumn();
 
@@ -308,6 +335,8 @@ class PaxNonFixedColumn : public PaxColumn {
 
   int64 GetOriginLength() const override;
 
+  int64 GetLengthsOriginLength() const override;
+
   int32 GetTypeLength() const override;
 
   std::pair<char *, size_t> GetBuffer(size_t position) override;
@@ -317,9 +346,7 @@ class PaxNonFixedColumn : public PaxColumn {
 
   size_t GetNonNullRows() const override;
 
-  DataBuffer<int32> *GetLengthBuffer() const;
-
-  DataBuffer<int32> *GetOffsetBuffer(bool append_last = false);
+  virtual std::pair<char *, size_t> GetLengthBuffer();
 
  protected:
   void BuildOffsets();

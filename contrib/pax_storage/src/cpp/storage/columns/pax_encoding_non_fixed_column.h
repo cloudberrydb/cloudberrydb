@@ -7,10 +7,10 @@
 namespace pax {
 class PaxNonFixedEncodingColumn : public PaxNonFixedColumn {
  public:
-  PaxNonFixedEncodingColumn(uint32 capacity,
+  PaxNonFixedEncodingColumn(uint32 data_capacity, uint32 lengths_capacity,
                             const PaxEncoder::EncodingOption &encoder_options);
 
-  PaxNonFixedEncodingColumn(uint32 capacity,
+  PaxNonFixedEncodingColumn(uint32 data_capacity, uint32 lengths_capacity,
                             const PaxDecoder::DecodingOption &decoding_option);
 
   ~PaxNonFixedEncodingColumn() override;
@@ -19,6 +19,8 @@ class PaxNonFixedEncodingColumn : public PaxNonFixedColumn {
            size_t total_size) override;
 
   std::pair<char *, size_t> GetBuffer() override;
+
+  std::pair<char *, size_t> GetLengthBuffer() override;
 
   int64 GetOriginLength() const override;
 
@@ -36,6 +38,9 @@ class PaxNonFixedEncodingColumn : public PaxNonFixedColumn {
   PaxCompressor *compressor_;
   bool compress_route_;
   DataBuffer<char> *shared_data_;
+
+  PaxCompressor *lengths_compressor_;
+  DataBuffer<char> *shared_lengths_data_;
 };
 
 }  // namespace pax

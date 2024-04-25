@@ -132,7 +132,7 @@ TEST_F(OrcVecTest, WriteReadGroup) {
 
   auto column1_data = column1->GetDataBuffer();
   auto column2_data = column2->GetDataBuffer();
-  auto column1_offsets = column1->GetOffsetBuffer();
+  auto column1_offsets = column1->GetOffsetDataBuffer();
 
   ASSERT_EQ(10000, column1->GetRows());
   ASSERT_EQ(10000, column2->GetRows());
@@ -174,7 +174,7 @@ TEST_F(OrcVecTest, WriteReadGroup) {
 
   column1_data = column1->GetDataBuffer();
   column2_data = column2->GetDataBuffer();
-  column1_offsets = column1->GetOffsetBuffer();
+  column1_offsets = column1->GetOffsetDataBuffer();
 
   ASSERT_FALSE(column1->HasNull());
   ASSERT_FALSE(column2->HasNull());
@@ -282,7 +282,7 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
 
   auto column1_data = column1->GetDataBuffer();
   auto column2_data = column2->GetDataBuffer();
-  auto column1_offsets = column1->GetOffsetBuffer();
+  auto column1_offsets = column1->GetOffsetDataBuffer();
 
   ASSERT_EQ(10000, column1->GetRows());
   ASSERT_EQ(10000, column2->GetRows());
@@ -324,7 +324,7 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
 
   column1_data = column1->GetDataBuffer();
   column2_data = column2->GetDataBuffer();
-  column1_offsets = column1->GetOffsetBuffer();
+  column1_offsets = column1->GetOffsetDataBuffer();
 
   ASSERT_FALSE(column1->HasNull());
   ASSERT_FALSE(column2->HasNull());

@@ -1070,12 +1070,10 @@ int VecAdapter::AppendVecFormat() {
           vec_buffer->BrushAll();
         }
 
-        auto offset_buffer_from_column =
-            dynamic_cast<PaxVecNonFixedColumn *>(column)->GetOffsetBuffer();
-        Assert(offset_buffer_from_column);
-        buffer = (char *)offset_buffer_from_column->GetBuffer();
-        buffer_len = offset_buffer_from_column->Capacity();
-
+        std::tie(buffer, buffer_len) =
+            dynamic_cast<PaxVecNonFixedColumn *>(column)->GetOffsetBuffer(
+                false);
+        // TODO(jiaqizho): this buffer can also be transferred
         offset_buffer->Set(
             BlockBuffer::Alloc<char*>(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len)),
             TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len));

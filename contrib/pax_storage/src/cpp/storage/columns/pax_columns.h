@@ -39,6 +39,8 @@ class PaxColumns : public PaxColumn {
 
   int64 GetOriginLength() const override;
 
+  int64 GetLengthsOriginLength() const override;
+
   int32 GetTypeLength() const override;
 
   PaxStorageFormat GetStorageFormat() const override;
@@ -57,11 +59,12 @@ class PaxColumns : public PaxColumn {
 
   size_t GetNonNullRows() const override;
 
-  using ColumnStreamsFunc =
-      std::function<void(const pax::porc::proto::Stream_Kind &, size_t, size_t)>;
+  using ColumnStreamsFunc = std::function<void(
+      const pax::porc::proto::Stream_Kind &, size_t, size_t, size_t)>;
 
   using ColumnEncodingFunc = std::function<void(
-      const ColumnEncoding_Kind &, const uint64 compress_lvl, size_t)>;
+      const ColumnEncoding_Kind &, const uint64, const int64,
+      const ColumnEncoding_Kind &, const uint64, const int64)>;
 
   // Get the combined data buffer of all columns
   // TODO(jiaqizho): consider add a new api which support split IO from

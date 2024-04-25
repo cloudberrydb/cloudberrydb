@@ -156,4 +156,3 @@ class TableDeleter final {
 };
 
 }  // namespace pax
-

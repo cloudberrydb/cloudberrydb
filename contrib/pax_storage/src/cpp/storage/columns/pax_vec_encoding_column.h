@@ -55,10 +55,12 @@ extern template class PaxVecEncodingColumn<int64>;
 class PaxVecNonFixedEncodingColumn : public PaxVecNonFixedColumn {
  public:
   PaxVecNonFixedEncodingColumn(
-      uint32 capacity, const PaxEncoder::EncodingOption &encoder_options);
+      uint32 data_capacity, uint32 lengths_capacity,
+      const PaxEncoder::EncodingOption &encoder_options);
 
   PaxVecNonFixedEncodingColumn(
-      uint32 capacity, const PaxDecoder::DecodingOption &decoding_option);
+      uint32 data_capacity, uint32 lengths_capacity,
+      const PaxDecoder::DecodingOption &decoding_option);
 
   ~PaxVecNonFixedEncodingColumn() override;
 
@@ -71,6 +73,8 @@ class PaxVecNonFixedEncodingColumn : public PaxVecNonFixedColumn {
 
   size_t GetAlignSize() const override;
 
+  std::pair<char *, size_t> GetOffsetBuffer(bool append_last) override;
+
  protected:
   PaxEncoder::EncodingOption encoder_options_;
   PaxDecoder::DecodingOption decoder_options_;
@@ -78,6 +82,9 @@ class PaxVecNonFixedEncodingColumn : public PaxVecNonFixedColumn {
   PaxCompressor *compressor_;
   bool compress_route_;
   DataBuffer<char> *shared_data_;
+
+  PaxCompressor *offsets_compressor_;
+  DataBuffer<char> *shared_offsets_data_;
 };
 
 }  // namespace pax

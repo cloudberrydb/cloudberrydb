@@ -28,6 +28,7 @@ class MicroPartitionWriter {
     TupleDesc desc = nullptr;
     Oid rel_oid = InvalidOid;
     std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
+    std::pair<ColumnEncoding_Kind, int> lengths_encoding_opts;
 
     size_t group_limit = pax_max_tuples_per_group;
     PaxStorageFormat storage_format = PaxStorageFormat::kTypeStoragePorcNonVec;

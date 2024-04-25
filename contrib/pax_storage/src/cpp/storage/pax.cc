@@ -3,8 +3,8 @@
 #include <map>
 #include <utility>
 
-#include "access/paxc_rel_options.h"
 #include "access/pax_visimap.h"
+#include "access/paxc_rel_options.h"
 #include "catalog/pax_aux_table.h"
 #include "comm/cbdb_wrappers.h"
 #include "comm/pax_memory.h"
@@ -207,6 +207,8 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
   options.file_name = std::move(file_path);
   options.encoding_opts = std::move(GetRelEncodingOptions());
   options.storage_format = GetStorageFormat();
+  options.lengths_encoding_opts = std::make_pair(
+      PAX_LENGTHS_DEFAULT_COMPRESSTYPE, PAX_LENGTHS_DEFAULT_COMPRESSLEVEL);
 
   File *file = Singleton<LocalFileSystem>::GetInstance()->Open(
       options.file_name, fs::kReadWriteMode);
@@ -438,25 +440,27 @@ void TableDeleter::DeleteWithVisibilityMap(TransactionId delete_xid) {
         std::string v_file_name =
             cbdb::BuildPaxFilePath(rel_path, visibility_map_filename);
         auto buffer = LoadVisimap(v_file_name);
-        auto visibility_file_bitmap = Bitmap8(
-            BitmapRaw<uint8>(buffer->data(), buffer->size()),
-            Bitmap8::ReadOnlyOwnBitmap);
+        auto visibility_file_bitmap =
+            Bitmap8(BitmapRaw<uint8>(buffer->data(), buffer->size()),
+                    Bitmap8::ReadOnlyOwnBitmap);
         visi_bitmap =
             Bitmap8::Union(&visibility_file_bitmap, delete_visi_bitmap);
 
         PAX_DELETE<Bitmap8>(delete_visi_bitmap);
 
-        auto rc = sscanf(visibility_map_filename.c_str(), "%d_%x_%x.visimap", &blocknum, &generate, &xid);
+        auto rc = sscanf(visibility_map_filename.c_str(), "%d_%x_%x.visimap",
+                         &blocknum, &generate, &xid);
         Assert(blocknum >= 0 && block_id == std::to_string(blocknum));
-        (void) xid;
+        (void)xid;
         CBDB_CHECK(rc == 3, cbdb::CException::kExTypeLogicError);
       } else {
         visi_bitmap = delete_visi_bitmap;
       }
 
       // generate new file name for visimap
-      auto rc = snprintf(visimap_file_name, sizeof(visimap_file_name), "%s_%x_%x.visimap",
-                         block_id.c_str(), generate + 1, delete_xid);
+      auto rc = snprintf(visimap_file_name, sizeof(visimap_file_name),
+                         "%s_%x_%x.visimap", block_id.c_str(), generate + 1,
+                         delete_xid);
       Assert(rc <= NAMEDATALEN);
     }
 
@@ -513,7 +517,8 @@ void TableDeleter::Delete() {
 
 void TableDeleter::OpenWriter() {
   writer_ = PAX_NEW<TableWriter>(rel_);
-  auto stats = PAX_NEW<MicroPartitionStats>()->SetMinMaxColumnIndex(cbdb::GetMinMaxColumnsIndex(rel_));
+  auto stats = PAX_NEW<MicroPartitionStats>()->SetMinMaxColumnIndex(
+      cbdb::GetMinMaxColumnsIndex(rel_));
   writer_->SetWriteSummaryCallback(&cbdb::InsertOrUpdateMicroPartitionEntry)
       ->SetFileSplitStrategy(PAX_NEW<PaxDefaultSplitStrategy>())
       ->SetStatsCollector(stats)

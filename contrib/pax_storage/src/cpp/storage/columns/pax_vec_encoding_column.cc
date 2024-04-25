@@ -203,12 +203,15 @@ template class PaxVecEncodingColumn<int32>;
 template class PaxVecEncodingColumn<int64>;
 
 PaxVecNonFixedEncodingColumn::PaxVecNonFixedEncodingColumn(
-    uint32 capacity, const PaxEncoder::EncodingOption &encoder_options)
-    : PaxVecNonFixedColumn(capacity),
+    uint32 data_capacity, uint32 lengths_capacity,
+    const PaxEncoder::EncodingOption &encoder_options)
+    : PaxVecNonFixedColumn(data_capacity, lengths_capacity),
       encoder_options_(encoder_options),
       compressor_(nullptr),
       compress_route_(true),
-      shared_data_(nullptr) {
+      shared_data_(nullptr),
+      offsets_compressor_(nullptr),
+      shared_offsets_data_(nullptr) {
   if (encoder_options.column_encode_type ==
       ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED) {
     encoder_options_.column_encode_type = ColumnEncoding_Kind_COMPRESS_ZSTD;
@@ -224,26 +227,45 @@ PaxVecNonFixedEncodingColumn::PaxVecNonFixedEncodingColumn(
         ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED);
     PaxColumn::SetCompressLevel(0);
   }
+
+  Assert(encoder_options_.lengths_encode_type !=
+         ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED);
+  offsets_compressor_ = PaxCompressor::CreateBlockCompressor(
+      encoder_options_.lengths_encode_type);
+  SetLengthsEncodeType(encoder_options_.lengths_encode_type);
+  SetLengthsCompressLevel(encoder_options_.lengths_compress_level);
 }
 
 PaxVecNonFixedEncodingColumn::PaxVecNonFixedEncodingColumn(
-    uint32 capacity, const PaxDecoder::DecodingOption &decoding_option)
-    : PaxVecNonFixedColumn(capacity),
+    uint32 data_capacity, uint32 lengths_capacity,
+    const PaxDecoder::DecodingOption &decoding_option)
+    : PaxVecNonFixedColumn(data_capacity, lengths_capacity),
       decoder_options_(decoding_option),
       compressor_(nullptr),
       compress_route_(false),
-      shared_data_(nullptr) {
+      shared_data_(nullptr),
+      offsets_compressor_(nullptr),
+      shared_offsets_data_(nullptr) {
   Assert(decoder_options_.column_encode_type !=
          ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED);
   PaxColumn::SetEncodeType(decoder_options_.column_encode_type);
   PaxColumn::SetCompressLevel(decoder_options_.compress_level);
   compressor_ =
       PaxCompressor::CreateBlockCompressor(PaxColumn::GetEncodingType());
+
+  Assert(decoder_options_.lengths_encode_type !=
+         ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED);
+  offsets_compressor_ = PaxCompressor::CreateBlockCompressor(
+      decoder_options_.lengths_encode_type);
+  SetLengthsEncodeType(decoder_options_.lengths_encode_type);
+  SetLengthsCompressLevel(decoder_options_.lengths_compress_level);
 }
 
 PaxVecNonFixedEncodingColumn::~PaxVecNonFixedEncodingColumn() {
   PAX_DELETE(compressor_);
   PAX_DELETE(shared_data_);
+  PAX_DELETE(offsets_compressor_);
+  PAX_DELETE(shared_offsets_data_);
 }
 
 void PaxVecNonFixedEncodingColumn::Set(DataBuffer<char> *data,
@@ -251,12 +273,10 @@ void PaxVecNonFixedEncodingColumn::Set(DataBuffer<char> *data,
                                        size_t total_size,
                                        size_t non_null_rows) {
   PaxColumn::non_null_rows_ = non_null_rows;
-  if (compressor_) {
-    Assert(!compress_route_);
 
-    // still need update origin logic
-    PAX_DELETE(offsets_);
-    offsets_ = offsets;
+  auto data_decompress = [&]() {
+    Assert(!compress_route_);
+    Assert(compressor_);
 
     if (data->Used() != 0) {
       auto d_size = compressor_->Decompress(
@@ -270,7 +290,46 @@ void PaxVecNonFixedEncodingColumn::Set(DataBuffer<char> *data,
 
     Assert(!data->IsMemTakeOver());
     PAX_DELETE(data);
-  } else {
+  };
+
+  auto offsets_decompress = [&]() {
+    Assert(!compress_route_);
+    Assert(offsets_compressor_);
+
+    if (offsets->Used() != 0) {
+      auto d_size = offsets_compressor_->Decompress(
+          PaxVecNonFixedColumn::offsets_->Start(),
+          PaxVecNonFixedColumn::offsets_->Capacity(), offsets->Start(),
+          offsets->Used());
+      if (offsets_compressor_->IsError(d_size)) {
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+      }
+      PaxVecNonFixedColumn::offsets_->Brush(d_size);
+    }
+
+    PAX_DELETE(offsets);
+  };
+
+  if (compressor_ && offsets_compressor_) {
+    data_decompress();
+    offsets_decompress();
+
+    estimated_size_ = total_size;
+  } else if (compressor_ && !offsets_compressor_) {
+    data_decompress();
+
+    PAX_DELETE(offsets_);
+    offsets_ = offsets;
+
+    estimated_size_ = total_size;
+  } else if (!compressor_ && offsets_compressor_) {
+    PAX_DELETE(data_);
+    data_ = data;
+
+    offsets_decompress();
+
+    estimated_size_ = total_size;
+  } else {  // (!compressor_ && !offsets_compressor_)
     PaxVecNonFixedColumn::Set(data, offsets_, total_size, non_null_rows);
   }
 }
@@ -320,6 +379,47 @@ size_t PaxVecNonFixedEncodingColumn::GetAlignSize() const {
   }
 
   return PAX_DATA_NO_ALIGN;
+}
+
+std::pair<char *, size_t> PaxVecNonFixedEncodingColumn::GetOffsetBuffer(
+    bool append_last) {
+  if (append_last) {
+    AppendLastOffset();
+  }
+
+  if (offsets_compressor_) {
+    if (shared_offsets_data_) {
+      return std::make_pair(shared_offsets_data_->Start(),
+                            shared_offsets_data_->Used());
+    }
+
+    if (PaxVecNonFixedColumn::offsets_->Used() == 0) {
+      // should never append last offset again
+      return PaxVecNonFixedColumn::GetOffsetBuffer(false);
+    }
+
+    size_t bound_size = offsets_compressor_->GetCompressBound(
+        PaxVecNonFixedColumn::offsets_->Used());
+    shared_offsets_data_ = PAX_NEW<DataBuffer<char>>(bound_size);
+
+    auto d_size = offsets_compressor_->Compress(
+        shared_offsets_data_->Start(), shared_offsets_data_->Capacity(),
+        PaxVecNonFixedColumn::offsets_->Start(),
+        PaxVecNonFixedColumn::offsets_->Used(),
+        encoder_options_.compress_level);
+
+    if (offsets_compressor_->IsError(d_size)) {
+      CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+    }
+
+    shared_offsets_data_->Brush(d_size);
+    return std::make_pair(shared_offsets_data_->Start(),
+                          shared_offsets_data_->Used());
+  }
+
+  // no compress or uncompressed
+  // should never append last offset again
+  return PaxVecNonFixedColumn::GetOffsetBuffer(false);
 }
 
 }  // namespace pax

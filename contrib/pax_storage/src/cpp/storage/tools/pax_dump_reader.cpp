@@ -461,6 +461,7 @@ void PaxDumpReader::DumpGroupFooter() {
           {"Stream type", std::to_string(n_stream->kind())});
       stream_desc_table.add_row({"Column", std::to_string(n_stream->column())});
       stream_desc_table.add_row({"Length", std::to_string(n_stream->length())});
+      stream_desc_table.add_row({"Padding", std::to_string(n_stream->padding())});
 
       if (n_stream->kind() ==
           ::pax::porc::proto::Stream_Kind::Stream_Kind_DATA) {

@@ -25,7 +25,8 @@ std::vector<pax::porc::proto::Type_Kind> OrcWriter::BuildSchema(TupleDesc desc,
             type_kinds.emplace_back(
                 pax::porc::proto::Type_Kind::Type_Kind_BOOLEAN);
           } else {
-            type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_BYTE);
+            type_kinds.emplace_back(
+                pax::porc::proto::Type_Kind::Type_Kind_BYTE);
           }
           break;
         case 2:
@@ -67,7 +68,7 @@ static PaxColumn *CreateDecimalColumn(bool is_vec,
   } else {
     return (PaxColumn *)
         traits::ColumnOptCreateTraits2<PaxPgNumericColumn>::create_encoding(
-            DEFAULT_CAPACITY, opts);
+            DEFAULT_CAPACITY, DEFAULT_CAPACITY, opts);
   }
 }
 
@@ -76,7 +77,7 @@ static PaxColumn *CreateBpCharColumn(bool is_vec,
   CBDB_CHECK(!is_vec, cbdb::CException::ExType::kExTypeUnImplements);
   return (PaxColumn *)
       traits::ColumnOptCreateTraits2<PaxBpCharColumn>::create_encoding(
-          DEFAULT_CAPACITY, opts);
+          DEFAULT_CAPACITY, DEFAULT_CAPACITY, opts);
 }
 
 static PaxColumn *CreateBitPackedColumn(
@@ -105,6 +106,7 @@ static PaxColumns *BuildColumns(
     const std::vector<pax::porc::proto::Type_Kind> &types,
     const std::vector<std::tuple<ColumnEncoding_Kind, int>>
         &column_encoding_types,
+    const std::pair<ColumnEncoding_Kind, int> &lengths_encoding_types,
     const PaxStorageFormat &storage_format) {
   PaxColumns *columns;
   bool is_vec;
@@ -121,18 +123,27 @@ static PaxColumns *BuildColumns(
     encoding_option.is_sign = true;
     encoding_option.compress_level = std::get<1>(column_encoding_types[i]);
 
+    if (lengths_encoding_types.first == ColumnEncoding_Kind_DEF_ENCODED) {
+      // default value of lengths_stream is zstd
+      encoding_option.lengths_encode_type = ColumnEncoding_Kind_COMPRESS_ZSTD;
+      encoding_option.lengths_compress_level = 5;
+    } else {
+      encoding_option.lengths_encode_type = lengths_encoding_types.first;
+      encoding_option.lengths_compress_level = lengths_encoding_types.second;
+    }
+
     switch (type) {
       case (pax::porc::proto::Type_Kind::Type_Kind_STRING): {
         encoding_option.is_sign = false;
-        columns->Append(is_vec
-                            ? (PaxColumn *)traits::ColumnOptCreateTraits2<
-                                  PaxVecNonFixedEncodingColumn>::
-                                  create_encoding(DEFAULT_CAPACITY,
-                                                  std::move(encoding_option))
-                            : (PaxColumn *)traits::ColumnOptCreateTraits2<
-                                  PaxNonFixedEncodingColumn>::
-                                  create_encoding(DEFAULT_CAPACITY,
-                                                  std::move(encoding_option)));
+        columns->Append(
+            is_vec ? (PaxColumn *)traits::ColumnOptCreateTraits2<
+                         PaxVecNonFixedEncodingColumn>::
+                         create_encoding(DEFAULT_CAPACITY, DEFAULT_CAPACITY,
+                                         std::move(encoding_option))
+                   : (PaxColumn *)traits::ColumnOptCreateTraits2<
+                         PaxNonFixedEncodingColumn>::
+                         create_encoding(DEFAULT_CAPACITY, DEFAULT_CAPACITY,
+                                         std::move(encoding_option)));
         break;
       }
       case (pax::porc::proto::Type_Kind::Type_Kind_BPCHAR): {
@@ -190,6 +201,7 @@ OrcWriter::OrcWriter(
       total_rows_(0),
       current_offset_(0) {
   pax_columns_ = BuildColumns(column_types_, writer_options.encoding_opts,
+                              writer_options.lengths_encoding_opts,
                               writer_options.storage_format);
 
   TupleDesc desc = writer_options.desc;
@@ -253,7 +265,8 @@ MicroPartitionWriter *OrcWriter::SetStatsCollector(
     auto stats_data = PAX_NEW<MicroPartittionFileStatsData>(
         &summary_.mp_stats, static_cast<int>(column_types_.size()));
     mpstats->SetStatsMessage(stats_data, column_types_.size());
-    stats_collector_.SetMinMaxColumnIndex(std::vector<int>(mpstats->GetMinMaxColumnIndex()));
+    stats_collector_.SetMinMaxColumnIndex(
+        std::vector<int>(mpstats->GetMinMaxColumnIndex()));
 
     return MicroPartitionWriter::SetStatsCollector(mpstats);
   }
@@ -271,6 +284,7 @@ void OrcWriter::Flush() {
                    current_offset_ - buffer_mem_stream.GetDataBuffer()->Used());
     PAX_DELETE(pax_columns_);
     pax_columns_ = BuildColumns(column_types_, writer_options_.encoding_opts,
+                                writer_options_.lengths_encoding_opts,
                                 writer_options_.storage_format);
   }
 }
@@ -524,23 +538,34 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
 
   PaxColumns::ColumnStreamsFunc column_streams_func =
       [&streams](const pax::porc::proto::Stream_Kind &kind, size_t column,
-                 size_t length) {
+                 size_t length, size_t padding) {
+        Assert(padding < MEMORY_ALIGN_SIZE);
         pax::porc::proto::Stream stream;
         stream.set_kind(kind);
         stream.set_column(static_cast<uint32>(column));
         stream.set_length(length);
+        stream.set_padding(padding);
+
         streams.push_back(std::move(stream));
       };
 
   PaxColumns::ColumnEncodingFunc column_encoding_func =
       [&encoding_kinds](const ColumnEncoding_Kind &encoding_kind,
-                        const uint64 compress_lvl, int64 origin_len) {
+                        const uint64 compress_lvl, const int64 origin_len,
+                        const ColumnEncoding_Kind &length_stream_encoding_kind,
+                        const uint64 length_stream_compress_lvl,
+                        const int64 length_stream_origin_len) {
         ColumnEncoding column_encoding;
         Assert(encoding_kind !=
                ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED);
         column_encoding.set_kind(encoding_kind);
         column_encoding.set_compress_lvl(compress_lvl);
         column_encoding.set_length(origin_len);
+
+        column_encoding.set_length_stream_kind(length_stream_encoding_kind);
+        column_encoding.set_length_stream_compress_lvl(
+            length_stream_compress_lvl);
+        column_encoding.set_length_stream_length(length_stream_origin_len);
 
         encoding_kinds.push_back(std::move(column_encoding));
       };
