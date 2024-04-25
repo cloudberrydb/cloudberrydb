@@ -48,6 +48,7 @@ install-data: build
 .PHONY: install
 install: install-data
 	@echo "install data"
+	@if [ -f build/src/cpp/pax_dump ]; then $(INSTALL_PROGRAM) build/src/cpp/pax_dump '$(DESTDIR)$(bindir)/pax_dump'; fi;
 	make -C build install
 
 # .PHONY: installcheck
