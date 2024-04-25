@@ -117,3 +117,7 @@ extern PaxStorageFormat StorageFormatKeyToPaxStorageFormat(
     const char *storage_format_str);
 
 }  // namespace pax
+
+namespace cbdb {
+std::vector<int> GetMinMaxColumnsIndex(Relation rel);
+}

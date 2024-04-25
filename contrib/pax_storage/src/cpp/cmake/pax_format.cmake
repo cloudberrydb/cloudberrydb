@@ -122,3 +122,9 @@ install(FILES ${PAX_EXCEPTION_HEADERS}
 install(TARGETS paxformat
   LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
+
+## test whether libpaxformat.so can be linked normally
+add_executable(paxformat_test paxformat_test.cc)
+target_include_directories(paxformat_test PUBLIC ${pax_target_include} ${CMAKE_CURRENT_SOURCE_DIR})
+add_dependencies(paxformat_test paxformat)
+target_link_libraries(paxformat_test PUBLIC paxformat postgres)

@@ -370,30 +370,6 @@ bool cbdb::MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily,
   CBDB_WRAP_END;
 }
 
-std::vector<int> cbdb::GetMinMaxColumnsIndex(Relation rel) {
-  std::vector<int> indexes;
-  Bitmapset *bms;
-  int idx;
-
-  {
-  CBDB_WRAP_START;
-  { bms = paxc::paxc_get_minmax_columns_index(rel, false); }
-  CBDB_WRAP_END;
-  }
-
-  idx = -1;
-  while ((idx = bms_next_member(bms, idx)) >= 0) {
-    indexes.push_back(idx);
-  }
-
-  {
-  CBDB_WRAP_START;
-  { bms_free(bms); }
-  CBDB_WRAP_END;
-  }
-
-  return indexes;
-}
 
 Datum cbdb::FunctionCall1Coll(FmgrInfo *flinfo, Oid collation, Datum arg1) {
   CBDB_WRAP_START;
