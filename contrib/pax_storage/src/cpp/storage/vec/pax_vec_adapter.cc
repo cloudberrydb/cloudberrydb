@@ -147,35 +147,31 @@ int VecAdapter::GetMaxBatchSizeFromStr(char *max_batch_size_str,
   return max_batch_size_str ? atoi(max_batch_size_str) : default_value;
 }
 
-static void CopyFixedRawBufferWithNull(PaxColumn *column,
-                                       const Bitmap8 *visibility_map_bitset,
-                                       size_t bitset_index_begin,
-                                       size_t range_begin, size_t range_lens,
-                                       size_t data_index_begin,
-                                       size_t data_range_lens,
-                                       DataBuffer<char> *out_data_buffer);
+static void CopyFixedRawBufferWithNull(
+    PaxColumn *column, std::shared_ptr<Bitmap8> visibility_map_bitset,
+    size_t bitset_index_begin, size_t range_begin, size_t range_lens,
+    size_t data_index_begin, size_t data_range_lens,
+    DataBuffer<char> *out_data_buffer);
 
 static void CopyFixedBuffer(PaxColumn *column,
-                            const Bitmap8 *visibility_map_bitset,
+                            std::shared_ptr<Bitmap8> visibility_map_bitset,
                             size_t bitset_index_begin, size_t range_begin,
                             size_t range_lens, size_t data_index_begin,
                             size_t data_range_lens,
                             DataBuffer<char> *out_data_buffer);
 
-static void CopyNonFixedRawBuffer(PaxColumn *column,
-                                  const Bitmap8 *visibility_map_bitset,
-                                  size_t bitset_index_begin, size_t range_begin,
-                                  size_t range_lens, size_t data_index_begin,
-                                  size_t data_range_lens,
-                                  DataBuffer<int32> *offset_buffer,
-                                  DataBuffer<char> *out_data_buffer,
-                                  bool is_bpchar);
+static void CopyNonFixedRawBuffer(
+    PaxColumn *column, std::shared_ptr<Bitmap8> visibility_map_bitset,
+    size_t bitset_index_begin, size_t range_begin, size_t range_lens,
+    size_t data_index_begin, size_t data_range_lens,
+    DataBuffer<int32> *offset_buffer, DataBuffer<char> *out_data_buffer,
+    bool is_bpchar);
 
 static void CopyBitmap(const Bitmap8 *bitmap, size_t range_begin,
                        size_t range_lens, DataBuffer<char> *null_bits_buffer);
 
 static void CopyBitmapToVecBuffer(
-    PaxColumn *column, const Bitmap8 *visibility_map_bitset,
+    PaxColumn *column, std::shared_ptr<Bitmap8> visibility_map_bitset,
     size_t bitset_index_begin, size_t range_begin, size_t range_lens,
     size_t data_range_lens, size_t out_range_lens,
     VecAdapter::VecBatchBuffer *vec_cache_buffer_) {
@@ -221,7 +217,8 @@ static void CopyBitmapToVecBuffer(
       auto null_bytes =
           TYPEALIGN(MEMORY_ALIGN_SIZE, BITS_TO_BYTES(out_range_lens));
       Assert(!null_bits_buffer->GetBuffer());
-      null_bits_buffer->Set(BlockBuffer::Alloc0<char *>(null_bytes), null_bytes);
+      null_bits_buffer->Set(BlockBuffer::Alloc0<char *>(null_bytes),
+                            null_bytes);
       CopyBitmap(null_bitmap, 0, out_range_lens, null_bits_buffer);
       vec_cache_buffer_->null_counts = null_count;
       CBDB_CHECK(out_range_lens == null_index,
@@ -267,7 +264,7 @@ void VecAdapter::VecBatchBuffer::SetMemoryTakeOver(bool take) {
 }
 
 void CopyFixedRawBufferWithNull(PaxColumn *column,
-                                const Bitmap8 *visibility_map_bitset,
+                                std::shared_ptr<Bitmap8> visibility_map_bitset,
                                 size_t bitset_index_begin, size_t range_begin,
                                 size_t range_lens, size_t data_index_begin,
                                 size_t data_range_lens,
@@ -299,7 +296,7 @@ void CopyFixedRawBufferWithNull(PaxColumn *column,
 }
 
 void CopyBooleanBufferToArrowLayout(
-    PaxColumn *column, const Bitmap8 *visibility_map_bitset,
+    PaxColumn *column, std::shared_ptr<Bitmap8> visibility_map_bitset,
     size_t bitset_index_begin, size_t range_begin, size_t range_lens,
     size_t data_index_begin, size_t data_range_lens, Bitmap8 *out_data_buffer) {
   char *buffer;
@@ -336,7 +333,8 @@ void CopyBooleanBufferToArrowLayout(
   }
 }
 
-void CopyFixedBuffer(PaxColumn *column, const Bitmap8 *visibility_map_bitset,
+void CopyFixedBuffer(PaxColumn *column,
+                     std::shared_ptr<Bitmap8> visibility_map_bitset,
                      size_t bitset_index_begin, size_t range_begin,
                      size_t range_lens, size_t data_index_begin,
                      size_t data_range_lens,
@@ -386,7 +384,7 @@ static inline void VarlenaToRawBuffer(char *buffer, size_t buffer_len,
 }
 
 void CopyNonFixedRawBuffer(PaxColumn *column,
-                           const Bitmap8 *visibility_map_bitset,
+                           std::shared_ptr<Bitmap8> visibility_map_bitset,
                            size_t bitset_index_begin, size_t range_begin,
                            size_t range_lens, size_t data_index_begin,
                            size_t data_range_lens,
@@ -457,7 +455,7 @@ void CopyNonFixedRawBuffer(PaxColumn *column,
 }
 
 static void CopyDecimalRawBuffer(PaxColumn *column,
-                                 const Bitmap8 *visibility_map_bitset,
+                                 std::shared_ptr<Bitmap8> visibility_map_bitset,
                                  size_t bitset_index_begin, size_t range_begin,
                                  size_t range_lens, size_t data_index_begin,
                                  size_t data_range_lens,
@@ -778,8 +776,7 @@ void VecAdapter::SetDataSource(PaxColumns *columns) {
   AssertImply(vec_cache_buffer_,
               columns->GetColumns() == (size_t)vec_cache_buffer_lens_);
   if (!vec_cache_buffer_) {
-    vec_cache_buffer_ =
-        PAX_NEW_ARRAY<VecBatchBuffer>(columns->GetColumns());
+    vec_cache_buffer_ = PAX_NEW_ARRAY<VecBatchBuffer>(columns->GetColumns());
     vec_cache_buffer_lens_ = columns->GetColumns();
   }
 }
@@ -1063,7 +1060,7 @@ int VecAdapter::AppendVecFormat() {
           vec_buffer->Set(buffer, cap_len);
           vec_buffer->BrushAll();
         } else {
-          vec_buffer->Set(BlockBuffer::Alloc<char*>(
+          vec_buffer->Set(BlockBuffer::Alloc<char *>(
                               TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len)),
                           TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len));
           vec_buffer->Write(buffer, buffer_len);
@@ -1150,7 +1147,7 @@ int VecAdapter::AppendVecFormat() {
           vec_buffer->Set(buffer, cap_len);
           vec_buffer->BrushAll();
         } else {
-          vec_buffer->Set(BlockBuffer::Alloc<char*>(
+          vec_buffer->Set(BlockBuffer::Alloc<char *>(
                               TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len)),
                           TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len));
           vec_buffer->Write(buffer, buffer_len);
@@ -1166,7 +1163,7 @@ int VecAdapter::AppendVecFormat() {
     if (column->HasNull()) {
       Bitmap8 *bitmap = nullptr;
       Assert(!null_bits_buffer->GetBuffer());
-      null_bits_buffer->Set(BlockBuffer::Alloc<char*>(null_align_bytes),
+      null_bits_buffer->Set(BlockBuffer::Alloc<char *>(null_align_bytes),
                             null_align_bytes);
       bitmap = column->GetBitmap();
       Assert(bitmap);

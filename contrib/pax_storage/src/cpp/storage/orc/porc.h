@@ -177,8 +177,8 @@ class OrcReader : public MicroPartitionReader {
   PaxColumnCache *pax_column_cache_ = nullptr;
   std::vector<std::string> release_key_;
 #endif  // ENABLE_PLASMA
-  // orc reader owner visibility_bitmap_
-  const Bitmap8 *visibility_bitmap_ = nullptr;
+  // only reference
+  std::shared_ptr<Bitmap8>visibility_bitmap_ = nullptr;
 };
 
 };  // namespace pax

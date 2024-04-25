@@ -7,9 +7,9 @@
 #include "comm/cbdb_wrappers.h"
 #include "exceptions/CException.h"
 #include "storage/columns/pax_column_cache.h"
-#include "storage/orc/porc.h"
 #include "storage/orc/orc_defined.h"
 #include "storage/orc/orc_group.h"
+#include "storage/orc/porc.h"
 #include "storage/pax_filter.h"
 #include "storage/pax_itemptr.h"
 
@@ -125,11 +125,15 @@ MicroPartitionReader::Group *OrcReader::ReadGroup(size_t group_index) {
   }
 #endif  // ENABLE_DEBUG
 
+  MicroPartitionReader::Group *group;
   size_t group_offset = format_reader_.GetStripeOffset(group_index);
   if (COLUMN_STORAGE_FORMAT_IS_VEC(pax_columns))
-    return PAX_NEW<OrcVecGroup>(pax_columns, group_offset, proj_column_index_);
+    group = PAX_NEW<OrcVecGroup>(pax_columns, group_offset, proj_column_index_);
   else
-    return PAX_NEW<OrcGroup>(pax_columns, group_offset, proj_column_index_);
+    group = PAX_NEW<OrcGroup>(pax_columns, group_offset, proj_column_index_);
+
+  group->SetVisibilityMap(visibility_bitmap_);
+  return group;
 }
 
 size_t OrcReader::GetGroupNums() { return format_reader_.GetStripeNums(); }
@@ -197,7 +201,6 @@ retry_read_group:
     }
 
     working_group_ = ReadGroup(current_group_index_++);
-    working_group_->SetVisibilityMap(visibility_bitmap_);
     auto columns = working_group_->GetAllColumns();
 
     // The column number in Pax file meta could be smaller than the column
@@ -268,7 +271,6 @@ bool OrcReader::GetTuple(TupleTableSlot *slot, size_t row_index) {
 found:
   auto ok =
       cached_group_->GetTuple(slot, row_index - cached_group_->GetRowOffset());
-  Assert(ok);
   SetTupleOffset(&slot->tts_tid, row_index);
   return ok;
 }

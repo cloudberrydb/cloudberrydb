@@ -30,7 +30,7 @@ class OrcGroup : public MicroPartitionReader::Group {
 
   std::pair<Datum, bool> GetColumnValue(TupleDesc desc, size_t column_index,
                                         size_t row_index) override;
-  void SetVisibilityMap(const Bitmap8 *visibility_bitmap) {
+  void SetVisibilityMap(std::shared_ptr<Bitmap8>visibility_bitmap) {
     micro_partition_visibility_bitmap_ = visibility_bitmap;
   }
 
@@ -56,7 +56,7 @@ class OrcGroup : public MicroPartitionReader::Group {
  protected:
   PaxColumns *pax_columns_;
   // only referenced
-  const Bitmap8 *micro_partition_visibility_bitmap_;
+  std::shared_ptr<Bitmap8>micro_partition_visibility_bitmap_;
   size_t row_offset_;
   size_t current_row_index_;
 

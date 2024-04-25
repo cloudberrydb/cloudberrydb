@@ -399,22 +399,26 @@ bool PaxScanDesc::ScanAnalyzeNextBlock(BlockNumber blockno,
 }
 
 bool PaxScanDesc::ScanAnalyzeNextTuple(TransactionId /*oldest_xmin*/,
-                                       double *liverows,
-                                       const double * /* deadrows */,
+                                       double *liverows, double *deadrows,
                                        TupleTableSlot *slot) {
   MemoryContext old_ctx;
   bool ok = false;
 
-  old_ctx = MemoryContextSwitchTo(memory_context_);
-  while (next_tuple_id_ < target_tuple_id_) {
-    ok = GetNextSlot(slot);
-    if (!ok) break;
-    next_tuple_id_++;
+  if (next_tuple_id_ > target_tuple_id_) {
+    return false;
   }
-  if (next_tuple_id_ == target_tuple_id_) {
-    ok = GetNextSlot(slot);
-    next_tuple_id_++;
-    if (ok) *liverows += 1;
+
+  old_ctx = MemoryContextSwitchTo(memory_context_);
+  ExecClearTuple(slot);
+  ok = reader_->GetTuple(slot, ForwardScanDirection,
+                         target_tuple_id_ - prev_target_tuple_id_);
+  next_tuple_id_ = target_tuple_id_ + 1;
+  prev_target_tuple_id_ = target_tuple_id_;
+  if (ok) {
+    ExecStoreVirtualTuple(slot);
+    *liverows += 1;
+  } else {
+    *deadrows += 1;
   }
   MemoryContextSwitchTo(old_ctx);
   return ok;

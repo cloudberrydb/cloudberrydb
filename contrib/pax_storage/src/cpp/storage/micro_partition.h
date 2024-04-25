@@ -147,7 +147,7 @@ class MicroPartitionReader {
     // from buffer. more details in `storage/columns`
     virtual PaxColumns *GetAllColumns() const = 0;
 
-    virtual void SetVisibilityMap(const Bitmap8 *visibility_bitmap) = 0;
+    virtual void SetVisibilityMap(std::shared_ptr<Bitmap8>visibility_bitmap) = 0;
   };
 
   struct ReaderOptions {
@@ -170,7 +170,8 @@ class MicroPartitionReader {
     uint32 flags = 0;
     bool is_vec_scan = false;
 
-    Bitmap8 *visibility_bitmap = nullptr;
+    // should only reference
+    std::shared_ptr<Bitmap8> visibility_bitmap = nullptr;
   };
   MicroPartitionReader() = default;
 

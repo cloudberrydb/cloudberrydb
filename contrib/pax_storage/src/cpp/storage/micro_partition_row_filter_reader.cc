@@ -16,7 +16,7 @@ static inline bool TestExecQual(ExprState *estate, ExprContext *econtext) {
 
 MicroPartitionRowFilterReader *MicroPartitionRowFilterReader::New(
     MicroPartitionReader *reader, PaxFilter *filter,
-    Bitmap8 *visibility_bitmap) {
+    std::shared_ptr<Bitmap8> visibility_bitmap) {
   Assert(reader);
   Assert(filter && filter->HasRowScanFilter());
 
@@ -93,7 +93,8 @@ retry_next:
         g->GetColumnValue(desc, attno - 1, current_group_row_index_);
   }
   current_group_row_index_++;
-  SetTupleOffset(&slot->tts_tid, g->GetRowOffset() + current_group_row_index_ - 1);
+  SetTupleOffset(&slot->tts_tid,
+                 g->GetRowOffset() + current_group_row_index_ - 1);
   if (ctx->estate_final && !TestRowScanInternal(slot, ctx->estate_final, 0))
     goto retry_next;
 

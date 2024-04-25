@@ -49,7 +49,7 @@ class VecAdapter final {
   bool ShouldBuildCtid() const;
 
   inline void SetVisibitilyMapInfo(size_t row_offset_begin,
-                                   Bitmap8 *visibility_bitmap) {
+                                   std::shared_ptr<Bitmap8> visibility_bitmap) {
     micro_partition_row_offset_ = row_offset_begin;
     micro_partition_visibility_bitmap_ = visibility_bitmap;
   }
@@ -87,7 +87,7 @@ class VecAdapter final {
 
   size_t micro_partition_row_offset_;
   // only referenced
-  const Bitmap8 *micro_partition_visibility_bitmap_ = nullptr;
+  std::shared_ptr<Bitmap8> micro_partition_visibility_bitmap_ = nullptr;
 
   // ctid offset in current batch range
   DataBuffer<int32> *ctid_offset_in_current_range_;

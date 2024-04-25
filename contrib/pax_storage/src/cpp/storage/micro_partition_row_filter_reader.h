@@ -7,14 +7,14 @@ class MicroPartitionRowFilterReader : public MicroPartitionReaderProxy {
  public:
   static MicroPartitionRowFilterReader *New(
       MicroPartitionReader *reader, PaxFilter *filter,
-      Bitmap8 *visibility_bitmap = nullptr);
+      std::shared_ptr<Bitmap8> visibility_bitmap = nullptr);
   MicroPartitionRowFilterReader() = default;
   ~MicroPartitionRowFilterReader() override = default;
   bool ReadTuple(TupleTableSlot *slot) override;
   MicroPartitionReader::Group *GetNextGroup(TupleDesc desc);
 
  private:
-  inline void SetVisibilityBitmap(Bitmap8 *visibility_bitmap) {
+  inline void SetVisibilityBitmap(std::shared_ptr<Bitmap8> visibility_bitmap) {
     micro_partition_visibility_bitmap_ = visibility_bitmap;
   }
 
@@ -27,6 +27,6 @@ class MicroPartitionRowFilterReader : public MicroPartitionReaderProxy {
   size_t group_index_ = 0;
   MicroPartitionReader::Group *group_ = nullptr;
   // only referenced
-  const Bitmap8 *micro_partition_visibility_bitmap_;
+  std::shared_ptr<Bitmap8> micro_partition_visibility_bitmap_;
 };
 }  // namespace pax

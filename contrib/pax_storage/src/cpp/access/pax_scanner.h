@@ -57,7 +57,7 @@ class PaxScanDesc {
   bool ScanAnalyzeNextBlock(BlockNumber blockno,
                             BufferAccessStrategy bstrategy);
   bool ScanAnalyzeNextTuple(TransactionId oldest_xmin, double *liverows,
-                            const double *deadrows, TupleTableSlot *slot);
+                            double *deadrows, TupleTableSlot *slot);
 
   bool ScanSampleNextBlock(SampleScanState *scanstate);
 
@@ -91,6 +91,8 @@ class PaxScanDesc {
 
   // Only used by `scan analyze` and `scan sample`
   uint64 next_tuple_id_ = 0;
+  // Only used by `scan analyze`
+  uint64 prev_target_tuple_id_ = 0;
   // Only used by `scan analyze`
   uint64 target_tuple_id_ = 0;
   // Only used by `scan sample`

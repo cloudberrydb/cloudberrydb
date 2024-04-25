@@ -151,9 +151,9 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
   auto is_fixed = ::testing::get<0>(GetParam());
   auto with_visimap = ::testing::get<1>(GetParam());
   auto tuple_slot = CreateTupleSlot(is_fixed);
-  Bitmap8 *visimap = nullptr;
+  std::shared_ptr<Bitmap8> visimap = nullptr;
   if (with_visimap) {
-    visimap = PAX_NEW<Bitmap8>(VEC_BATCH_LENGTH + 1000);
+    visimap = std::make_shared<Bitmap8>(VEC_BATCH_LENGTH + 1000);
   }
 
   adapter =
@@ -1061,9 +1061,9 @@ TEST_P(PaxVecTest, PaxColumnWithNullAndVisimapToVec) {
   size_t null_counts = 0;
   auto is_fixed = ::testing::get<0>(GetParam());
   auto with_visimap = ::testing::get<1>(GetParam());
-  Bitmap8 *visimap = nullptr;
+  std::shared_ptr<Bitmap8> visimap = nullptr;
   if (with_visimap) {
-    visimap = PAX_NEW<Bitmap8>(VEC_BATCH_LENGTH + 1000);
+    visimap = std::make_shared<Bitmap8>(VEC_BATCH_LENGTH + 1000);
   }
 
   TupleTableSlot *tuple_slot = CreateTupleSlot(is_fixed);
@@ -1221,9 +1221,9 @@ TEST_P(PaxVecTest, PaxColumnBuildCtidToVec) {
   auto is_fixed = ::testing::get<0>(GetParam());
   auto with_visimap = ::testing::get<1>(GetParam());
   auto tuple_slot = CreateTupleSlot(is_fixed, false, true);
-  Bitmap8 *visimap = nullptr;
+  std::shared_ptr<Bitmap8> visimap = nullptr;
   if (with_visimap) {
-    visimap = PAX_NEW<Bitmap8>(VEC_BATCH_LENGTH + 1000);
+    visimap = std::make_shared<Bitmap8>(VEC_BATCH_LENGTH + 1000);
   }
 
   int64 base_ctid = 1;

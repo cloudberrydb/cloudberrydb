@@ -152,7 +152,7 @@ TEST_F(MicroPartitionFileFactoryTest, OrcReadWithVisibilitymap) {
   file_ptr = local_fs->Open(file_name_, fs::kReadMode);
 
   MicroPartitionReader::ReaderOptions reader_options;
-  Bitmap8 *visimap = PAX_NEW<Bitmap8>(tuple_count);
+  auto visimap = std::make_shared<Bitmap8>(tuple_count);
 
   for (int i = 0; i < tuple_count; i += 2) {
     visimap->Set(i);
@@ -183,7 +183,6 @@ TEST_F(MicroPartitionFileFactoryTest, OrcReadWithVisibilitymap) {
   DeleteTestTupleTableSlot(tuple_slot);
   PAX_DELETE(writer);
   PAX_DELETE(reader);
-  PAX_DELETE(visimap);
 }
 #ifdef VEC_BUILD
 TEST_F(MicroPartitionFileFactoryTest, VecReadWithVisibilitymap) {
@@ -229,7 +228,7 @@ TEST_F(MicroPartitionFileFactoryTest, VecReadWithVisibilitymap) {
   file_ptr = local_fs->Open(file_name_, fs::kReadMode);
 
   MicroPartitionReader::ReaderOptions reader_options;
-  Bitmap8 *visimap = PAX_NEW<Bitmap8>(tuple_count);
+  auto visimap = std::make_shared<Bitmap8>(tuple_count);
 
   for (int i = 0; i < tuple_count; i += 2) {
     visimap->Set(i);
@@ -285,7 +284,6 @@ TEST_F(MicroPartitionFileFactoryTest, VecReadWithVisibilitymap) {
     ASSERT_EQ(child_array->children, nullptr);
     ASSERT_NE(child_array->buffers[0], nullptr);  // null bitmap
     ASSERT_EQ(child_array->private_data, child_array);
-
 
     child_array = arrow_array->children[2];
     ASSERT_EQ(child_array->length, tuple_count / 2);

@@ -109,6 +109,9 @@ class TableReader final {
 
   bool ReadTuple(TupleTableSlot *slot);
 
+  bool GetTuple(TupleTableSlot *slot, ScanDirection direction,
+                const size_t offset);
+
   // deprecate:
   // DON'T USE, this function will be removed
   const std::string &GetCurrentMicroPartitionId() const {
@@ -126,6 +129,11 @@ class TableReader final {
   uint32 current_block_number_ = 0;
 
   std::string micro_partition_id_;
+
+  // only for analyze scan
+  MicroPartitionMetadata current_block_metadata_;
+  // only for analyze scan
+  size_t current_block_row_index_ = 0;
 };
 
 class TableDeleter final {

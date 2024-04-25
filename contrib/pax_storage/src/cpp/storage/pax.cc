@@ -327,9 +327,91 @@ bool TableReader::ReadTuple(TupleTableSlot *slot) {
   return true;
 }
 
+bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
+                           size_t offset) {
+  Assert(direction == ForwardScanDirection);
+
+  size_t row_index = current_block_row_index_;
+  size_t max_row_index = current_block_metadata_.GetTupleCount() - 1;
+  size_t remaining_offset = offset;
+  bool ok;
+
+  // The number of remaining rows in the current block is enough to satisfy the
+  // offset
+  if ((max_row_index - row_index) >= remaining_offset) {
+    current_block_row_index_ = row_index + remaining_offset;
+    SetBlockNumber(&slot->tts_tid,
+                   std::stol(current_block_metadata_.GetMicroPartitionId()));
+    ok = reader_->GetTuple(slot, current_block_row_index_);
+    return ok;
+  }
+
+  // There are not enough lines remaining in the current block and we need to
+  // jump to the next block
+  remaining_offset -= (max_row_index - row_index);
+
+  // iterator_->HasNext() must be true here.
+  // When analyzing, pax read the number of tuples in the auxiliary table
+  // through relation_estimate_size. The number of tuples is a correct number.
+  // The target_tuple_id (the return blocknumber of BlockSampler_Next ) sampled
+  // by analyze will not exceed the number of tuples.
+  CBDB_CHECK(iterator_->HasNext(), cbdb::CException::kExTypeLogicError);
+  while (iterator_->HasNext()) {
+    current_block_metadata_ = iterator_->Next();
+    if (current_block_metadata_.GetTupleCount() >= remaining_offset) {
+      break;
+    }
+    remaining_offset -= current_block_metadata_.GetTupleCount();
+  }
+
+  // remain_offset must point to an existing tuple (whether it is valid or
+  // invalid)
+  CBDB_CHECK(current_block_metadata_.GetTupleCount() >= remaining_offset,
+             cbdb::CException::kExTypeLogicError);
+
+  // close old reader
+  if (reader_) {
+    reader_->Close();
+    PAX_DELETE(reader_);
+  }
+
+  reader_ = PAX_NEW<OrcReader>(Singleton<LocalFileSystem>::GetInstance()->Open(
+      current_block_metadata_.GetFileName(), fs::kReadMode));
+  MicroPartitionReader::ReaderOptions options;
+  options.block_id = current_block_metadata_.GetMicroPartitionId();
+  options.filter = reader_options_.filter;
+  options.reused_buffer = reader_options_.reused_buffer;
+#ifdef ENABLE_PLASMA
+  options.pax_cache = reader_options_.pax_cache;
+#endif
+
+  // load visibility map
+  std::string visibility_bitmap_file =
+      current_block_metadata_.GetVisibilityBitmapFile();
+  if (!visibility_bitmap_file.empty()) {
+    auto file = Singleton<LocalFileSystem>::GetInstance()->Open(
+        visibility_bitmap_file, fs::kReadMode);
+    auto file_length = file->FileLength();
+    auto bm = std::make_shared<Bitmap8>(file_length * 8);
+    file->ReadN(bm->Raw().bitmap, file_length);
+    options.visibility_bitmap = bm;
+    file->Close();
+  }
+
+  reader_->Open(options);
+  // row_index start from 0, so row_index = offset -1
+  current_block_row_index_ = remaining_offset - 1;
+  SetBlockNumber(&slot->tts_tid,
+                 std::stol(current_block_metadata_.GetMicroPartitionId()));
+
+  ok = reader_->GetTuple(slot, current_block_row_index_);
+  return ok;
+}
+
 void TableReader::OpenFile() {
   Assert(iterator_->HasNext());
   auto it = iterator_->Next();
+  current_block_metadata_ = it;
   MicroPartitionReader::ReaderOptions options;
   micro_partition_id_ = options.block_id = it.GetMicroPartitionId();
   current_block_number_ = std::stol(options.block_id);
@@ -348,7 +430,7 @@ void TableReader::OpenFile() {
     auto file = Singleton<LocalFileSystem>::GetInstance()->Open(
         visibility_bitmap_file, fs::kReadMode);
     auto file_length = file->FileLength();
-    Bitmap8 *bm = PAX_NEW<Bitmap8>(file_length * 8);
+    auto bm = std::make_shared<Bitmap8>(file_length * 8);
     file->ReadN(bm->Raw().bitmap, file_length);
     options.visibility_bitmap = bm;
     file->Close();
