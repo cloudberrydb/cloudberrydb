@@ -512,6 +512,7 @@ void TableDeleter::DeleteWithVisibilityMap(TransactionId delete_xid) {
     auto delete_visi_bitmap = delete_bitmap_[block_id]->Clone();
     // read visibility map
     {
+      int rc pg_attribute_unused();
       auto visibility_map_filename =
           micro_partition_metadata.GetVisibilityBitmapFile();
 
@@ -530,8 +531,8 @@ void TableDeleter::DeleteWithVisibilityMap(TransactionId delete_xid) {
 
         PAX_DELETE<Bitmap8>(delete_visi_bitmap);
 
-        auto rc = sscanf(visibility_map_filename.c_str(), "%d_%x_%x.visimap",
-                         &blocknum, &generate, &xid);
+        rc = sscanf(visibility_map_filename.c_str(), "%d_%x_%x.visimap",
+                    &blocknum, &generate, &xid);
         Assert(blocknum >= 0 && block_id == std::to_string(blocknum));
         (void)xid;
         CBDB_CHECK(rc == 3, cbdb::CException::kExTypeLogicError);
@@ -540,9 +541,9 @@ void TableDeleter::DeleteWithVisibilityMap(TransactionId delete_xid) {
       }
 
       // generate new file name for visimap
-      auto rc = snprintf(visimap_file_name, sizeof(visimap_file_name),
-                         "%s_%x_%x.visimap", block_id.c_str(), generate + 1,
-                         delete_xid);
+      rc = snprintf(visimap_file_name, sizeof(visimap_file_name),
+                    "%s_%x_%x.visimap", block_id.c_str(), generate + 1,
+                    delete_xid);
       Assert(rc <= NAMEDATALEN);
     }
 

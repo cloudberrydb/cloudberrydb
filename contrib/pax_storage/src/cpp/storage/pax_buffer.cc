@@ -133,14 +133,13 @@ UntreatedDataBuffer<T>::UntreatedDataBuffer(size_t size)
 
 template <typename T>
 void UntreatedDataBuffer<T>::BrushUnTreated(size_t size) {
-  Assert(size >= 0);
   Assert(untreated_pos_ + size <= BlockBufferBase::block_pos_);
   untreated_pos_ += size;
 }
 
 template <typename T>
 void UntreatedDataBuffer<T>::BrushBackUnTreated(size_t size) {
-  size_t new_offset = UnTreated() - size;
+  auto new_offset = UnTreated() - size;
   Assert(new_offset >= 0 && UnTreated() <= BlockBufferBase::Used());
 
   untreated_pos_ = BlockBufferBase::block_buffer_.Start() + new_offset;

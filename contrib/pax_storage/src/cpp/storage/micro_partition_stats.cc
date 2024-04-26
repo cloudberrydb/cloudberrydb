@@ -64,9 +64,7 @@ void MicroPartitionStats::AddRow(TupleTableSlot *slot) {
   CBDB_CHECK(status_.size() == static_cast<size_t>(n),
              cbdb::CException::ExType::kExTypeSchemaNotMatch);
   for (auto i = 0; i < n; i++) {
-    auto att = &desc->attrs[i];
-
-    AssertImply(att->attisdropped, slot->tts_isnull[i]);
+    AssertImply(desc->attrs[i].attisdropped, slot->tts_isnull[i]);
     if (slot->tts_isnull[i])
       AddNullColumn(i);
     else
@@ -99,12 +97,13 @@ void MicroPartitionStats::MergeTo(MicroPartitionStats *stats, TupleDesc desc) {
     Assert(stats->status_[column_index] == 'y');
     Assert(status_[column_index] != 'x');
     if (status_[column_index] == 'y') {
-      auto col_basic_stats_merge =
+      auto col_basic_stats_merge pg_attribute_unused() =
           stats->stats_->GetColumnBasicInfo(column_index);
       auto col_data_stats_merge =
           stats->stats_->GetColumnDataStats(column_index);
 
-      auto col_basic_stats = stats_->GetColumnBasicInfo(column_index);
+      auto col_basic_stats pg_attribute_unused() =
+          stats_->GetColumnBasicInfo(column_index);
 
       auto att = TupleDescAttr(desc, column_index);
       auto collation = att->attcollation;
@@ -378,7 +377,7 @@ MicroPartittionFileStatsData::MicroPartittionFileStatsData(
   Assert(info);
   Assert(info->columnstats_size() == 0);
   for (int i = 0; i < natts; i++) {
-    auto col = info->add_columnstats();
+    auto col pg_attribute_unused() = info->add_columnstats();
     Assert(col->allnull() && !col->hasnull());
   }
   Assert(info->columnstats_size() == natts);

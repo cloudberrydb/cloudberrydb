@@ -92,7 +92,7 @@ TEST_F(LocalFileSystemTest, ListDirectory) {
   }
 
   filelist = fs->ListDirectory(file_path_);
-  ASSERT_EQ(filelist.size(), PAX_TEST_LIST_FILE_NUM);
+  ASSERT_EQ(filelist.size(), static_cast<size_t>(PAX_TEST_LIST_FILE_NUM));
 }
 
 TEST_F(LocalFileSystemTest, CopyFile) {
@@ -152,7 +152,7 @@ TEST_F(LocalFileSystemTest, CreateDeleteDirectory) {
   }
 
   filelist = fs->ListDirectory(file_path_);
-  ASSERT_EQ(filelist.size(), PAX_TEST_LIST_FILE_NUM);
+  ASSERT_EQ(filelist.size(), static_cast<size_t>(PAX_TEST_LIST_FILE_NUM));
 
   fs->DeleteDirectory(file_path_, true);
   ASSERT_NE(access(file_path_.c_str(), F_OK), 0);
@@ -178,12 +178,12 @@ TEST_F(LocalFileSystemTest, DeleteDirectoryReserveToplevel) {
   }
 
   filelist = fs->ListDirectory(file_path_);
-  ASSERT_EQ(filelist.size(), PAX_TEST_LIST_FILE_NUM);
+  ASSERT_EQ(filelist.size(), static_cast<size_t>(PAX_TEST_LIST_FILE_NUM));
 
   fs->DeleteDirectory(file_path_, false);
   ASSERT_EQ(access(file_path_.c_str(), F_OK), 0);
 
   filelist = fs->ListDirectory(file_path_);
-  ASSERT_EQ(filelist.size(), 0);
+  ASSERT_EQ(filelist.size(), 0UL);
 }
 }  // namespace pax::tests

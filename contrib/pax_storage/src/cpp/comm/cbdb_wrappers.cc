@@ -337,7 +337,7 @@ static bool paxc_extractcolumns_walker(  // NOLINT
     return false;
   }
 
-  return expression_tree_walker(node, (bool (*)())paxc_extractcolumns_walker,
+  return expression_tree_walker(node, (bool (*)()) (void (*) () /* to make -Wcast-function-type happy*/) (paxc_extractcolumns_walker),
                                 (void *)ec_ctx);
 }
 

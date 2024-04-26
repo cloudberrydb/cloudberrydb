@@ -44,7 +44,7 @@ class VecAdapter final {
 
   size_t FlushVecBuffer(TupleTableSlot *slot);
 
-  const TupleDesc GetRelationTupleDesc() const;
+  TupleDesc GetRelationTupleDesc() const;
 
   bool ShouldBuildCtid() const;
 

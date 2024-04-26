@@ -4,11 +4,10 @@
 #include "comm/pax_rel.h"
 
 #ifdef __cplusplus
-extern "C" {
-#endif
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wregister"
+extern "C" {
+#endif
 
 #include "postgres.h"  //  NOLINT
 #include "postmaster/postmaster.h"
@@ -97,9 +96,9 @@ extern int get_partition_for_tuple(PartitionKey key, PartitionDesc partdesc, // 
                                    Datum *values, bool *isnull);
 extern Oid GetDefaultOpClass(Oid type_id, Oid am_id);
 
-#pragma GCC diagnostic pop
 #ifdef __cplusplus
 }
+#pragma GCC diagnostic pop
 #endif
 
 #endif  // SRC_CPP_COMM_CBDB_API_H_

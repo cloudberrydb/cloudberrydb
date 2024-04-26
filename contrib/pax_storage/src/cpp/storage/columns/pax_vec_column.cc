@@ -256,7 +256,7 @@ std::pair<char *, size_t> PaxVecNonFixedColumn::GetBuffer(size_t position) {
 
 std::pair<char *, size_t> PaxVecNonFixedColumn::GetRangeBuffer(size_t start_pos,
                                                                size_t len) {
-  CBDB_CHECK((start_pos + len) <= (offsets_->GetSize() - 1) && len >= 0,
+  CBDB_CHECK((start_pos + len) <= (offsets_->GetSize() - 1),
              cbdb::CException::ExType::kExTypeOutOfRange);
 
   auto start_offset = (*offsets_)[start_pos];

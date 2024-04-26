@@ -717,7 +717,7 @@ double PaxAccessMethod::IndexBuildRangeScan(
   ExprContext *econtext;
   Snapshot snapshot;
 
-  bool checking_uniqueness;
+  bool checking_uniqueness pg_attribute_unused();
   bool need_unregister_snapshot;
   BlockNumber previous_blkno = InvalidBlockNumber;
 

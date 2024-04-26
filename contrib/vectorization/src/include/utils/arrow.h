@@ -319,8 +319,6 @@ static inline const char *
 GetCtidSchemaName(GArrowSchema *schema)
 {
 	const char *name = NULL;
-	GList *fields = NULL;
-	fields = garrow_schema_get_fields(schema);
 	int n_fields = garrow_schema_n_fields(schema);
 	for (int i = 0; i < n_fields; i++)
 	{

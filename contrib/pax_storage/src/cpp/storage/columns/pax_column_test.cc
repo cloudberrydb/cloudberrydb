@@ -12,7 +12,7 @@ namespace pax::tests {
 using namespace pax::traits;
 static void AppendInt4All(PaxColumn *pax_column, size_t bits) {
   int64 data;
-  for (int16 i = INT16_MIN; i <= INT16_MAX; ++i) {  // dead loop
+  for (int16 i = INT16_MIN; ; ++i) {  // dead loop
     data = i;
     pax_column->Append(reinterpret_cast<char *>(&data), bits / 8);
     if (i == INT16_MAX) {
@@ -29,7 +29,7 @@ static void VerifyInt4All(char *verify_buff, size_t verify_len) {
   auto verify_int64_buff = reinterpret_cast<T *>(verify_buff);
 
   uint32 index = 0;
-  for (int16 i = INT16_MIN; i <= INT16_MAX; ++i) {
+  for (int16 i = INT16_MIN; ; ++i) {
     ASSERT_EQ(i, verify_int64_buff[index++]);
     if (i == INT16_MAX) {
       break;
@@ -227,8 +227,8 @@ TEST_P(PaxColumnTest, FixColumnGetRangeBufferTest) {
     auto *i_32 = reinterpret_cast<int32 *>(buffer + ((i - 5) * sizeof(int32)));
     ASSERT_EQ(*i_32, (int32)i);
   }
-  ASSERT_EQ(column->GetRows(), 16);
-  ASSERT_EQ(column->GetRangeNonNullRows(0, column->GetRows()), 16);
+  ASSERT_EQ(column->GetRows(), 16UL);
+  ASSERT_EQ(column->GetRangeNonNullRows(0, column->GetRows()), 16UL);
 
   delete column;
   if (storage_type == PaxStorageFormat::kTypeStoragePorcNonVec) {
@@ -267,7 +267,7 @@ TEST_P(PaxColumnTest, FixColumnGetRangeBufferTest) {
           nulls_count++;
           ASSERT_EQ(*i_32, 0);
         } else {
-          ASSERT_EQ(*i_32, (int32)i - nulls_count);
+          ASSERT_EQ(*i_32, static_cast<int32>((int32)i - nulls_count));
         }
       }
 
@@ -277,8 +277,8 @@ TEST_P(PaxColumnTest, FixColumnGetRangeBufferTest) {
       break;
   }
 
-  ASSERT_EQ(column->GetRows(), 16 + 6);
-  ASSERT_EQ(column->GetRangeNonNullRows(0, column->GetRows()), 16);
+  ASSERT_EQ(column->GetRows(), static_cast<size_t>(16 + 6));
+  ASSERT_EQ(column->GetRangeNonNullRows(0, column->GetRows()), 16UL);
 
   delete column;
 }
@@ -306,8 +306,8 @@ TEST_P(PaxColumnTest, NonFixColumnGetRangeBufferTest) {
     auto *i_64 = reinterpret_cast<int64 *>(buffer + ((i - 5) * sizeof(int64)));
     ASSERT_EQ(*i_64, (int64)i);
   }
-  ASSERT_EQ(column->GetRows(), 16);
-  ASSERT_EQ(column->GetRangeNonNullRows(0, column->GetRows()), 16);
+  ASSERT_EQ(column->GetRows(), 16UL);
+  ASSERT_EQ(column->GetRangeNonNullRows(0, column->GetRows()), 16UL);
 
   delete column;
 
@@ -341,7 +341,7 @@ TEST_P(PaxColumnTest, NonFixColumnGetRangeBufferTest) {
       for (size_t i = 0; i < 10; i++) {
         std::tie(buffer, buffer_len) = column->GetBuffer(i);
         if (buffer) {
-          ASSERT_EQ(i - nulls_count, *reinterpret_cast<int64 *>(buffer));
+          ASSERT_EQ(i - nulls_count, *reinterpret_cast<uint64 *>(buffer));
         } else {
           nulls_count++;
         }
@@ -359,7 +359,7 @@ TEST_P(PaxColumnTest, NonFixColumnGetRangeBufferTest) {
         if (i % 4 == 0) {
           nulls_count++;
         } else {
-          ASSERT_EQ(*i_64, (int32)i - nulls_count);
+          ASSERT_EQ(static_cast<size_t>(*i_64), i - nulls_count);
         }
       }
 
@@ -369,8 +369,8 @@ TEST_P(PaxColumnTest, NonFixColumnGetRangeBufferTest) {
       break;
   }
 
-  ASSERT_EQ(column->GetRows(), 16 + 6);
-  ASSERT_EQ(column->GetRangeNonNullRows(0, column->GetRows()), 16);
+  ASSERT_EQ(column->GetRows(), static_cast<size_t>(16 + 6));
+  ASSERT_EQ(column->GetRangeNonNullRows(0, column->GetRows()), 16UL);
 
   delete column;
 }
@@ -402,11 +402,11 @@ TEST_P(PaxColumnEncodingTest, GetRangeEncodingColumnTest) {
   size_t encoded_len;
   std::tie(encoded_buff, encoded_len) = int_column->GetBuffer();
   ASSERT_NE(encoded_buff, nullptr);
-  ASSERT_LT(encoded_len, UINT16_MAX);
+  ASSERT_LT(encoded_len, static_cast<size_t>(UINT16_MAX));
 
   auto origin_len = int_column->GetOriginLength();
   auto origin_rows = int_column->GetRows();
-  ASSERT_EQ(origin_len, origin_rows * (bits / 8));
+  ASSERT_EQ(static_cast<size_t>(origin_len), static_cast<size_t>(origin_rows * (bits / 8)));
 
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type =
@@ -461,7 +461,7 @@ TEST_P(PaxColumnCompressTest, FixedCompressColumnGetRangeTest) {
   size_t encoded_len;
   std::tie(encoded_buff, encoded_len) = int_column->GetBuffer();
   ASSERT_NE(encoded_buff, nullptr);
-  ASSERT_LT(encoded_len, UINT16_MAX);
+  ASSERT_LT(encoded_len, static_cast<size_t>(UINT16_MAX));
 
   auto origin_len = int_column->GetOriginLength();
   auto origin_rows = int_column->GetRows();
@@ -520,11 +520,11 @@ TEST_P(PaxColumnEncodingTest, PaxEncodingColumnDefault) {
   size_t encoded_len;
   std::tie(encoded_buff, encoded_len) = int_column->GetBuffer();
   ASSERT_NE(encoded_buff, nullptr);
-  ASSERT_GT(encoded_len, UINT16_MAX);
+  ASSERT_GT(encoded_len, static_cast<size_t>(UINT16_MAX));
 
   auto origin_len = int_column->GetOriginLength();
   auto origin_rows = int_column->GetRows();
-  ASSERT_EQ(origin_len, origin_rows * (bits / 8));
+  ASSERT_EQ(static_cast<size_t>(origin_len), origin_rows * (bits / 8));
 
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type =
@@ -565,7 +565,7 @@ TEST_P(PaxColumnEncodingTest, PaxEncodingColumnSpecType) {
   size_t encoded_len;
   std::tie(encoded_buff, encoded_len) = int_column->GetBuffer();
   ASSERT_NE(encoded_buff, nullptr);
-  ASSERT_LT(encoded_len, UINT16_MAX);
+  ASSERT_LT(encoded_len, static_cast<size_t>(UINT16_MAX));
 
   auto origin_len = int_column->GetOriginLength();
   auto origin_rows = int_column->GetRows();
@@ -613,7 +613,7 @@ TEST_P(PaxColumnEncodingTest, PaxEncodingColumnNoEncoding) {
 
   auto origin_len = int_column->GetOriginLength();
   auto origin_rows = int_column->GetRows();
-  ASSERT_EQ(origin_len, origin_rows * (bits / 8));
+  ASSERT_EQ(static_cast<size_t>(origin_len), origin_rows * (bits / 8));
 
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type =
@@ -722,9 +722,9 @@ TEST_P(PaxNonFixedColumnCompressTest,
   ASSERT_NE(encoded_buff, nullptr);
 
   auto origin_len = non_fixed_column->GetOriginLength();
-  ASSERT_EQ(origin_len, number_of_rows * number);
+  ASSERT_EQ(static_cast<size_t>(origin_len), number_of_rows * number);
   auto lengths_origin_len = non_fixed_column->GetLengthsOriginLength();
-  ASSERT_EQ(lengths_origin_len, sizeof(int32) * number_of_rows);
+  ASSERT_EQ(static_cast<size_t>(lengths_origin_len), sizeof(int32) * number_of_rows);
 
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type = kind;
@@ -754,7 +754,7 @@ TEST_P(PaxNonFixedColumnCompressTest,
   if (verify_range) {
     std::tie(verify_buff, verify_len) =
         non_fixed_column_for_read->GetRangeBuffer(30, 50);
-    ASSERT_EQ(verify_len, number * (50));
+    ASSERT_EQ(verify_len, static_cast<size_t>(number * (50)));
 
     for (size_t i = 0; i < verify_len; ++i) {
       EXPECT_EQ(verify_buff[i], data[i + (30 * number)]);
@@ -773,25 +773,25 @@ TEST_P(PaxNonFixedColumnCompressTest,
   delete non_fixed_column_for_read;
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PaxColumnTestCombine, PaxColumnTest,
     testing::Values(PaxStorageFormat::kTypeStoragePorcNonVec,
                     PaxStorageFormat::kTypeStoragePorcVec));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PaxColumnEncodingTestCombine, PaxColumnEncodingTest,
     testing::Combine(testing::Values(16, 32, 64),
                      testing::Values(PaxStorageFormat::kTypeStoragePorcNonVec,
                                      PaxStorageFormat::kTypeStoragePorcVec)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PaxColumnEncodingTestCombine, PaxColumnCompressTest,
     testing::Combine(testing::Values(16, 32, 64),
                      testing::Values(ColumnEncoding_Kind_NO_ENCODED,
                                      ColumnEncoding_Kind_COMPRESS_ZSTD,
                                      ColumnEncoding_Kind_COMPRESS_ZLIB)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PaxColumnEncodingTestCombine, PaxNonFixedColumnCompressTest,
     testing::Combine(testing::Values(16, 32, 64),
                      testing::Values(ColumnEncoding_Kind_NO_ENCODED,

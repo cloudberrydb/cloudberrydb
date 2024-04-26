@@ -86,6 +86,7 @@ static inline void StackTrace(char *stack_buffer,
         // realloc happen
         // should not allow realloc in `abi::__cxa_demangle`
         // just return and make sure origin_func_name_size big enough
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
         free(func_name);  // NOLINT
         goto finish;
       }

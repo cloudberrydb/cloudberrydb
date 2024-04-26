@@ -20,7 +20,7 @@ class OrcGroupStatsProvider final : public ColumnStatsProvider {
   OrcGroupStatsProvider(const OrcFormatReader &format_reader,
                         size_t group_index)
       : format_reader_(format_reader), group_index_(group_index) {
-    Assert(group_index >= 0 && group_index < format_reader.GetStripeNums());
+    Assert(group_index < format_reader.GetStripeNums());
   }
   int ColumnSize() const override {
     return static_cast<int>(format_reader_.file_footer_.colinfo_size());

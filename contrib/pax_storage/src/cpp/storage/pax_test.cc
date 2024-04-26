@@ -62,6 +62,7 @@ class MockWriter : public TableWriter {
 };
 
 class MockSplitStrategy final : public FileSplitStrategy {
+ public:
   size_t SplitTupleNumbers() const override {
     // 1600 tuple
     return 1600;
@@ -75,6 +76,7 @@ class MockSplitStrategy final : public FileSplitStrategy {
 };
 
 class MockSplitStrategy2 final : public FileSplitStrategy {
+ public:
   size_t SplitTupleNumbers() const override {
     // 10000 tuple
     return 10000;
@@ -234,8 +236,8 @@ TEST_F(PaxWriterTest, TestOper) {
   writer->Close();
 
   // verify file min/max
-  ASSERT_EQ(mins.size(), 3);
-  ASSERT_EQ(maxs.size(), 3);
+  ASSERT_EQ(mins.size(), 3UL);
+  ASSERT_EQ(maxs.size(), 3UL);
 
   for (size_t i = 0; i < 3; i++) {
     ASSERT_EQ(mins[i], split_size * i);
@@ -257,7 +259,7 @@ TEST_F(PaxWriterTest, TestOper) {
         pax_file_name + std::to_string(file_index), fs::kReadMode));
     reader->Open(reader_options);
 
-    ASSERT_EQ(reader->GetGroupNums(), 8);
+    ASSERT_EQ(reader->GetGroupNums(), 8UL);
     for (size_t i = 0; i < 8; i++) {
       auto stats = reader->GetGroupStatsInfo(i);
       auto min = *reinterpret_cast<const int32 *>(
@@ -265,9 +267,9 @@ TEST_F(PaxWriterTest, TestOper) {
       auto max = *reinterpret_cast<const int32 *>(
           stats->DataStats(2).maximum().data());
 
-      EXPECT_EQ(pax_max_tuples_per_group * i + file_min_max_offset, min);
+      EXPECT_EQ(pax_max_tuples_per_group * i + file_min_max_offset, static_cast<size_t>(min));
       EXPECT_EQ(pax_max_tuples_per_group * (i + 1) + file_min_max_offset - 1,
-                max);
+                static_cast<size_t>(max));
     }
 
     delete reader;

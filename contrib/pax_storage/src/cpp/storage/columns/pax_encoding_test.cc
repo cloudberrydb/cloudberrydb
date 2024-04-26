@@ -85,74 +85,74 @@ TEST_F(PaxEncodingTest, TestPaxUntreatedBuffer) {
     data_buffer->Brush(1);
     data_buffer->BrushUnTreated(1);
   }
-  EXPECT_EQ(data_buffer->Used(), 100);
-  EXPECT_EQ(data_buffer->UnTreated(), 100);
-  EXPECT_EQ(data_buffer->UnTouched(), 0);
+  EXPECT_EQ(data_buffer->Used(), 100UL);
+  EXPECT_EQ(data_buffer->UnTreated(), 100UL);
+  EXPECT_EQ(data_buffer->UnTouched(), 0UL);
 
   for (size_t i = 0; i < 100; i++) {
     data_buffer->Write(2);
     data_buffer->Brush(1);
   }
 
-  EXPECT_EQ(data_buffer->Used(), 200);
-  EXPECT_EQ(data_buffer->UnTreated(), 100);
-  EXPECT_EQ(data_buffer->UnTouched(), 100);
+  EXPECT_EQ(data_buffer->Used(), 200UL);
+  EXPECT_EQ(data_buffer->UnTreated(), 100UL);
+  EXPECT_EQ(data_buffer->UnTouched(), 100UL);
 
   data_buffer->TreatedAll();
 
-  EXPECT_EQ(data_buffer->Used(), 100);
-  EXPECT_EQ(data_buffer->UnTreated(), 0);
-  EXPECT_EQ(data_buffer->UnTouched(), 100);
+  EXPECT_EQ(data_buffer->Used(), 100UL);
+  EXPECT_EQ(data_buffer->UnTreated(), 0UL);
+  EXPECT_EQ(data_buffer->UnTouched(), 100UL);
 
   for (size_t i = 0; i < 100; i++) {
     EXPECT_EQ((*data_buffer)[i], (char)2);
   }
 
   data_buffer->BrushUnTreatedAll();
-  EXPECT_EQ(data_buffer->Used(), 100);
-  EXPECT_EQ(data_buffer->UnTreated(), 100);
-  EXPECT_EQ(data_buffer->UnTouched(), 0);
+  EXPECT_EQ(data_buffer->Used(), 100UL);
+  EXPECT_EQ(data_buffer->UnTreated(), 100UL);
+  EXPECT_EQ(data_buffer->UnTouched(), 0UL);
 
   data_buffer->TreatedAll();
-  EXPECT_EQ(data_buffer->Used(), 0);
-  EXPECT_EQ(data_buffer->UnTreated(), 0);
-  EXPECT_EQ(data_buffer->UnTouched(), 0);
+  EXPECT_EQ(data_buffer->Used(), 0UL);
+  EXPECT_EQ(data_buffer->UnTreated(), 0UL);
+  EXPECT_EQ(data_buffer->UnTouched(), 0UL);
 
   data_buffer->BrushUnTreatedAll();
-  EXPECT_EQ(data_buffer->Used(), 0);
-  EXPECT_EQ(data_buffer->UnTreated(), 0);
-  EXPECT_EQ(data_buffer->UnTouched(), 0);
+  EXPECT_EQ(data_buffer->Used(), 0UL);
+  EXPECT_EQ(data_buffer->UnTreated(), 0UL);
+  EXPECT_EQ(data_buffer->UnTouched(), 0UL);
 
   data_buffer->Brush(100);
   data_buffer->BrushUnTreated(100);
 
-  EXPECT_EQ(data_buffer->Used(), 100);
-  EXPECT_EQ(data_buffer->UnTreated(), 100);
-  EXPECT_EQ(data_buffer->UnTouched(), 0);
+  EXPECT_EQ(data_buffer->Used(), 100UL);
+  EXPECT_EQ(data_buffer->UnTreated(), 100UL);
+  EXPECT_EQ(data_buffer->UnTouched(), 0UL);
 
   data_buffer->ReSize(2048);
-  EXPECT_EQ(data_buffer->Used(), 100);
-  EXPECT_EQ(data_buffer->UnTreated(), 100);
-  EXPECT_EQ(data_buffer->UnTouched(), 0);
+  EXPECT_EQ(data_buffer->Used(), 100UL);
+  EXPECT_EQ(data_buffer->UnTreated(), 100UL);
+  EXPECT_EQ(data_buffer->UnTouched(), 0UL);
 
   data_buffer->Brush(2048 - 100);
   data_buffer->BrushUnTreated(2048 - 100);
-  EXPECT_EQ(data_buffer->UnTouched(), 0);
+  EXPECT_EQ(data_buffer->UnTouched(), 0UL);
 
   data_buffer->ReSize(2148);
-  EXPECT_EQ(data_buffer->Used(), 2048);
-  EXPECT_EQ(data_buffer->UnTreated(), 2048);
-  EXPECT_EQ(data_buffer->UnTouched(), 0);
+  EXPECT_EQ(data_buffer->Used(), 2048UL);
+  EXPECT_EQ(data_buffer->UnTreated(), 2048UL);
+  EXPECT_EQ(data_buffer->UnTouched(), 0UL);
 
   data_buffer->Brush(100);
-  EXPECT_EQ(data_buffer->Used(), 2148);
-  EXPECT_EQ(data_buffer->UnTreated(), 2048);
-  EXPECT_EQ(data_buffer->UnTouched(), 100);
+  EXPECT_EQ(data_buffer->Used(), 2148UL);
+  EXPECT_EQ(data_buffer->UnTreated(), 2048UL);
+  EXPECT_EQ(data_buffer->UnTouched(), 100UL);
 
   data_buffer->ReSize(2248);
-  EXPECT_EQ(data_buffer->Used(), 2148);
-  EXPECT_EQ(data_buffer->UnTreated(), 2048);
-  EXPECT_EQ(data_buffer->UnTouched(), 100);
+  EXPECT_EQ(data_buffer->Used(), 2148UL);
+  EXPECT_EQ(data_buffer->UnTreated(), 2048UL);
+  EXPECT_EQ(data_buffer->UnTouched(), 100UL);
 
   delete data_buffer;
 }
@@ -165,14 +165,14 @@ TEST_F(PaxEncodingTest, TestPaxTreatedBuffer) {
     data[i] = i;
   }
 
-  EXPECT_EQ(data_buffer->Used(), 100);
-  EXPECT_EQ(data_buffer->Treated(), 0);
-  EXPECT_EQ(data_buffer->UnTreated(), 100);
+  EXPECT_EQ(data_buffer->Used(), 100UL);
+  EXPECT_EQ(data_buffer->Treated(), 0UL);
+  EXPECT_EQ(data_buffer->UnTreated(), 100UL);
 
   data_buffer->BrushTreated(100);
-  EXPECT_EQ(data_buffer->Used(), 100);
-  EXPECT_EQ(data_buffer->Treated(), 100);
-  EXPECT_EQ(data_buffer->UnTreated(), 0);
+  EXPECT_EQ(data_buffer->Used(), 100UL);
+  EXPECT_EQ(data_buffer->Treated(), 100UL);
+  EXPECT_EQ(data_buffer->UnTreated(), 0UL);
 
   delete data_buffer;
 }
@@ -204,7 +204,7 @@ TEST_P(PaxEncodingShortRepeatRangeTest, TestOrcShortRepeatEncoding) {
   encoder->Flush();
 
   EXPECT_NE(encoder->GetBuffer(), nullptr);
-  EXPECT_EQ(encoder->GetBufferSize(), 2);
+  EXPECT_EQ(encoder->GetBufferSize(), 2UL);
 
   auto encoding_buff = encoder->GetBuffer();
   // type(2 bytes): 0
@@ -212,7 +212,7 @@ TEST_P(PaxEncodingShortRepeatRangeTest, TestOrcShortRepeatEncoding) {
   // len(3 bytes)
   EXPECT_EQ(static_cast<EncodingType>((encoding_buff[0] >> 6) & 0x03),
             EncodingType::kShortRepeat);
-  EXPECT_EQ(encoding_buff[0] & 0x07, sr_len - ORC_MIN_REPEAT);
+  EXPECT_EQ(static_cast<size_t>(encoding_buff[0] & 0x07), sr_len - ORC_MIN_REPEAT);
   EXPECT_EQ(((encoding_buff[0] >> 3) & 0x07) + 1, 1);
 
   PaxDecoder::DecodingOption decoder_options;
@@ -285,7 +285,7 @@ TEST_P(PaxEncodingShortRepeatRangeTest, TestOrcShortRepeatEncoding) {
   delete decoder;
 }
 
-INSTANTIATE_TEST_CASE_P(PaxEncodingRangeTestCombine,
+INSTANTIATE_TEST_SUITE_P(PaxEncodingRangeTestCombine,
                         PaxEncodingShortRepeatRangeTest,
                         testing::Combine(testing::Values(3, 4, 5, 6, 7, 8, 9,
                                                          10),
@@ -320,7 +320,7 @@ TEST_P(PaxEncodingDeltaRangeTest, TestOrcDeltaEncoding) {
   encoder->Flush();
 
   EXPECT_NE(encoder->GetBuffer(), nullptr);
-  EXPECT_EQ(encoder->GetBufferSize(), 4);
+  EXPECT_EQ(encoder->GetBufferSize(), 4UL);
 
   // type(2 bytes): 0
   // type len(5 bytes)
@@ -330,7 +330,7 @@ TEST_P(PaxEncodingDeltaRangeTest, TestOrcDeltaEncoding) {
             EncodingType::kDelta);
   EXPECT_EQ((encoding_buff[0] >> 1) & 0x1f, 0);
   EXPECT_EQ(((encoding_buff[0] & 0x01) << 8) | (unsigned char)encoding_buff[1],
-            delta_len - 1);
+            static_cast<int>(delta_len - 1));
 
   PaxDecoder::DecodingOption decoder_options;
   decoder_options.column_encode_type =
@@ -402,7 +402,7 @@ TEST_P(PaxEncodingDeltaRangeTest, TestOrcDeltaEncoding) {
   delete decoder;
 }
 
-INSTANTIATE_TEST_CASE_P(PaxEncodingRangeTestCombine, PaxEncodingDeltaRangeTest,
+INSTANTIATE_TEST_SUITE_P(PaxEncodingRangeTestCombine, PaxEncodingDeltaRangeTest,
                         testing::Combine(testing::Values(11, 100, 256, 345, 511,
                                                          512),
                                          testing::Values(true, false),
@@ -443,14 +443,14 @@ TEST_P(PaxEncodingDeltaIncDecRangeTest, TestOrcIncDeltaEncoding) {
 
   EXPECT_NE(encoder->GetBuffer(), nullptr);
   // eq 4 or 5 depends on lens of max value
-  EXPECT_NE(encoder->GetBufferSize(), 0);
+  EXPECT_NE(encoder->GetBufferSize(), 0UL);
 
   auto encoding_buff = encoder->GetBuffer();
   EXPECT_EQ(static_cast<EncodingType>((encoding_buff[0] >> 6) & 0x03),
             EncodingType::kDelta);
   EXPECT_EQ((encoding_buff[0] >> 1) & 0x1f, 0);
   EXPECT_EQ(((encoding_buff[0] & 0x01) << 8) | (unsigned char)encoding_buff[1],
-            delta_len - 1);
+            static_cast<int>(delta_len - 1));
 
   PaxDecoder::DecodingOption decoder_options;
   decoder_options.column_encode_type =
@@ -518,7 +518,7 @@ TEST_P(PaxEncodingDeltaIncDecRangeTest, TestOrcIncWithoutFixedDeltaEncoding) {
 
   EXPECT_NE(encoder->GetBuffer(), nullptr);
   // eq 4 or 5 depends on lens of max value
-  EXPECT_NE(encoder->GetBufferSize(), 0);
+  EXPECT_NE(encoder->GetBufferSize(), 0UL);
 
   auto encoding_buff = encoder->GetBuffer();
   EXPECT_EQ(static_cast<EncodingType>((encoding_buff[0] >> 6) & 0x03),
@@ -590,14 +590,14 @@ TEST_P(PaxEncodingDeltaIncDecRangeTest, TestOrcDecDeltaEncoding) {
   encoder->Flush();
 
   EXPECT_NE(encoder->GetBuffer(), nullptr);
-  EXPECT_GT(encoder->GetBufferSize(), 0);
+  EXPECT_GT(encoder->GetBufferSize(), 0UL);
 
   auto encoding_buff = encoder->GetBuffer();
   EXPECT_EQ(static_cast<EncodingType>((encoding_buff[0] >> 6) & 0x03),
             EncodingType::kDelta);
   EXPECT_EQ((encoding_buff[0] >> 1) & 0x1f, 0);
   EXPECT_EQ(((encoding_buff[0] & 0x01) << 8) | (unsigned char)encoding_buff[1],
-            delta_len - 1);
+            static_cast<int>(delta_len - 1));
 
   PaxDecoder::DecodingOption decoder_options;
   decoder_options.column_encode_type =
@@ -668,7 +668,7 @@ TEST_P(PaxEncodingDeltaIncDecRangeTest, TestOrcDecWithoutFixedDeltaEncoding) {
   encoder->Flush();
 
   EXPECT_NE(encoder->GetBuffer(), nullptr);
-  EXPECT_NE(encoder->GetBufferSize(), 0);
+  EXPECT_NE(encoder->GetBufferSize(), 0UL);
 
   auto encoding_buff = encoder->GetBuffer();
   EXPECT_EQ(static_cast<EncodingType>((encoding_buff[0] >> 6) & 0x03),
@@ -703,7 +703,7 @@ TEST_P(PaxEncodingDeltaIncDecRangeTest, TestOrcDecWithoutFixedDeltaEncoding) {
   delete decoder;
 }
 
-INSTANTIATE_TEST_CASE_P(PaxEncodingRangeTestCombine,
+INSTANTIATE_TEST_SUITE_P(PaxEncodingRangeTestCombine,
                         PaxEncodingDeltaIncDecRangeTest,
                         testing::Combine(testing::Values(11, 100, 256, 345, 511,
                                                          512),
@@ -752,7 +752,7 @@ TEST_P(PaxEncodingWriteReadLongsRangeTest, TestOrcDirectWriteReadLong) {
 
 // Do not change to foreach(2ULL ^ n)
 // Then it will
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PaxEncodingRangeTestCombine, PaxEncodingWriteReadLongsRangeTest,
     testing::Combine(
         testing::Values(
@@ -814,7 +814,7 @@ TEST_P(PaxEncodingDirectRangeTest, TestOrcDirectEncoding) {
   encoder->Flush();
 
   EXPECT_NE(encoder->GetBuffer(), nullptr);
-  EXPECT_NE(encoder->GetBufferSize(), 0);
+  EXPECT_NE(encoder->GetBufferSize(), 0UL);
 
   auto encoding_buff = encoder->GetBuffer();
   EXPECT_EQ(static_cast<EncodingType>((encoding_buff[0] >> 6) & 0x03),
@@ -853,7 +853,7 @@ TEST_P(PaxEncodingDirectRangeTest, TestOrcDirectEncoding) {
   delete decoder;
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PaxEncodingRangeTestCombine, PaxEncodingDirectRangeTest,
     testing::Combine(testing::Values(4, 10, 128, 256, 512, 1024),
                      testing::Values(7, 99, 4294967295, 18014398509481984ULL),
@@ -882,7 +882,7 @@ TEST_P(PaxEncodingPBTest, TestOrcPBEncoding) {
   encoder->Flush();
 
   EXPECT_NE(encoder->GetBuffer(), nullptr);
-  EXPECT_NE(encoder->GetBufferSize(), 0);
+  EXPECT_NE(encoder->GetBufferSize(), 0UL);
 
   auto encoding_buff = encoder->GetBuffer();
   EXPECT_EQ(static_cast<EncodingType>((encoding_buff[0] >> 6) & 0x03),
@@ -900,7 +900,7 @@ TEST_P(PaxEncodingPBTest, TestOrcPBEncoding) {
   decoder->SetDataBuffer(shared_dst_data);
   decoder->Decoding();
 
-  EXPECT_EQ(shared_dst_data->Used(), 20 * data_bits / 8);
+  EXPECT_EQ(shared_dst_data->Used(), static_cast<size_t>(20 * data_bits / 8));
 
   switch (data_bits) {
     case 32: {
@@ -935,7 +935,7 @@ TEST_P(PaxEncodingPBTest, TestOrcPBEncoding) {
   delete decoder;
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PaxEncodingRangeTestCombine, PaxEncodingPBTest,
     testing::Combine(
         testing::Values(
@@ -978,7 +978,7 @@ TEST_P(PaxEncodingRawDataTest, TestOrcMixEncoding) {
   encoder->Flush();
 
   EXPECT_NE(encoder->GetBuffer(), nullptr);
-  EXPECT_NE(encoder->GetBufferSize(), 0);
+  EXPECT_NE(encoder->GetBufferSize(), 0UL);
 
   PaxDecoder::DecodingOption decoder_options;
   decoder_options.column_encode_type =
@@ -1027,7 +1027,7 @@ TEST_P(PaxEncodingRawDataTest, TestOrcMixEncoding) {
   delete decoder;
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PaxEncodingRangeTestCombine, PaxEncodingRawDataTest,
     testing::Combine(
         testing::Values(
@@ -1098,7 +1098,7 @@ TEST_F(PaxEncodingTest, TestOrcShortRepeatWithNULL) {
   encoder->Flush();
 
   EXPECT_NE(encoder->GetBuffer(), nullptr);
-  EXPECT_EQ(encoder->GetBufferSize(), 2);
+  EXPECT_EQ(encoder->GetBufferSize(), 2UL);
 
   auto encoding_buff = encoder->GetBuffer();
   EXPECT_EQ(static_cast<EncodingType>((encoding_buff[0] >> 6) & 0x03),

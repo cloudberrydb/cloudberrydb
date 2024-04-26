@@ -370,12 +370,12 @@ void CopyFixedBuffer(PaxColumn *column,
 
 static inline void VarlenaToRawBuffer(char *buffer, size_t buffer_len,
                                       char **out_data, size_t *out_len) {
-  struct varlena *vl, *tunpacked;
+  struct varlena *vl;
 
   vl = (struct varlena *)(buffer);
 
 #ifdef ENABLE_DEBUG
-  tunpacked = cbdb::PgDeToastDatum(vl);
+  auto tunpacked = cbdb::PgDeToastDatum(vl);
   Assert((Pointer)vl == (Pointer)tunpacked);
 #endif
 
@@ -781,7 +781,7 @@ void VecAdapter::SetDataSource(PaxColumns *columns) {
   }
 }
 
-const TupleDesc VecAdapter::GetRelationTupleDesc() const {
+TupleDesc VecAdapter::GetRelationTupleDesc() const {
   return rel_tuple_desc_;
 }
 

@@ -230,7 +230,7 @@ std::pair<Datum, bool> OrcGroup::GetColumnValue(TupleDesc desc,
                                                 size_t column_index,
                                                 size_t row_index) {
   Assert(row_index < pax_columns_->GetRows());
-  Assert(column_index < size_t(desc->natts));
+  Assert(column_index < static_cast<size_t>(desc->natts));
 
   auto is_dropped = desc->attrs[column_index].attisdropped;
   if (is_dropped) {

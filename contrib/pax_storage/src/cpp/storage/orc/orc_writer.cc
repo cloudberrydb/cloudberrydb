@@ -294,7 +294,7 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
   TupleDesc table_desc;
   int16 type_len;
   bool type_by_val;
-  bool is_null, is_dropped;
+  bool is_null;
   Datum tts_value;
   bool has_detoast = false;
   struct varlena *tts_value_vl = nullptr, *detoast_vl = nullptr;
@@ -311,11 +311,10 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
   for (int i = 0; i < n; i++) {
     type_len = table_desc->attrs[i].attlen;
     type_by_val = table_desc->attrs[i].attbyval;
-    is_dropped = table_desc->attrs[i].attisdropped;
     is_null = table_slot->tts_isnull[i];
     tts_value = table_slot->tts_values[i];
 
-    AssertImply(is_dropped, is_null);
+    AssertImply(table_desc->attrs[i].attisdropped, is_null);
 
     if (is_null) {
       (*pax_columns_)[i]->AppendNull();
@@ -435,6 +434,7 @@ void OrcWriter::MergeTo(MicroPartitionWriter *writer) {
 
 void OrcWriter::MergePaxColumns(OrcWriter *writer) {
   PaxColumns *columns = writer->pax_columns_;
+  bool ok pg_attribute_unused();
   Assert(columns->GetColumns() == pax_columns_->GetColumns());
   Assert(columns->GetRows() < writer_options_.group_limit);
   if (columns->GetRows() == 0) {
@@ -442,8 +442,8 @@ void OrcWriter::MergePaxColumns(OrcWriter *writer) {
   }
 
   BufferedOutputStream buffer_mem_stream(2048);
-  auto ok = WriteStripe(&buffer_mem_stream, columns,
-                        &(writer->stats_collector_), writer->mp_stats_);
+  ok = WriteStripe(&buffer_mem_stream, columns,
+                   &(writer->stats_collector_), writer->mp_stats_);
 
   // must be ok
   Assert(ok);

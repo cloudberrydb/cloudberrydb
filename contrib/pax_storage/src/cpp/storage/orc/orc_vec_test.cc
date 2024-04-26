@@ -119,13 +119,13 @@ TEST_F(OrcVecTest, WriteReadGroup) {
   auto reader = new OrcReader(file_ptr);
   reader->Open(reader_options);
 
-  EXPECT_EQ(2, reader->GetGroupNums());
+  EXPECT_EQ(2UL, reader->GetGroupNums());
 
   // verify group1
   auto group1 = reader->ReadGroup(0);
   auto columns1 = group1->GetAllColumns();
 
-  EXPECT_EQ(2, columns1->GetColumns());
+  EXPECT_EQ(2UL, columns1->GetColumns());
 
   auto column1 = (PaxVecNonFixedColumn *)(*columns1)[0];
   auto column2 = (PaxVecCommColumn<int32> *)(*columns1)[1];
@@ -134,28 +134,28 @@ TEST_F(OrcVecTest, WriteReadGroup) {
   auto column2_data = column2->GetDataBuffer();
   auto column1_offsets = column1->GetOffsetDataBuffer();
 
-  ASSERT_EQ(10000, column1->GetRows());
-  ASSERT_EQ(10000, column2->GetRows());
+  ASSERT_EQ(10000UL, column1->GetRows());
+  ASSERT_EQ(10000UL, column2->GetRows());
 
   ASSERT_TRUE(column1->HasNull());
   ASSERT_TRUE(column2->HasNull());
 
-  ASSERT_EQ(6666, column1->GetNonNullRows());
-  ASSERT_EQ(6666, column2->GetNonNullRows());
+  ASSERT_EQ(6666UL, column1->GetNonNullRows());
+  ASSERT_EQ(6666UL, column2->GetNonNullRows());
 
   ASSERT_TRUE(column1_data);
   ASSERT_TRUE(column2_data);
   ASSERT_TRUE(column1_offsets);
 
-  ASSERT_EQ(0, column1_offsets->Capacity() % MEMORY_ALIGN_SIZE);
-  ASSERT_EQ(0, column1_data->Capacity() % MEMORY_ALIGN_SIZE);
-  ASSERT_EQ(0, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column1_offsets->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column1_data->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
 
-  ASSERT_EQ(10001, column1_offsets->GetSize());
-  ASSERT_LE((*column1_offsets)[column1_offsets->GetSize() - 1],
+  ASSERT_EQ(10001UL, column1_offsets->GetSize());
+  ASSERT_LE(static_cast<size_t>((*column1_offsets)[column1_offsets->GetSize() - 1]),
             column1_data->GetSize());
 
-  ASSERT_EQ(10000, column2_data->GetSize());
+  ASSERT_EQ(10000UL, column2_data->GetSize());
 
   for (uint16 i = 0; i < 10000; i++) {
     if (i % 3 == 0) {
@@ -179,25 +179,25 @@ TEST_F(OrcVecTest, WriteReadGroup) {
   ASSERT_FALSE(column1->HasNull());
   ASSERT_FALSE(column2->HasNull());
 
-  ASSERT_EQ(1, column1->GetNonNullRows());
-  ASSERT_EQ(1, column2->GetNonNullRows());
+  ASSERT_EQ(1UL, column1->GetNonNullRows());
+  ASSERT_EQ(1UL, column2->GetNonNullRows());
 
   ASSERT_TRUE(column1_data);
   ASSERT_TRUE(column2_data);
 
-  ASSERT_EQ(0, column1_data->Capacity() % MEMORY_ALIGN_SIZE);
-  ASSERT_EQ(0, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column1_data->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
   ASSERT_TRUE(column1_offsets);
 
-  ASSERT_EQ(0, column1_offsets->Capacity() % MEMORY_ALIGN_SIZE);
-  ASSERT_EQ(0, column1_data->Capacity() % MEMORY_ALIGN_SIZE);
-  ASSERT_EQ(0, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column1_offsets->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column1_data->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
 
-  ASSERT_EQ(2, column1_offsets->GetSize());
-  ASSERT_LE((*column1_offsets)[column1_offsets->GetSize() - 1],
+  ASSERT_EQ(2UL, column1_offsets->GetSize());
+  ASSERT_LE(static_cast<size_t>((*column1_offsets)[column1_offsets->GetSize() - 1]),
             column1_data->GetSize());
   // still contain memalign size
-  ASSERT_EQ(2, column2_data->GetSize());
+  ASSERT_EQ(2UL, column2_data->GetSize());
 
   ASSERT_EQ((*column2_data)[0], 10000);
 
@@ -269,13 +269,13 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
   auto reader = new OrcReader(file_ptr);
   reader->Open(reader_options);
 
-  EXPECT_EQ(2, reader->GetGroupNums());
+  EXPECT_EQ(2UL, reader->GetGroupNums());
 
   // verify group1
   auto group1 = reader->ReadGroup(0);
   auto columns1 = group1->GetAllColumns();
 
-  EXPECT_EQ(2, columns1->GetColumns());
+  EXPECT_EQ(2UL, columns1->GetColumns());
 
   auto column1 = (PaxVecNonFixedColumn *)(*columns1)[0];
   auto column2 = (PaxVecCommColumn<int32> *)(*columns1)[1];
@@ -284,25 +284,25 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
   auto column2_data = column2->GetDataBuffer();
   auto column1_offsets = column1->GetOffsetDataBuffer();
 
-  ASSERT_EQ(10000, column1->GetRows());
-  ASSERT_EQ(10000, column2->GetRows());
+  ASSERT_EQ(10000UL, column1->GetRows());
+  ASSERT_EQ(10000UL, column2->GetRows());
 
   ASSERT_TRUE(column1->HasNull());
   ASSERT_TRUE(column2->HasNull());
 
-  ASSERT_EQ(6666, column1->GetNonNullRows());
-  ASSERT_EQ(6666, column2->GetNonNullRows());
+  ASSERT_EQ(6666UL, column1->GetNonNullRows());
+  ASSERT_EQ(6666UL, column2->GetNonNullRows());
 
   ASSERT_TRUE(column1_data);
   ASSERT_TRUE(column2_data);
   ASSERT_TRUE(column1_offsets);
 
-  ASSERT_EQ(0, column1_offsets->Capacity() % MEMORY_ALIGN_SIZE);
-  ASSERT_EQ(0, column1_data->Capacity() % MEMORY_ALIGN_SIZE);
-  ASSERT_EQ(0, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column1_offsets->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column1_data->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
 
-  ASSERT_EQ(10001, column1_offsets->GetSize());
-  ASSERT_LE((*column1_offsets)[column1_offsets->GetSize() - 1],
+  ASSERT_EQ(10001UL, column1_offsets->GetSize());
+  ASSERT_LE(static_cast<size_t>((*column1_offsets)[column1_offsets->GetSize() - 1]),
             column1_data->GetSize());
 
   column2->GetBuffer(0);
@@ -329,22 +329,22 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
   ASSERT_FALSE(column1->HasNull());
   ASSERT_FALSE(column2->HasNull());
 
-  ASSERT_EQ(1, column1->GetNonNullRows());
-  ASSERT_EQ(1, column2->GetNonNullRows());
+  ASSERT_EQ(1UL, column1->GetNonNullRows());
+  ASSERT_EQ(1UL, column2->GetNonNullRows());
 
   ASSERT_TRUE(column1_data);
   ASSERT_TRUE(column2_data);
 
-  ASSERT_EQ(0, column1_data->Capacity() % MEMORY_ALIGN_SIZE);
-  ASSERT_EQ(0, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column1_data->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
   ASSERT_TRUE(column1_offsets);
 
-  ASSERT_EQ(0, column1_offsets->Capacity() % MEMORY_ALIGN_SIZE);
-  ASSERT_EQ(0, column1_data->Capacity() % MEMORY_ALIGN_SIZE);
-  ASSERT_EQ(0, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column1_offsets->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column1_data->Capacity() % MEMORY_ALIGN_SIZE);
+  ASSERT_EQ(0UL, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
 
-  ASSERT_EQ(2, column1_offsets->GetSize());
-  ASSERT_LE((*column1_offsets)[column1_offsets->GetSize() - 1],
+  ASSERT_EQ(2UL, column1_offsets->GetSize());
+  ASSERT_LE(static_cast<size_t>((*column1_offsets)[column1_offsets->GetSize() - 1]),
             column1_data->GetSize());
 
   ASSERT_EQ((*column2_data)[0], 10000);

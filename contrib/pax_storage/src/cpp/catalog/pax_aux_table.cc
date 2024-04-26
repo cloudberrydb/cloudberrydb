@@ -29,18 +29,6 @@ static inline void InsertTuple(Oid relid, Datum *values, bool *nulls) {
   table_close(rel, NoLock);
 }
 
-static void CPaxTransactionalTruncateTable(Oid aux_relid) {
-  Relation aux_rel;
-  Assert(OidIsValid(aux_relid));
-
-  // truncate already exist pax block auxiliary table.
-  aux_rel = relation_open(aux_relid, AccessExclusiveLock);
-
-  /*TODO1 pending-delete operation should be applied here. */
-  RelationSetNewRelfilenode(aux_rel, aux_rel->rd_rel->relpersistence);
-  relation_close(aux_rel, NoLock);
-}
-
 // * non transactional truncate table case:
 // 1. create table inside transactional block, and then truncate table inside
 // transactional block.
@@ -269,7 +257,7 @@ void InsertOrUpdateMicroPartitionPlaceHolder(
     Oid aux_relid, const char *blockname, int num_tuples, int file_size,
     const ::pax::stats::MicroPartitionStatisticsInfo &mp_stats,
     const char *visimap_filename) {
-  int stats_length = mp_stats.ByteSize();
+  int stats_length = mp_stats.ByteSizeLong();
   uint32 len = VARHDRSZ + stats_length;
   void *output;
 
@@ -580,6 +568,8 @@ static void FetchMicroPartitionAuxRowCallback(Datum *values, bool *isnull, void 
     auto pstats = cbdb::DatumToPointer(values[ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS - 1]);
     auto flat_stats = reinterpret_cast<struct varlena *>(pstats);
     auto ok = stats_info.ParseFromArray(VARDATA_ANY(flat_stats), VARSIZE_ANY_EXHDR(flat_stats));
+
+    CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
     ctx->info.SetStats(std::move(stats_info));
   }
 
@@ -651,21 +641,9 @@ bool IsMicroPartitionVisible(Relation pax_rel, BlockNumber block,
   CBDB_WRAP_END;
 }
 
-static void PaxTransactionalTruncateTable(Oid aux_relid) {
-  CBDB_WRAP_START;
-  { paxc::CPaxTransactionalTruncateTable(aux_relid); }
-  CBDB_WRAP_END;
-}
-
 static void PaxNontransactionalTruncateTable(Relation rel) {
   CBDB_WRAP_START;
   { paxc::CPaxNontransactionalTruncateTable(rel); }
-  CBDB_WRAP_END;
-}
-
-static void PaxCreateMicroPartitionTable(const Relation rel) {
-  CBDB_WRAP_START;
-  { paxc::CPaxCreateMicroPartitionTable(rel); }
   CBDB_WRAP_END;
 }
 

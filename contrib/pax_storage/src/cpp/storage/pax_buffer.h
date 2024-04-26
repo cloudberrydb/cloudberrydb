@@ -65,9 +65,9 @@ class BlockBufferBase {
   inline void BrushAll() { block_pos_ = block_buffer_.End(); }
 
   inline void BrushBack(size_t size) {
-    size_t new_offset = Used() - size;
-    CBDB_CHECK(new_offset >= 0, cbdb::CException::ExType::kExTypeOutOfRange);
-    block_pos_ = block_buffer_.Start() + new_offset;
+    size_t used = Used();
+    CBDB_CHECK(used >= size, cbdb::CException::ExType::kExTypeOutOfRange);
+    block_pos_ = block_buffer_.Start() + used - size;
   }
 
   inline void BrushBackAll() { block_pos_ = block_buffer_.Start(); }
@@ -75,15 +75,21 @@ class BlockBufferBase {
   inline char *Start() const { return block_buffer_.Start(); }
 
   inline size_t Used() const {
-    return size_t(block_pos_ - block_buffer_.Start());
+    ptrdiff_t res = block_pos_ - block_buffer_.Start();
+    Assert(res >= 0);
+    return size_t(res);
   }
 
   inline size_t Available() const {
-    return size_t(block_buffer_.End() - block_pos_);
+    ptrdiff_t res = block_buffer_.End() - block_pos_;
+    Assert(res >= 0);
+    return size_t(res);
   }
 
   inline size_t Capacity() const {
-    return size_t(block_buffer_.End() - block_buffer_.Start());
+    ptrdiff_t res = block_buffer_.End() - block_buffer_.Start();
+    Assert(res >= 0);
+    return size_t(res);
   }
 
   virtual void Set(char *ptr, size_t size, size_t offset);

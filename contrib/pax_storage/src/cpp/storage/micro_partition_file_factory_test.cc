@@ -170,7 +170,7 @@ TEST_F(MicroPartitionFileFactoryTest, OrcReadWithVisibilitymap) {
   int read_tuple_count = 0;
   while (reader->ReadTuple(tuple_slot_empty)) {
     ASSERT_FALSE(tuple_slot_empty->tts_isnull[2]);
-    ASSERT_EQ(tuple_slot_empty->tts_values[2], read_tuple_count * 2 + 1);
+    ASSERT_EQ(tuple_slot_empty->tts_values[2], static_cast<Datum>(read_tuple_count * 2 + 1));
 
     read_tuple_count++;
   }

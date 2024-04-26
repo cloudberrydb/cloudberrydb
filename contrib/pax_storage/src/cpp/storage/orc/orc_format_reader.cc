@@ -742,7 +742,6 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
   pax::porc::proto::StripeFooter stripe_footer;
   size_t streams_index = 0;
   size_t streams_size = 0;
-  size_t encoding_kinds_size = 0;
 
   pax_columns->AddRows(stripe_info.numberofrows());
 
@@ -780,7 +779,6 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
       ReadStripeWithProjection(data_buffer, stripe_info, proj_map, proj_len);
 
   streams_size = stripe_footer.streams_size();
-  encoding_kinds_size = stripe_footer.pax_col_encodings_size();
 
   if (unlikely(streams_size == 0 && column_types_.empty())) {
     return pax_columns;
@@ -789,7 +787,7 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
   data_buffer->BrushBackAll();
 
   AssertImply(proj_len != 0, column_types_.size() <= proj_len);
-  Assert(encoding_kinds_size <= column_types_.size());
+  Assert(stripe_footer.pax_col_encodings_size() <= column_types_.size());
 
   for (size_t index = 0; index < column_types_.size(); index++) {
     /* Skip read current column, just move `streams_index` after

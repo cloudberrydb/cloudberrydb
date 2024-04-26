@@ -5,38 +5,32 @@ set(CMAKE_CXX_STANDARD 14)
 set(TOP_DIR ${PROJECT_SOURCE_DIR}/../..)
 set(CBDB_INCLUDE_DIR ${TOP_DIR}/src/include)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-error=ignored-qualifiers -Wuninitialized -Winit-self -Wstrict-aliasing -Wno-missing-field-initializers -Wno-unused-parameter -Wno-clobbered -g")
 
 # Build gtest options
 option(BUILD_GTEST "Build with google test" ON)
-
-
 option(BUILD_GBENCH "Build with google benchmark" OFF)
 
 # Build pax tools
 option(BUILD_TOOLS "Build with pax tools" ON)
 
-# env CBDB_BUILD_TYPE is set by Lighting pipeline
-if (NOT DEFINED ENV{CBDB_BUILD_TYPE})
-    set(ENV{CBDB_BUILD_TYPE} "debug")
-endif()
+include(CheckSymbolExists)
+SET(PG_CONFIG_HEADER_FILE "${CBDB_INCLUDE_DIR}/pg_config.h")
+message(STATUS "pg_config.h => ${PG_CONFIG_HEADER_FILE}")
 
-set(CBDB_BUILD_TYPE $ENV{CBDB_BUILD_TYPE})
-message(STATUS "env CBDB_BUILD_TYPE=$ENV{CBDB_BUILD_TYPE} => ${CBDB_BUILD_TYPE}")
-
-if (${CBDB_BUILD_TYPE} STREQUAL "release")
-  SET(CMAKE_BUILD_TYPE "Release")
-  SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3")
-  # no need build gtest in release mode
-  SET(BUILD_GTEST OFF)
-elseif(${CBDB_BUILD_TYPE} STREQUAL "debug")
+CHECK_SYMBOL_EXISTS(USE_ASSERT_CHECKING "${PG_CONFIG_HEADER_FILE}" PAX_USE_DEBUG)
+if (PAX_USE_DEBUG)
   ADD_DEFINITIONS(-DENABLE_DEBUG)
   # Use to build compile_commands.json
   SET(CMAKE_BUILD_TYPE "Debug")
   SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -ggdb")
 else()
-  message(FATAL_ERROR "unknown CBDB_BUILD_TYPE: ${CBDB_BUILD_TYPE}")
+  SET(CMAKE_BUILD_TYPE "Release")
+  SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3")
+  # no need build gtest in release mode
+  SET(BUILD_GTEST OFF)
 endif()
+message(STATUS "PAX BUILD TYPE: ${CMAKE_BUILD_TYPE}")
 
 if(BUILD_GBENCH)
   SET(BUILD_GTEST ON)
@@ -56,10 +50,7 @@ set(CMAKE_CXX_STANDARD 17)
 endif()
 
 # Vec options
-include(CheckSymbolExists)
-SET(PG_CONFIG_HEADER_FILE "${CBDB_INCLUDE_DIR}/pg_config.h")
 CHECK_SYMBOL_EXISTS(USE_VECTORIZATION "${PG_CONFIG_HEADER_FILE}" VEC_BUILD)
-message(STATUS "pg_config.h => ${PG_CONFIG_HEADER_FILE}")
 if (VEC_BUILD)
   set(VEC_HOME "${PROJECT_SOURCE_DIR}/../vectorization")
   set(INSTALL_HOME "${CMAKE_INSTALL_PREFIX}")

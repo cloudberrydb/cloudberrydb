@@ -614,9 +614,7 @@ size_t PaxOrcDecoder<T>::Next(const char *const not_null) {
     return n_read;
   }
 
-  if (data_buffer_->UnTreated() < 0) {
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeOutOfRange);
-  } else if (data_buffer_->UnTreated() == 0) {
+  if (data_buffer_->UnTreated() == 0) {
     return result_buffer_->Used();
   }
 
@@ -707,7 +705,6 @@ size_t PaxOrcDecoder<T>::Decoding(const char *const not_null,
     Assert(n_read == (not_null_len * sizeof(T)));
   }
 
-  Assert(result_buffer_->Available() >= 0);
   return n_read;
 }
 

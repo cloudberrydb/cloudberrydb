@@ -29,13 +29,13 @@ TEST_P(PaxCompressTest, TestCompressAndDecompress) {
   compressor = PaxCompressor::CreateBlockCompressor(type);
 
   size_t bound_size = compressor->GetCompressBound(data_len);  // NOLINT
-  ASSERT_GT(bound_size, 0);
+  ASSERT_GT(bound_size, 0UL);
   result_data =
       reinterpret_cast<char *>(cbdb::RePalloc(result_data, bound_size));
   dst_len = bound_size;
   dst_len = compressor->Compress(result_data, dst_len, data, data_len, 1);
   ASSERT_FALSE(compressor->IsError(dst_len));
-  ASSERT_GT(dst_len, 0);
+  ASSERT_GT(dst_len, 0UL);
 
   // reset data
   for (size_t i = 0; i < data_len; ++i) {
@@ -44,7 +44,7 @@ TEST_P(PaxCompressTest, TestCompressAndDecompress) {
 
   size_t decompress_len =
       compressor->Decompress(data, data_len, result_data, dst_len);
-  ASSERT_GT(decompress_len, 0);
+  ASSERT_GT(decompress_len, 0UL);
   ASSERT_EQ(decompress_len, data_len);
   for (size_t i = 0; i < data_len; ++i) {
     ASSERT_EQ(data[i], (char)i);
@@ -55,7 +55,7 @@ TEST_P(PaxCompressTest, TestCompressAndDecompress) {
   delete result_data;
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PaxCompressTestCombined, PaxCompressTest,
     testing::Combine(testing::Values(ColumnEncoding_Kind_COMPRESS_ZSTD,
                                      ColumnEncoding_Kind_COMPRESS_ZLIB),

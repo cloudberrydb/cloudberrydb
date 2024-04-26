@@ -561,11 +561,10 @@ static bool CheckNullKeys(const TupleDesc desc, ScanKey scan_key,
 // returns false: the micro partition could be ignored
 bool PaxFilter::TestScanInternal(const ColumnStatsProvider &provider,
                                  const TupleDesc desc) const {
-  auto natts = desc->natts;
   auto column_stats_size = provider.ColumnSize();
 
   Assert(num_scan_keys_ > 0);
-  Assert(column_stats_size <= natts);
+  Assert(column_stats_size <= desc->natts);
   for (int i = 0; i < num_scan_keys_; i++) {
     auto scan_key = &scan_keys_[i];
 
@@ -577,7 +576,7 @@ bool PaxFilter::TestScanInternal(const ColumnStatsProvider &provider,
     }
 
     auto column_index = scan_key->sk_attno - 1;
-    Assert(column_index >= 0 && column_index < natts);
+    Assert(column_index >= 0 && column_index < desc->natts);
 
     auto attr = &desc->attrs[column_index];
     // scan key should never contain dropped column
