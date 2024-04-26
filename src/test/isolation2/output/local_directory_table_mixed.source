@@ -4,6 +4,8 @@
 
 ! mkdir -p '@testtablespace@';
 
+DROP TABLESPACE IF EXISTS directory_tblspc;
+DROP
 CREATE TABLESPACE directory_tblspc LOCATION '@testtablespace@';
 CREATE
 
