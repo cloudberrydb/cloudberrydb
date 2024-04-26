@@ -238,7 +238,7 @@ bool OrcReader::GetTuple(TupleTableSlot *slot, size_t row_index) {
   right = nums_of_group - 1;
 
   // current `row_index` in group
-  if (cached_group_ && cached_group_->GetRowOffset() >= row_index &&
+  if (cached_group_ && cached_group_->GetRowOffset() <= row_index &&
       row_index < (cached_group_->GetRowOffset() + cached_group_->GetRows())) {
     goto found;
   }
