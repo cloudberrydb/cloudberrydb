@@ -2,6 +2,7 @@
 -- setup for temp tablespace
 ! rm -rf '@testtablespace@';
 ! mkdir -p '@testtablespace@';
+DROP TABLESPACE IF EXISTS directory_tblspc;
 CREATE TABLESPACE directory_tblspc LOCATION '@testtablespace@';
 
 CREATE EXTENSION IF NOT EXISTS gp_inject_fault;

@@ -644,4 +644,6 @@ DROP TRIGGER IF EXISTS trigtest_a_row_tg_dirtable_1 ON dir_table1;
 DROP TRIGGER IF EXISTS trigtest_b_stmt_tg_dirtable_1 ON dir_table1;
 DROP TRIGGER IF EXISTS trigtest_a_stmt_tg_dirtable_1 ON dir_table1;
 
+\!rm -rf @testtablespace@;
+
 DROP TABLESPACE directory_tblspc;
