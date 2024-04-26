@@ -5,7 +5,7 @@ ARCH="$(uname -i)"
 OS="$(. /etc/os-release && echo "${ID}")"
 ARROW_BUILD_TYPE="release"
 ARROW_BRANCH="hdw"
-LAST_COMMIT="7811a91efe1b3a665f658b34ee5d793ad1a3da2c"
+LAST_COMMIT="dcbdfe444190f493231bbae8d8aa83af8e8b998e"
 
 if [ $# -eq 1 ] && [ "${1,,}" = "debug" ]; then
   ARROW_BUILD_TYPE="debug"

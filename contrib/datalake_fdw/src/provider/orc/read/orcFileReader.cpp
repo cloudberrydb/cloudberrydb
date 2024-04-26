@@ -99,7 +99,7 @@ arrow::Status orcFileReader::readRecordBatch(arrow::MemoryPool* pool,
 	orc::StructVectorBatch *orcVector = readInterface.getORCStructVectorBatch();
 	for (int i = 0; i < builder->num_fields(); i++)
 	{
-		RETURN_NOT_OK(arrow::adapters::orc::AppendBatch(readInterface.type->getSubtype(schemaColMap[i]), orcVector->fields[i], 0,
+		RETURN_NOT_OK(arrow::adapters::orc::AppendBatchHdw(readInterface.type->getSubtype(schemaColMap[i]), orcVector->fields[i], 0,
 								readInterface.batch->numElements, builder->GetField(i)));
 	}
 	RETURN_NOT_OK(builder->Flush(out));

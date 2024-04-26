@@ -155,20 +155,17 @@ arrow::Status orcReadRecordBatch::recordBatchAddColumn(int mpp_index, int batch_
 		}
 		case NUMERICOID: {
 			char* conVal = DatumGetCString(DirectFunctionCall1(numeric_out, mpp_datum));
-			arrow::Decimal128 value;
-			int32_t precision = 0;
-			int32_t scale = 0;
-			ARROW_RETURN_NOT_OK(arrow::Decimal128::FromString(conVal, &value, &precision, &scale));
-
-			arrow::Decimal128Builder decimal128Builder(arrow::decimal(precision - scale, scale));
+			arrow::Numeric128 value;
+			ARROW_RETURN_NOT_OK(arrow::Numeric128::FromString(conVal, &value));
+			arrow::Numeric128Builder numeric128Builder(arrow::numeric128());
 			for (int i = 0; i < nrows; i++)
 			{
-				decimal128Builder.Append(value);
+				numeric128Builder.Append(value);
 			}
 			std::shared_ptr<arrow::Array> columns;
 			std::shared_ptr<arrow::Field> field;
-			field = arrow::field(partitionkey.c_str(), arrow::decimal(precision - scale, scale));
-			ARROW_ASSIGN_OR_RAISE(columns, decimal128Builder.Finish());
+			field = arrow::field(partitionkey.c_str(), arrow::numeric128());
+			ARROW_ASSIGN_OR_RAISE(columns, numeric128Builder.Finish());
 			addColOrCreateRecordBatch(field, columns, nrows, batch_index);
 			break;
 		}
@@ -275,7 +272,7 @@ void orcReadRecordBatch::ReadSchema(std::shared_ptr<arrow::Schema>* out_schema)
 			continue;
 		}
 		std::shared_ptr<arrow::DataType> elemtype;
-		arrow::adapters::orc::GetArrowType(fileReader.readInterface.type->getSubtype(child), &elemtype);
+		arrow::adapters::orc::GetArrowTypeHdw(fileReader.readInterface.type->getSubtype(child), &elemtype);
 		std::string name = fileReader.readInterface.type->getFieldName(child);
 		fields.push_back(field(name, elemtype));
 		schemaColMap.push_back(child);
