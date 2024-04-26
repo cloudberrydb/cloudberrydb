@@ -8187,6 +8187,7 @@ CreateDirectoryTableStmt:
                     CreateDirectoryTableStmt *n = makeNode(CreateDirectoryTableStmt);
                     $4->relpersistence = RELPERSISTENCE_PERMANENT;
                     n->base.relation = $4;
+                    n->base.tableElts = GetDirectoryTableBuiltinColumns();
                     n->base.inhRelations = NIL;
                     n->base.ofTypename = NULL;
                     n->base.constraints = NIL;
@@ -8212,6 +8213,7 @@ CreateDirectoryTableStmt:
                     CreateDirectoryTableStmt *n = makeNode(CreateDirectoryTableStmt);
                     $7->relpersistence = RELPERSISTENCE_PERMANENT;
                     n->base.relation = $7;
+                    n->base.tableElts = GetDirectoryTableBuiltinColumns();
                     n->base.inhRelations = NIL;
                     n->base.ofTypename = NULL;
                     n->base.constraints = NIL;

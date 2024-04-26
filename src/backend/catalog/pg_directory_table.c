@@ -42,6 +42,20 @@ typedef struct TableSpaceFileAmEntry
 	FileAm  *fileAm; /* tablespace file am */
 } TableSpaceFileAmEntry;
 
+typedef struct DirTableColumnDesc
+{
+	const char *colName;
+	const char *typName;
+} DirTableColumnDesc;
+
+static const DirTableColumnDesc dirTableColumns[] = {
+	{"relative_path", "text"},
+	{"size", "int8"},
+	{"last_modified", "timestamptz"},
+	{"md5", "text"},
+	{"tag", "text"}
+};
+
 static void
 InvalidateTableSpaceFileAmCallBack(Datum arg, int cacheid, uint32 hashvalue)
 {
@@ -214,81 +228,6 @@ RelationIsDirectoryTable(Oid relId)
 	return true;
 }
 
-List *
-GetDirectoryTableSchema(void)
-{
-	List *result = NIL;
-
-	ColumnDef *columnDef = makeNode(ColumnDef);
-	columnDef->colname = "relative_path";
-	columnDef->typeName = SystemTypeName("text");
-	columnDef->is_local = true;
-	result = lappend(result, columnDef);
-
-	columnDef = makeNode(ColumnDef);
-	columnDef->colname = "size";
-	columnDef->typeName = SystemTypeName("int8");
-	columnDef->is_local = true;
-	result = lappend(result, columnDef);
-
-	columnDef = makeNode(ColumnDef);
-	columnDef->colname = "last_modified";
-	columnDef->typeName = SystemTypeName("timestamptz");
-	columnDef->is_local =true;
-	result = lappend(result, columnDef);
-
-	columnDef = makeNode(ColumnDef);
-	columnDef->colname = "md5";
-	columnDef->typeName = SystemTypeName("text");
-	columnDef->is_local = true;
-	result = lappend(result, columnDef);
-
-	columnDef = makeNode(ColumnDef);
-	columnDef->colname = "tag";
-	columnDef->typeName = SystemTypeName("text");
-	columnDef->is_local = true;
-	result = lappend(result, columnDef);
-
-	return result;
-}
-
-DistributedBy *
-GetDirectoryTableDistributedBy(void)
-{
-	Oid			opclassoid = InvalidOid;
-	HeapTuple	ht_opc;
-	Form_pg_opclass opcrec;
-	char	   *opcname;
-	char	   *nspname;
-
-	DistributedBy *distributedBy = makeNode(DistributedBy);
-	distributedBy->ptype = POLICYTYPE_PARTITIONED;
-	distributedBy->numsegments = -1;
-	DistributionKeyElem *elem = makeNode(DistributionKeyElem);
-	elem->name = "relative_path";
-	if (gp_use_legacy_hashops)
-		opclassoid = get_legacy_cdbhash_opclass_for_base_type(TEXTOID);
-
-	if (!OidIsValid(opclassoid))
-		opclassoid = cdb_default_distribution_opclass_for_type(TEXTOID);
-
-	ht_opc = SearchSysCache1(CLAOID, ObjectIdGetDatum(opclassoid));
-	if (!HeapTupleIsValid(ht_opc))
-		elog(ERROR, "cache lookup failed for opclass %u", opclassoid);
-	opcrec = (Form_pg_opclass) GETSTRUCT(ht_opc);
-	nspname = get_namespace_name(opcrec->opcnamespace);
-	opcname = pstrdup(NameStr(opcrec->opcname));
-	elem->opclass = list_make2(makeString(nspname), makeString(opcname));
-
-	elem->location = -1;
-	distributedBy->keyCols = lappend(distributedBy->keyCols, elem);
-	distributedBy->numsegments = GP_POLICY_DEFAULT_NUMSEGMENTS();
-
-	ReleaseSysCache(ht_opc);
-
-	return distributedBy;
-}
-
 Oid
 CreateDirectoryTableIndex(Relation rel)
 {
@@ -329,7 +268,7 @@ CreateDirectoryTableIndex(Relation rel)
 		elog(ERROR, "cache lookup failed for directory_table %u",
 			 RelationGetRelid(rel));
 	collationDatum = SysCacheGetAttr(ATTNUM, tuple, Anum_pg_attribute_attcollation,
-								  	 &isNull);
+									 &isNull);
 	collationObjectId = DatumGetObjectId(collationDatum);
 
 	dirtable_idxid = index_create(rel,
@@ -354,6 +293,26 @@ CreateDirectoryTableIndex(Relation rel)
 	UnlockRelationOid(dirtable_idxid, AccessExclusiveLock);
 
 	return dirtable_idxid;
+}
+
+List *
+GetDirectoryTableBuiltinColumns(void)
+{
+	int			 i;
+	List		*result = NIL;
+
+	for (i = 0; i < lengthof(dirTableColumns); i++)
+	{
+		ColumnDef *columnDef = makeNode(ColumnDef);
+
+		columnDef->colname = pstrdup(dirTableColumns[i].colName);
+		columnDef->typeName = SystemTypeName(pstrdup(dirTableColumns[i].typName));
+		columnDef->is_local = true;
+
+		result = lappend(result, columnDef);
+	}
+
+	return result;
 }
 
 void

@@ -197,6 +197,40 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString)
 	DistributedBy *likeDistributedBy = NULL;
 	bool		bQuiet = false;		/* shut up transformDistributedBy messages */
 
+	if (stmt->relKind == RELKIND_DIRECTORY_TABLE)
+	{
+		Oid			opclassoid = InvalidOid;
+		HeapTuple	ht_opc;
+		Form_pg_opclass	opcrec;
+		char	*opcname;
+		char	*nspname;
+		
+		DistributedBy *distributedBy = makeNode(DistributedBy);
+		distributedBy->ptype = POLICYTYPE_PARTITIONED;
+		DistributionKeyElem *elem = makeNode(DistributionKeyElem);
+		elem->name = "relative_path";
+		if (gp_use_legacy_hashops)
+			opclassoid = get_legacy_cdbhash_opclass_for_base_type(TEXTOID);
+
+		if (!OidIsValid(opclassoid))
+			opclassoid = cdb_default_distribution_opclass_for_type(TEXTOID);
+		
+		ht_opc = SearchSysCache1(CLAOID, ObjectIdGetDatum(opclassoid));
+		if (!HeapTupleIsValid(ht_opc))
+			elog(ERROR, "cache lookup failed for opclass %u", opclassoid);
+		opcrec = (Form_pg_opclass) GETSTRUCT(ht_opc);
+		nspname = get_namespace_name(opcrec->opcnamespace);
+		opcname = pstrdup(NameStr(opcrec->opcname));
+		elem->opclass = list_make2(makeString(nspname), makeString(opcname));
+
+		elem->location = -1;
+		distributedBy->keyCols = lappend(distributedBy->keyCols, elem);
+		distributedBy->numsegments = GP_POLICY_DEFAULT_NUMSEGMENTS();
+		stmt->distributedBy = distributedBy;
+		
+		ReleaseSysCache(ht_opc);
+	}
+	
  	/*
 	 * We don't normally care much about the memory consumption of parsing,
 	 * because any memory leaked is leaked into MessageContext which is

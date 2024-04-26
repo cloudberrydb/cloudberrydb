@@ -637,25 +637,17 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 	 */
 	schema = NIL;
 	cooked_constraints = NIL;
-	if (relkind == RELKIND_DIRECTORY_TABLE)
+	foreach(listptr, stmt->tableElts)
 	{
-		schema = GetDirectoryTableSchema();
-		stmt->distributedBy = GetDirectoryTableDistributedBy();
-	}
-	else
-	{
-		foreach(listptr, stmt->tableElts)
-		{
-			Node	   *node = lfirst(listptr);
+		Node	   *node = lfirst(listptr);
 
-			if (IsA(node, CookedConstraint))
-			{
-				Assert(Gp_role == GP_ROLE_EXECUTE);
-				cooked_constraints = lappend(cooked_constraints, node);
-			}
-			else
-				schema = lappend(schema, node);
+		if (IsA(node, CookedConstraint))
+		{
+			Assert(Gp_role == GP_ROLE_EXECUTE);
+			cooked_constraints = lappend(cooked_constraints, node);
 		}
+		else
+			schema = lappend(schema, node);
 	}
 
 	/*
@@ -1180,7 +1172,7 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 	{
 		CreateDirectoryTableIndex(rel);
 	}
-
+	
 	/*
 	 * If this is an append-only relation, create the auxliary tables necessary
 	 */
