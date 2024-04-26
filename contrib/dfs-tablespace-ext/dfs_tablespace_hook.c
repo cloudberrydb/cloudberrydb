@@ -339,7 +339,7 @@ static void preventCommandIfNeed(Node *parsetree)
 	}
 }
 
-static Oid
+Oid
 getDatabaseTablespace(Oid id)
 {
 	Relation	pg_database;
@@ -417,16 +417,42 @@ dfsObjectAccessHook(ObjectAccessType access, Oid classId, Oid objectId, int subI
 		if (classId == DatabaseRelationId)
 		{
 			Assert(!isInternal);
+		}
 
-			if (IsDfsTablespaceById(getDatabaseTablespace(objectId)))
+		if (classId == RelationRelationId)
+		{
+			Relation rel;
+
+			Assert(OidIsValid(objectId));
+			rel = RelationIdGetRelation(objectId);
+			if (!RelationIsValid(rel))
+				ereport(ERROR,
+						(errcode(ERRCODE_UNDEFINED_TABLE),
+						errmsg("could not open relation with OID %u", objectId),
+						errdetail("This can be validly caused by a concurrent delete operation on this object.")));
+			if (IsDfsTablespaceById(rel->rd_rel->reltablespace) 
+			    && (rel->rd_rel->relkind == RELKIND_RELATION ||
+					rel->rd_rel->relkind == RELKIND_TOASTVALUE ||
+					rel->rd_rel->relkind == RELKIND_MATVIEW )
+				&& !RelationIsHeap(rel))
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-						 errmsg("could not create database in dfs tablespace")));
+						 errmsg("could not create table in dfs tablespace, because it is not unistorage table")));
+
+			RelationClose(rel);
 		}
 
 		if (classId == RelationRelationId && subId == 0 && !isInternal)
 		{
 			getRelationInfo(objectId, &tablespaceId, &relKind);
+
+			/*
+			* Since spcid is always from a pg_class tuple, InvalidOid implies the
+			* default. We should get it from MyDatabaseTableSpace.
+			*/
+			if (tablespaceId == InvalidOid)
+				tablespaceId = MyDatabaseTableSpace;
+
 			if (RELATION_IS_SUPPORTED(relKind) && IsDfsTablespaceById(tablespaceId))
 				recordDependencyOnTablespace(RelationRelationId, objectId, tablespaceId);
 		}
