@@ -15,7 +15,7 @@ OS="$(. /etc/os-release && echo "${ID}")"
 BUILD_TYPE="release"
 ARROW_BUILD_TYPE="release"
 ARROW_BRANCH="hdw"
-LAST_COMMIT="dcbdfe444190f493231bbae8d8aa83af8e8b998e"
+LAST_COMMIT="e5e44de7b6b0bcd66ec86d8465755d4a29903c59"
 
 if [ $# -eq 2 ] && [ "${2,,}" = "debug" ]; then
   ARROW_BUILD_TYPE="debug"
@@ -98,7 +98,7 @@ include, * -> ${BUILD_INSTALL_DIRECTORY}/include
 EOF
 
   conan install /tmp/ --install-folder=${BUILD_INSTALL_DIRECTORY} --update || true
-  chmod 0755 "${BUILD_INSTALL_DIRECTORY}"/bin/*
+  chmod 0755 "${BUILD_INSTALL_DIRECTORY}"/bin/* || true
 }
 
 echo -e "\e[0Ksection_start:`date +%s`:install_conan_dependencies\r\e[0KInstall arrow、orc、gopher、liboss2、libhdfs3..."
