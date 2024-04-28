@@ -29,8 +29,6 @@ PG_CFLAGS += $(shell pkg-config --cflags glib-2.0 gobject-2.0)
 PG_LDFLAGS += $(shell pkg-config --libs glib-2.0 gobject-2.0)
 PG_LDFLAGS += -lgandiva-glib -lgandiva -larrow-glib -larrow
 
-PG_LDFLAGS += -Larrow/lib
-PG_CFLAGS += -Iarrow/include
 PG_CFLAGS += -I$(PAX_DIR)/src/cpp/
 PG_CPPFLAGS = -I$(libpq_srcdir)
 
@@ -50,15 +48,15 @@ endif
 
 .PHONY: install-data
 install-data:
-	$(INSTALL_SHLIB) arrow/lib/* '$(DESTDIR)$(libdir)'
 	$(INSTALL_DATA) vectorization--1.0.sql '$(DESTDIR)$(datadir)/cdb_init.d/vectorization--1.0.sql'
 
-install: download_arrow install-data
+install: install-data
+
+installcheck: vec_test
 
 .PHONY: uninstall-data
 uninstall-data:
 	$(RM) '$(DESTDIR)$(datadir)/cdb_init.d/vectorization--1.0.sql'
-	$(RM) $(DESTDIR)$(libdir)/libarrow*.so* $(DESTDIR)$(libdir)/libgandiva*.so*
 
 uninstall: uninstall-data
 
@@ -70,7 +68,7 @@ endif
 
 .PHONY: download_arrow
 download_arrow:
-	sh dependencies.sh $(debug)
+	sh ../../dependencies.sh vectorization $(debug)
 
 .PHONY: load
 load:

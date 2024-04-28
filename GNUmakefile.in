@@ -45,11 +45,11 @@ ifeq ($(enable_pax), yes)
 	$(MAKE) -C contrib/pax_storage all
 endif
 ifeq ($(enable_gophermeta), yes)
-	chmod +x dependencies.sh  && ./dependencies.sh gopher
+	chmod +x dependencies.sh  && ./dependencies.sh gopher ${debug}
 	$(MAKE) -C contrib/pg_gophermeta all
 endif
 ifeq ($(enable_datalake), yes)
-	chmod +x dependencies.sh  && ./dependencies.sh datalake
+	chmod +x dependencies.sh  && ./dependencies.sh datalake ${debug}
 	$(MAKE) -C contrib/datalake_proxy all
 endif
 	$(MAKE) -C gpMgmt all
