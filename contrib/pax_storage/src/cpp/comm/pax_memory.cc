@@ -18,16 +18,7 @@ void operator delete(void *ptr) {
   if (ptr) cbdb::Pfree(ptr);
 }
 
-void operator delete(void* ptr, size_t size) {
-  if (ptr) cbdb::Pfree(ptr);
-}
-
 void operator delete[](void *ptr) {
   if (ptr) cbdb::Pfree(ptr);
 }
-
-void operator delete[](void *ptr, size_t size) {
-  if (ptr) cbdb::Pfree(ptr);
-}
-
 

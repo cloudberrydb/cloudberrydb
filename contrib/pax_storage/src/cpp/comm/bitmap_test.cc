@@ -138,13 +138,13 @@ TEST_F(BitMapTest, Clone) {
     }
   }
 
-  ASSERT_EQ(bm8.CountBits(0, 1023), 512);
+  ASSERT_EQ(bm8.CountBits(0, 1023), 512UL);
 
   auto bm8_copy = bm8.Clone();
 
   ASSERT_EQ(bm8.Raw().size, bm8_copy->Raw().size);
 
-  ASSERT_EQ(bm8.CountBits(0, 1023), 512);
+  ASSERT_EQ(bm8.CountBits(0, 1023), 512UL);
   for (int i = 0; i < 1024; i++) {
     if (i % 2 == 0) {
       ASSERT_TRUE(bm8_copy->Test(i));
@@ -161,13 +161,13 @@ TEST_F(BitMapTest, Clone) {
     }
   }
 
-  ASSERT_EQ(bm.CountBits(0, 1023), 512);
+  ASSERT_EQ(bm.CountBits(0, 1023), 512UL);
 
   auto bm_copy = bm.Clone();
 
   ASSERT_EQ(bm.Raw().size, bm_copy->Raw().size);
 
-  ASSERT_EQ(bm.CountBits(0, 1023), 512);
+  ASSERT_EQ(bm.CountBits(0, 1023), 512UL);
   for (int i = 0; i < 1024; i++) {
     if (i % 2 == 0) {
       ASSERT_TRUE(bm_copy->Test(i));
@@ -190,13 +190,13 @@ TEST_F(BitMapTest, Union) {
       }
     }
 
-    ASSERT_EQ(bm8_1.CountBits(0, 1023), 512);
-    ASSERT_EQ(bm8_2.CountBits(0, 1023), 512);
+    ASSERT_EQ(bm8_1.CountBits(0, 1023), 512UL);
+    ASSERT_EQ(bm8_2.CountBits(0, 1023), 512UL);
 
     auto bm_union = Bitmap8::Union(&bm8_1, &bm8_2);
 
     ASSERT_EQ(bm_union->CurrentBytes(), bm8_1.CurrentBytes());
-    ASSERT_EQ(bm_union->CountBits(0, 1023), 1024);
+    ASSERT_EQ(bm_union->CountBits(0, 1023), 1024UL);
 
     for (int i = 0; i < 1024; i++) {
       ASSERT_TRUE(bm_union->Test(i));
@@ -215,13 +215,13 @@ TEST_F(BitMapTest, Union) {
       }
     }
 
-    ASSERT_EQ(bm8_1.CountBits(0, 1023), 512);
-    ASSERT_EQ(bm8_2.CountBits(0, 2047), 512);
+    ASSERT_EQ(bm8_1.CountBits(0, 1023), 512UL);
+    ASSERT_EQ(bm8_2.CountBits(0, 2047), 512UL);
 
     auto bm_union = Bitmap8::Union(&bm8_1, &bm8_2);
 
     ASSERT_EQ(bm_union->CurrentBytes(), bm8_2.CurrentBytes());
-    ASSERT_EQ(bm_union->CountBits(0, 2047), 1024);
+    ASSERT_EQ(bm_union->CountBits(0, 2047), 1024UL);
 
     for (int i = 0; i < 1024; i++) {
       ASSERT_TRUE(bm_union->Test(i));

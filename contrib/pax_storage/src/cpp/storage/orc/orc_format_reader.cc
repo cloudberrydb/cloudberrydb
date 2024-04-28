@@ -787,7 +787,7 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
   data_buffer->BrushBackAll();
 
   AssertImply(proj_len != 0, column_types_.size() <= proj_len);
-  Assert(stripe_footer.pax_col_encodings_size() <= column_types_.size());
+  Assert(static_cast<size_t>(stripe_footer.pax_col_encodings_size()) <= column_types_.size());
 
   for (size_t index = 0; index < column_types_.size(); index++) {
     /* Skip read current column, just move `streams_index` after

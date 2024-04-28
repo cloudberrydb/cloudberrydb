@@ -4,6 +4,12 @@
 
 //#include "memory_allocator.h"
 
+// override the default new/delete to use current memory context
+extern void *operator new(std::size_t size);
+extern void *operator new[](std::size_t size);
+extern void operator delete(void *ptr);
+extern void operator delete[](void *ptr);
+
 namespace pax {
 
 template <typename T, typename... Args>
@@ -48,12 +54,6 @@ using pax_shared_ptr = std::shared_ptr<T>;
 //using pax_shared_ptr = std::shared_ptr<T, PaxMemoryDeleter>;
 
 }
-
-// override the default new/delete to use current memory context
-extern void *operator new(std::size_t size);
-extern void *operator new[](std::size_t size);
-extern void operator delete(void *ptr);
-extern void operator delete[](void *ptr);
 
 // specify memory context for this allocation without switching memory context
 extern void *operator new(std::size_t size, MemoryContext ctx);
