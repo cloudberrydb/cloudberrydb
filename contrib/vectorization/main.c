@@ -111,30 +111,10 @@ _PG_init(void)
 
 }
 
-PG_FUNCTION_INFO_V1(vector_int128_in);
-PG_FUNCTION_INFO_V1(vector_int128_out);
+
 PG_FUNCTION_INFO_V1(vector_stddev_in);
 PG_FUNCTION_INFO_V1(vector_stddev_out);
 
-Datum
-vector_int128_in(PG_FUNCTION_ARGS)
-{
-	ereport(ERROR,
-			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-			 errmsg("cannot accept a value of a vector type")));
-
-	PG_RETURN_VOID();                       /* keep compiler quiet */
-}
-
-Datum
-vector_int128_out(PG_FUNCTION_ARGS)
-{
-	ereport(ERROR,
-			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-			 errmsg("cannot display a value of a vector type")));
-
-	PG_RETURN_VOID();                       /* keep compiler quiet */
-}
 
 Datum
 vector_stddev_in(PG_FUNCTION_ARGS)
