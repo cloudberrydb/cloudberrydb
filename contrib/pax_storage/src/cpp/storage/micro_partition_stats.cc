@@ -9,6 +9,162 @@
 
 namespace pax {
 
+bool MicroPartitionStats::MicroPartitionStatisticsInfoCombine(
+    stats::MicroPartitionStatisticsInfo *left,
+    stats::MicroPartitionStatisticsInfo *right, TupleDesc desc,
+    bool allow_fallback_to_pg) {
+  std::vector<std::pair<OperMinMaxFunc, OperMinMaxFunc>> funcs;
+  std::vector<std::pair<FmgrInfo, FmgrInfo>> finfos;
+
+  Assert(left);
+  Assert(right);
+  Assert(left->columnstats_size() <= desc->natts);
+  if (left->columnstats_size() != right->columnstats_size()) {
+    // exist drop/add column, schema not match
+    return false;
+  }
+
+  funcs.reserve(desc->natts);
+  finfos.reserve(desc->natts);
+
+  // check before update left stats
+  for (int i = 0; i < left->columnstats_size(); i++) {
+    auto left_column_stats = left->columnstats(i);
+    auto right_column_stats = right->columnstats(i);
+    auto left_column_data_stats = left_column_stats.datastats();
+    auto right_column_data_stats = right_column_stats.datastats();
+
+    auto attr = TupleDescAttr(desc, i);
+    auto collation = attr->attcollation;
+    Oid op_family;
+    FmgrInfo finfo;
+    bool get_pg_oper_succ = false;
+
+    // all null && has null must be exist.
+    // And we must not check has_allnull/has_hasnull, cause it may return false
+    // if we have not update allnull/hasnull it in `AddRows`.
+    // The current stats may not have been serialized in disk.
+
+
+    // if current column stats do have collation but
+    // not same, then we can't combine two of stats
+    if (left_column_stats.info().collation() !=
+        right_column_stats.info().collation()) {
+      return false;
+    }
+
+    // Current relation collation changed, the min/max may not work
+    if (collation != left_column_stats.info().collation() &&
+        left_column_stats.info().collation() != 0) {
+      return false;
+    }
+
+    // the column_stats.info() can be null, if current column is allnull
+    // So don't assert typeoid/opfamily/collation here
+
+    funcs.emplace_back(
+        std::pair<OperMinMaxFunc, OperMinMaxFunc>({nullptr, nullptr}));
+    GetStrategyProcinfo(attr->atttypid, attr->atttypid, funcs[i]);
+    if (allow_fallback_to_pg) {
+      finfos[i] = {finfo, finfo};
+      get_pg_oper_succ = GetStrategyProcinfo(attr->atttypid, attr->atttypid,
+                                             &op_family, finfos[i]);
+    }
+
+    // if current min/max from pg_oper, but now allow_fallback_to_pg is false
+    if (right_column_data_stats.has_minimal() &&
+        left_column_data_stats.has_minimal() &&
+        !(funcs[i].first && CollateIsSupport(collation)) && !get_pg_oper_succ) {
+      return false;
+    }
+
+    if (right_column_data_stats.has_maximum() &&
+        left_column_data_stats.has_maximum() &&
+        !(funcs[i].second && CollateIsSupport(collation)) &&
+        !get_pg_oper_succ) {
+      return false;
+    }
+  }
+
+  for (int i = 0; i < left->columnstats_size(); i++) {
+    auto left_column_stats = left->mutable_columnstats(i);
+    auto right_column_stats = right->mutable_columnstats(i);
+
+    auto left_column_data_stats = left_column_stats->mutable_datastats();
+    auto right_column_data_stats = right_column_stats->mutable_datastats();
+    auto attr = TupleDescAttr(desc, i);
+
+    auto typlen = attr->attlen;
+    auto typbyval = attr->attbyval;
+    bool ok = false;
+    auto collation = right_column_stats->info().collation();
+
+    if (left_column_stats->allnull() && !right_column_stats->allnull()) {
+      left_column_stats->set_allnull(false);
+    }
+
+    if (!left_column_stats->hasnull() && right_column_stats->hasnull()) {
+      left_column_stats->set_hasnull(true);
+    }
+
+    if (right_column_data_stats->has_minimal()) {
+      if (left_column_data_stats->has_minimal()) {
+        auto left_min_datum = MicroPartitionStats::FromValue(
+            left_column_data_stats->minimal(), typlen, typbyval, &ok);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        auto right_min_datum = MicroPartitionStats::FromValue(
+            right_column_data_stats->minimal(), typlen, typbyval, &ok);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        bool min_rc = false;
+
+        // can direct call the oper, no need check exist again
+        if (funcs[i].first) {
+          min_rc = funcs[i].first(&right_min_datum, &left_min_datum, collation);
+        } else {
+          min_rc = DatumGetBool(cbdb::FunctionCall2Coll(
+              &finfos[i].first, collation, right_min_datum, left_min_datum));
+        }
+
+        if (min_rc) {
+          left_column_data_stats->set_minimal(
+              ToValue(right_min_datum, typlen, typbyval));
+        }
+      } else {
+        left_column_data_stats->set_minimal(right_column_data_stats->minimal());
+      }
+    }
+
+    if (right_column_data_stats->has_maximum()) {
+      if (left_column_data_stats->has_maximum()) {
+        auto left_max_datum = MicroPartitionStats::FromValue(
+            left_column_data_stats->maximum(), typlen, typbyval, &ok);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        auto right_max_datum = MicroPartitionStats::FromValue(
+            right_column_data_stats->maximum(), typlen, typbyval, &ok);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        bool max_rc = false;
+
+        if (funcs[i].second) {
+          max_rc =
+              funcs[i].second(&right_max_datum, &left_max_datum, collation);
+        } else {  // no need check again
+          max_rc = DatumGetBool(cbdb::FunctionCall2Coll(
+              &finfos[i].second, collation, right_max_datum, left_max_datum));
+        }
+
+        if (max_rc) {
+          left_column_data_stats->set_maximum(
+              MicroPartitionStats::ToValue(right_max_datum, typlen, typbyval));
+        }
+
+      } else {
+        left_column_data_stats->set_maximum(right_column_data_stats->maximum());
+      }
+    }
+  }
+  return true;
+}
+
 MicroPartitionStats::MicroPartitionStats(bool allow_fallback_to_pg)
     : allow_fallback_to_pg_(allow_fallback_to_pg) {}
 
@@ -43,7 +199,8 @@ MicroPartitionStats *MicroPartitionStats::SetStatsMessage(
   return this;
 }
 
-MicroPartitionStats *MicroPartitionStats::SetMinMaxColumnIndex(std::vector<int> &&minmax_columns) {
+MicroPartitionStats *MicroPartitionStats::SetMinMaxColumnIndex(
+    std::vector<int> &&minmax_columns) {
   minmax_columns_ = std::move(minmax_columns);
   return this;
 }
@@ -258,7 +415,7 @@ void MicroPartitionStats::DoInitialCheck(TupleDesc desc) {
   }
 
 #ifdef USE_ASSERT_CHECKING
-// minmax_columns_ should be sorted
+  // minmax_columns_ should be sorted
   for (int i = 1; i < num_minmax_columns; i++)
     Assert(minmax_columns_[i - 1] < minmax_columns_[i]);
 #endif

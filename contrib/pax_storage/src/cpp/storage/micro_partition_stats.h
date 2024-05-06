@@ -59,10 +59,16 @@ class MicroPartitionStats final {
   void AddRow(TupleTableSlot *slot);
   MicroPartitionStatsData *GetStatsData() { return stats_; }
   const MicroPartitionStatsData *GetStatsData() const { return stats_; }
-  const std::vector<int> GetMinMaxColumnIndex() const { return minmax_columns_; }
+  const std::vector<int> GetMinMaxColumnIndex() const {
+    return minmax_columns_;
+  }
 
   void MergeTo(MicroPartitionStats *stats, TupleDesc desc);
 
+  static bool MicroPartitionStatisticsInfoCombine(
+      stats::MicroPartitionStatisticsInfo *left,
+      stats::MicroPartitionStatisticsInfo *right, TupleDesc desc,
+      bool allow_fallback_to_pg = false);
   static std::string ToValue(Datum datum, int typlen, bool typbyval);
   static Datum FromValue(const std::string &s, int typlen, bool typbyval,
                          bool *ok);
