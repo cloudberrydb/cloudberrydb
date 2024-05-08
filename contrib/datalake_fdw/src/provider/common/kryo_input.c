@@ -394,7 +394,7 @@ readUtf8(KryoInput *input, uint16_t *chars, int length)
 
 /* returns the number of bytes read or -1 if no more bytes are available */
 int
-read(KryoInput *input, uint8_t *buffer, int length)
+KryoInputRead(KryoInput *input, uint8_t *buffer, int length)
 {
 	int startingCount = length;
 	int copyCount = MIN(input->limit - input->position, length);

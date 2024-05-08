@@ -426,7 +426,7 @@ gopherConfig* createGopherConfig(void *opt)
 			}
 
 			char krb5_ccname[1024] = {0};
-			snprintf(krb5_ccname, 1024, "%s/krb5cc_%s", options->connect_path, conf->krb_principal);
+			snprintf(krb5_ccname, 1024, "%s/gophermeta/krb5cc_%s", DataDir, conf->krb_principal);
 			char* krb5Str = strstr(krb5_ccname, "krb5cc");
 			int len = strlen(krb5Str);
 			for (int i = 0; i < len; i++)

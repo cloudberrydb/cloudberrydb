@@ -25,8 +25,8 @@ bool HmsOpenConnectionWithKerberos(HmsHandle *handle, const char *uris,
 		const char *servicePrincipal,
 		const char *clientPrincipal,
 		const char *clientKeytab,
+		const char *rpcProtection,
 		bool debug);
-int HmsTableExists(HmsHandle *handle, const char *dbName, const char *tableName, bool *exists);
 void HmsCloseConnection(HmsHandle *handle);
 
 int HmsGetTableMetaData(HmsHandle *handle,
@@ -36,11 +36,6 @@ int HmsGetTableMetaData(HmsHandle *handle,
 void HmsReleaseTableMetaData(HmsHandle *handle);
 
 char **HmsPartTableGetKeys(HmsHandle *handle);
-char **HmsPartTableGetKeyTypes(HmsHandle *handle);
-char **HmsPartTableGetKeyValues(HmsHandle *handle, int index);
-char **HmsPartTableGetPartValues(HmsHandle *handle, int index);
-char **HmsTableGetLocations(HmsHandle *handle);
-char **HmsPartTableGetFields(HmsHandle *handle);
 char *HmsTableGetField(HmsHandle *handle);
 char **HmsGetTables(HmsHandle *handle, const char *dbName);
 char *HmsTableGetFormat(HmsHandle *handle);
@@ -48,9 +43,9 @@ bool HmsTableIsPartitionTable(HmsHandle *handle);
 char *HmsTableGetTableType(HmsHandle *handle);
 char *HmsTableGetSerialLib(HmsHandle *handle);
 char *HmsTableGetParameters(HmsHandle *handle);
-int HmsPartTableGetNumber(HmsHandle *handle);
 char *HmsTableGetLocation(HmsHandle *handle);
 bool HmsTableIsTransactionalTable(HmsHandle *handle);
+char **HmsTableGetColumnComments(HmsHandle *handle);
 
 #ifdef __cplusplus
 } // extern "C"

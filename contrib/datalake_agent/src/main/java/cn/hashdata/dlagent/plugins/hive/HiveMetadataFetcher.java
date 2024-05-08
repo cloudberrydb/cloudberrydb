@@ -32,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class HiveMetadataFetcher extends BasePlugin implements MetadataFetcher {
-    private static final short ALL_PARTS = -1;
     private static final Logger LOG = LoggerFactory.getLogger(HiveMetadataFetcher.class);
 
     private final HiveClientWrapper hiveClientWrapper;
@@ -85,13 +84,12 @@ public class HiveMetadataFetcher extends BasePlugin implements MetadataFetcher {
     }
 
     private List<Partition> fetchPartitions(Metadata.Item tblDesc) throws Exception {
-        Table table = clients.run(client -> client.getTable(tblDesc.getPath(), tblDesc.getName()));
+        Table table = clients.run(client -> hiveClientWrapper.getTable(client, tblDesc));
         String[] partitionKeys = table.getPartitionKeys()
                 .stream().map(FieldSchema::getName).toArray(String[]::new);
 
         Instant startTime = Instant.now();
-        List<String> partitions = clients.run(
-                client -> client.listPartitionNames(tblDesc.getPath(), tblDesc.getName(), ALL_PARTS));
+        List<String> partitions = clients.run(client -> hiveClientWrapper.listPartitionNames(client, tblDesc));
         Duration duration = Duration.between(startTime, Instant.now());
         LOG.info("Finished listPartitionNames [{}] operation in {} ms.", partitions.size(), duration.toMillis());
 

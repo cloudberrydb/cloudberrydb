@@ -11,7 +11,7 @@ typedef struct KryoInput
 
 KryoInput *createKryoInput(uint8_t *buffer, int length);
 void destroyKryoInput(KryoInput *input);
-int read(KryoInput *input, uint8_t *buffer, int length);
+int KryoInputRead(KryoInput *input, uint8_t *buffer, int length);
 char readByte(KryoInput *input);
 void readBytes(KryoInput *input, void *bytes, int length);
 int16_t readShort(KryoInput *input);

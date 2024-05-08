@@ -37,6 +37,7 @@ public class Metadata {
      * Class representing item name - db/schema/path name and table/file name.
      */
     public static class Item {
+        private String catalogName;
         private String path;
         private String name;
 
@@ -50,6 +51,12 @@ public class Metadata {
             this.name = itemName;
         }
 
+        public Item(String catalogName, String path, String itemName) {
+            this.catalogName = catalogName;
+            this.path = path;
+            this.name = itemName;
+        }
+
         public String getPath() {
             return path;
         }
@@ -58,13 +65,27 @@ public class Metadata {
             return name;
         }
 
+        public String getCatalogName() {
+            return catalogName;
+        }
+
         /**
          * Returns full item name in the form path.name
          * eg: dbname.tblname
          */
         @Override
         public String toString() {
-            return path + "." + name;
+            StringBuilder sb = new StringBuilder();
+            if (catalogName != null) {
+                sb.append(catalogName);
+                sb.append(".");
+            }
+
+            sb.append(path);
+            sb.append(".");
+            sb.append(name);
+
+            return sb.toString();
         }
     }
 

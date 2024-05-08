@@ -16,12 +16,6 @@
 #include "hive_helper.h"
 #include "strings_util.h"
 
-typedef struct PartNameEntry
-{
-	Oid  nameID;
-	char name[NAMEDATALEN];
-} PartNameEntry;
-
 bool hiveEnableCacheFile;
 
 bool
@@ -365,9 +359,6 @@ validateMetaData(HmsHandle *hms,
 				 const char *hiveDbName,
 				 const char *hiveTableName,
 				 char ***partKeys,
-				 char ***partKeyTypes,
-				 char ***partLocations,
-				 char ***fields,
 				 char **field)
 {
 	*partKeys = HmsPartTableGetKeys(hms);
@@ -376,47 +367,6 @@ validateMetaData(HmsHandle *hms,
 		elog(WARNING, "failed to get partition key for table: \"%s.%s\": %s",
 					hiveDbName, hiveTableName, HmsGetError(hms));
 		return false;
-	}
-
-	if (partKeyTypes)
-	{
-		*partKeyTypes = HmsPartTableGetKeyTypes(hms);
-		if (!(*partKeyTypes))
-		{
-			elog(WARNING, "failed to get type of partition key for table: \"%s.%s\": %s",
-					hiveDbName, hiveTableName, HmsGetError(hms));
-			return false;
-		}
-	}
-
-	if (partLocations)
-	{
-		*partLocations = HmsTableGetLocations(hms);
-		if (!(*partLocations))
-		{
-			elog(WARNING, "failed to get locations of partition for table: \"%s.%s\": %s",
-					hiveDbName, hiveTableName, HmsGetError(hms));
-			return false;
-		}
-
-
-		if ((*partLocations)[0] == NULL)
-		{
-			elog(WARNING, "hive partition table: \"%s.%s\" was ignored: no partition found",
-					hiveDbName, hiveTableName);
-			return false;
-		}
-	}
-
-	if (fields)
-	{
-		*fields = HmsPartTableGetFields(hms);
-		if (!(*fields))
-		{
-			elog(WARNING, "failed to get columns for partition table: \"%s.%s\": %s",
-					hiveDbName, hiveTableName, HmsGetError(hms));
-			return false;
-		}
 	}
 
 	*field = HmsTableGetField(hms);

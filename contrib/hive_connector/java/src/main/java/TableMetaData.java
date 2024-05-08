@@ -6,9 +6,6 @@ import java.util.List;
 
 public class TableMetaData {
     private List<String> partKeys;
-    private List<String> partKeyTypes;
-    private List<Partition> partitions;
-    private List<String> fields;
     private String field;
     private String format;
     private boolean isPartitionTable;
@@ -17,40 +14,10 @@ public class TableMetaData {
     private String serialLib;
     private String parameters;
     private boolean isTransactionalTable;
+    private List<String> columnComments;
 
     public Object[] getPartKeys() {
         return this.partKeys.toArray();
-    }
-
-    public Object[] getPartKeyTypes() {
-        return this.partKeyTypes.toArray();
-    }
-
-    public Object[] getPartKeyValues(int index) {
-        HashSet<String> values = new HashSet<String>();
-        for (Partition partition : partitions) {
-            values.add(partition.getValues().get(index));
-        }
-
-        return values.toArray();
-    }
-
-    public Object[] getLocations() {
-        List<String> locations = new ArrayList<>();
-
-        for(Partition partition : partitions) {
-            locations.add(partition.getSd().getLocation());
-        }
-
-        return locations.toArray();
-    }
-
-    public Object[] getPartValues(int index) {
-        return partitions.get(index).getValues().toArray();
-    }
-
-    public Object[] getPartFields() {
-        return this.fields.toArray();
     }
 
     public Object getField() { return this.field;}
@@ -67,23 +34,13 @@ public class TableMetaData {
 
     public Object getParameters() { return this.parameters; }
 
-    public int getPartitionNumber() { return this.partitions.size(); }
-
     public Object getLocation() {return this.location; }
+
+    public Object[] getColumnComments() { return columnComments.toArray(); }
 
     public void setPartKeys(List<String> partKeys) {
         this.partKeys = partKeys;
     }
-
-    public void setPartKeyTypes(List<String> partKeyTypes) {
-        this.partKeyTypes = partKeyTypes;
-    }
-
-    public void setPartitions(List<Partition> partitions) {
-        this.partitions = partitions;
-    }
-
-    public void setPartFields(List<String> fields) { this.fields = fields; }
 
     public void setField(String field) { this.field = field; }
 
@@ -100,4 +57,6 @@ public class TableMetaData {
     public void setSerialLib(String serialLib) { this.serialLib = serialLib; }
 
     public void setParameters(String parameters) { this.parameters = parameters; }
+
+    public void setColumnComments(List<String> columnComments) { this.columnComments = columnComments; }
 }

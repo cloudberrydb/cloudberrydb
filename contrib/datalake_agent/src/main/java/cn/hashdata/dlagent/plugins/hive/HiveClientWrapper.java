@@ -4,6 +4,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.MetaException;
+import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.thrift.TException;
 import cn.hashdata.dlagent.api.error.UnsupportedTypeException;
@@ -22,7 +24,7 @@ import java.util.List;
 public class HiveClientWrapper {
 
     private static final Logger LOG = LoggerFactory.getLogger(HiveClientWrapper.class);
-    private static final String WILDCARD = "*";
+    private static final short ALL_PARTS = -1;
 
     private HiveUtilities hiveUtilities;
 
@@ -34,19 +36,6 @@ public class HiveClientWrapper {
     @Autowired
     public void setHiveUtilities(HiveUtilities hiveUtilities) {
         this.hiveUtilities = hiveUtilities;
-    }
-
-    public Table getHiveTable(IMetaStoreClient client, Metadata.Item itemName) throws Exception {
-        Table tbl = client.getTable(itemName.getPath(), itemName.getName());
-        String tblType = tbl.getTableType();
-
-        LOG.debug("Item: {}.{}, type: {}", itemName.getPath(), itemName.getName(), tblType);
-
-        if (TableType.valueOf(tblType) == TableType.VIRTUAL_VIEW) {
-            throw new UnsupportedOperationException("dlagent does not support Hive views");
-        }
-
-        return tbl;
     }
 
     /**
@@ -95,7 +84,7 @@ public class HiveClientWrapper {
      * @return {@link Metadata.Item} object holding the full table name
      */
     public Metadata.Item extractTableFromName(String qualifiedName) {
-        List<Metadata.Item> items = extractTablesFromPattern(null, qualifiedName);
+        List<Metadata.Item> items = extractTablesFromPattern(qualifiedName);
         if (items.isEmpty()) {
             throw new IllegalArgumentException("No tables found");
         }
@@ -128,12 +117,12 @@ public class HiveClientWrapper {
      * or when querying HCatalog table.
      * It can be either <code>table_name_pattern</code> or <code>db_name_pattern.table_name_pattern</code>.
      *
-     * @param client  MetaStoreClient client
      * @param pattern Hive table name or pattern
      * @return list of {@link Metadata.Item} objects holding the full table name
      */
-    public List<Metadata.Item> extractTablesFromPattern(IMetaStoreClient client, String pattern) {
+    public List<Metadata.Item> extractTablesFromPattern(String pattern) {
 
+        String catalogName = null;
         String dbPattern, tablePattern;
         String errorMsg = " is not a valid Hive table name. "
                 + "Should be either <table_name> or <db_name.table_name>";
@@ -157,39 +146,36 @@ public class HiveClientWrapper {
         } else if (tokens.size() == 2) {
             dbPattern = tokens.get(0);
             tablePattern = tokens.get(1);
+        } else if (tokens.size() == 3) {
+            catalogName = tokens.get(0);
+            dbPattern = tokens.get(1);
+            tablePattern = tokens.get(2);
         } else {
             throw new IllegalArgumentException("\"" + pattern + "\"" + errorMsg);
         }
 
-        return getTablesFromPattern(client, dbPattern, tablePattern);
-    }
-
-    private List<Metadata.Item> getTablesFromPattern(IMetaStoreClient client, String dbPattern, String tablePattern) {
-
-        List<String> databases;
         List<Metadata.Item> itemList = new ArrayList<>();
-
-        if (client == null || (!dbPattern.contains(WILDCARD) && !tablePattern.contains(WILDCARD))) {
-            /* This case occurs when the call is invoked as part of the fragmenter api or when metadata is requested for a specific table name */
-            itemList.add(new Metadata.Item(dbPattern, tablePattern));
-            return itemList;
-        }
-
-        try {
-            databases = client.getDatabases(dbPattern);
-            if (databases.isEmpty()) {
-                LOG.warn("No database found for the given pattern: " + dbPattern);
-                return null;
-            }
-            for (String dbName : databases) {
-                for (String tableName : client.getTables(dbName, tablePattern)) {
-                    itemList.add(new Metadata.Item(dbName, tableName));
-                }
-            }
-            return itemList;
-
-        } catch (TException cause) {
-            throw new RuntimeException("Failed connecting to Hive MetaStore service: " + cause.getMessage(), cause);
-        }
+        itemList.add(new Metadata.Item(catalogName, dbPattern, tablePattern));
+        return itemList;
     }
+
+    public Table getTable(IMetaStoreClient client, Metadata.Item tableDesc) throws MetaException,
+            TException, NoSuchObjectException {
+        if (tableDesc.getCatalogName() == null) {
+            return client.getTable(tableDesc.getPath(), tableDesc.getName());
+        }
+
+        return client.getTable(tableDesc.getCatalogName(), tableDesc.getPath(), tableDesc.getName());
+    }
+
+    public List<String> listPartitionNames(IMetaStoreClient client, Metadata.Item tableDesc) throws
+            NoSuchObjectException, MetaException, TException {
+        if (tableDesc.getCatalogName() == null) {
+            return client.listPartitionNames(tableDesc.getPath(), tableDesc.getName(), ALL_PARTS);
+        }
+
+        return client.listPartitionNames(tableDesc.getCatalogName(),
+                tableDesc.getPath(), tableDesc.getName(), ALL_PARTS);
+    }
+
 }

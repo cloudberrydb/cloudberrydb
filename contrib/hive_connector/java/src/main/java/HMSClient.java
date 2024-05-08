@@ -1,10 +1,14 @@
+import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.hive.metastore.HiveMetaStoreClientCompatibility2xx;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.security.SecurityUtil;
+import org.apache.hadoop.security.HCUserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.LoggerFactory;
+import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.slf4j.Logger;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
@@ -12,12 +16,14 @@ import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.net.InetAddress;
 import java.net.URI;
-import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
 
 public final class HMSClient {
     private static Logger LOG = LoggerFactory.getLogger(HMSClient.class);
-    private static final short ALL_PARTS = -1;
     private HiveMetaStoreClient client;
     private String errorMessage;
 
@@ -26,9 +32,9 @@ public final class HMSClient {
             HiveConf hiveConf = new HiveConf();
             hiveConf.set("hive.metastore.uris", uri);
 
-            client = new HiveMetaStoreClient(hiveConf);
+            HCUserGroupInformation.reset();
+            client = new HiveMetaStoreClientCompatibility2xx(hiveConf);
 
-            LOG.info("connect successfully");
         } catch (Exception e) {
             LOG.error("failed to connect metastore service: {}", e.toString());
             errMessage.catVal(exceptionStacktraceToString(e));
@@ -42,6 +48,7 @@ public final class HMSClient {
                               String servicePrincipal,
                               String clientPrincipal,
                               String clientKeytab,
+                              String rpcProtection,
                               MessageBuffer errMessage,
                               int debug) {
         try {
@@ -56,38 +63,24 @@ public final class HMSClient {
                 "Most recent failure: " + this.errorMessage);
             }
 
-            String servPrinc = selectServPrincipal(servicePrincipal, uri);
+            String servPrinc = selectServPrincipal(servicePrincipal);
 
             HiveConf hiveConf = new HiveConf();
             hiveConf.set("hive.metastore.uris", uri);
             hiveConf.set("hive.metastore.kerberos.principal", servPrinc);
             hiveConf.set("hive.metastore.sasl.enabled", "true");
             hiveConf.set("hadoop.security.authentication", "kerberos");
+            hiveConf.set("hadoop.rpc.protection", rpcProtection);
+            hiveConf.set("hadoop.security.auth_to_local", "RULE:[1:$1] RULE:[2:$1] DEFAULT");
 
+            HCUserGroupInformation.reset();
             UserGroupInformation.setConfiguration(hiveConf);
             UserGroupInformation.loginUserFromKeytab(clientPrincipal, clientKeytab);
 
-            client = new HiveMetaStoreClient(hiveConf);
+            client = new HiveMetaStoreClientCompatibility2xx(hiveConf);
         } catch (Exception e) {
             LOG.error("failed to connect metastore service: {}", e.toString());
             errMessage.catVal(exceptionStacktraceToString(e));
-            return -1;
-        }
-
-        return 0;
-    }
-
-    public int tableExists(String dbName, String tableName, MessageBuffer result, MessageBuffer errMessage) {
-        try {
-            boolean found = client.tableExists(dbName, tableName);
-            if (found) {
-                result.catVal(1);
-            } else {
-                result.catVal(0);
-            }
-        } catch (Exception e) {
-            LOG.error("failed to execute tableExists: {}", e.toString());
-            errMessage.catVal(e.toString());
             return -1;
         }
 
@@ -161,25 +154,17 @@ public final class HMSClient {
         }
     }
 
-    private boolean isNumericType(String type) {
-        switch (type) {
-            case "smallint":
-            case "integer":
-            case "bigint":
-            case "float":
-            case "double precision":
-                return true;
-            default:
-                return false;
-        }
+    private String formColumnComment(String columnName, String columnComment) {
+        return "comment on column %s." + columnName + " is '" + columnComment + "'";
     }
 
-    private String formFields(Table table) throws Exception {
+    private String formFields(Table table, List<String> comments) throws Exception {
         MessageBuffer columnBuf = new MessageBuffer("");
         List<FieldSchema> schemas = table.getSd().getCols();
 
         for (int i = 0; i < schemas.size(); i++) {
             String name = schemas.get(i).getName();
+            String comment = schemas.get(i).getComment();
             String type = typeConversion(schemas.get(i).getType());
 
             if (i == schemas.size() - 1) {
@@ -187,101 +172,89 @@ public final class HMSClient {
             } else {
                 columnBuf.catVal(name + " " + type + ", ");
             }
-        }
-
-        return columnBuf.getVal();
-    }
-
-    private void formKeyField(Partition partition,
-                                  String name,
-                                  String type,
-                                  int index,
-                                  boolean isLastKey,
-                                  MessageBuffer columnBuf) {
-        if (partition == null) {
-            columnBuf.catVal(name + " " + type + (isLastKey ? "" : ", "));
-            return;
-        }
-
-        if (isNumericType(type)) {
-            columnBuf.catVal(name + " " + type + " default " + partition.getValues().get(index));
-        } else {
-            columnBuf.catVal(name + " " + type + " default '" + partition.getValues().get(index) +"'");
-        }
-
-        columnBuf.catVal( (isLastKey ? "" : ", "));
-    }
-
-    private String formFieldWithKeys(Table table, Partition partition) throws Exception {
-        MessageBuffer columnBuf = new MessageBuffer("");
-
-        List<FieldSchema> schemas = table.getSd().getCols();
-        List<FieldSchema> keys = table.getPartitionKeys();
-
-        for (int i = 0; i < schemas.size(); i++) {
-            columnBuf.catVal(schemas.get(i).getName() + " "
-                    + typeConversion(schemas.get(i).getType()) + ", ");
-        }
-
-        for (int i = 0; i < keys.size(); i++) {
-            String name = keys.get(i).getName();
-            String type = partKeyTypeConversion(keys.get(i).getType());
-
-            if (i == keys.size() - 1) {
-                formKeyField(partition, name, type, i, true, columnBuf);
-            } else {
-                formKeyField(partition, name, type, i, false, columnBuf);
+            if (comment != null) {
+                comments.add(formColumnComment(name, comment));
             }
         }
 
         return columnBuf.getVal();
     }
 
-    private String formTableFields(Table table) throws Exception {
-        return formFieldWithKeys(table, null);
-    }
+    private String formFieldWithKeys(Table table, List<String> comments) throws Exception {
+        MessageBuffer columnBuf = new MessageBuffer("");
 
-    private List<String> formPartitionFields(Table table, List<Partition> partitions) throws Exception {
-        List<String> results = new ArrayList<>();
+        List<FieldSchema> schemas = table.getSd().getCols();
+        List<FieldSchema> keys = table.getPartitionKeys();
 
-        for(Partition partition : partitions) {
-            String fields = this.formFieldWithKeys(table, partition);
-            results.add(fields);
+        for (int i = 0; i < schemas.size(); i++) {
+            String name = schemas.get(i).getName();
+            String comment = schemas.get(i).getComment();
+            columnBuf.catVal(schemas.get(i).getName() + " "
+                    + typeConversion(schemas.get(i).getType()) + ", ");
+            if (comment != null) {
+                comments.add(formColumnComment(name, comment));
+            }
         }
 
-        return results;
+        for (int i = 0; i < keys.size(); i++) {
+            String name = keys.get(i).getName();
+            String comment = keys.get(i).getComment();
+            String type = partKeyTypeConversion(keys.get(i).getType());
+
+            if (i == keys.size() - 1) {
+                columnBuf.catVal(name + " " + type);
+            } else {
+                columnBuf.catVal(name + " " + type + ", ");
+            }
+
+            if (comment != null) {
+                comments.add(formColumnComment(name, comment));
+            }
+        }
+
+        return columnBuf.getVal();
     }
 
     private void getPartTableMetaData(Table table,
-                                      String dbName,
-                                      String tableName,
                                       TableMetaData metaData) throws Exception {
         List<String> columns = new ArrayList<>();
-        List<String> types = new ArrayList<>();
+        List<String> comments = new ArrayList<>();
         List<FieldSchema> keys = table.getPartitionKeys();
 
         for (int i = 0; i < keys.size(); i++) {
             columns.add(keys.get(i).getName());
-            types.add(partKeyTypeConversion(keys.get(i).getType()));
         }
 
-        List<Partition> partitions = new ArrayList<>();
-
-        metaData.setPartitions(partitions);
         metaData.setPartKeys(columns);
-        metaData.setPartKeyTypes(types);
-        metaData.setPartFields(formPartitionFields(table, partitions));
-        metaData.setField(formTableFields(table));
+        metaData.setField(formFieldWithKeys(table, comments));
+        metaData.setColumnComments(comments);
         metaData.setPartitionTable(true);
 
         setTableMetaData(table, metaData);
     }
 
     private void getNormalTableMetaData(Table table, TableMetaData metaData) throws Exception {
-        metaData.setField(formFields(table));
+        List<String> comments = new ArrayList<>();
+
+        metaData.setField(formFields(table, comments));
+        metaData.setColumnComments(comments);
         metaData.setPartitionTable(false);
 
         setTableMetaData(table, metaData);
+    }
+
+    private StringBuffer transformString(StringBuffer message, String value, String defaultValue) {
+        if (value.isEmpty()) {
+            message.append(defaultValue);
+            return message;
+        }
+
+        message.append(value);
+        if (value.equals("'")) {
+            message.append(value);
+        }
+
+        return message;
     }
 
     private String formTextParameters(Map<String, String> parameters) {
@@ -289,11 +262,7 @@ public final class HMSClient {
 
         message.append("(DELIMITER '");
         if (parameters.containsKey("field.delim")) {
-			String s = parameters.get("field.delim");
-            message.append(s);
-			if (s.equals("'")) {
-				message.append(s);
-			}
+			transformString(message, parameters.get("field.delim"), "\001");
         } else {
             message.append("\001");
         }
@@ -301,11 +270,7 @@ public final class HMSClient {
 
         message.append("NULL '");
         if (parameters.containsKey("serialization.null.format")) {
-            String s = parameters.get("serialization.null.format");
-            message.append(s);
-			if (s.equals("'")) {
-				message.append(s);
-			}
+            transformString(message, parameters.get("serialization.null.format"), "\\N");
         } else {
             message.append("\\N");
         }
@@ -316,7 +281,7 @@ public final class HMSClient {
             String lineDelim = parameters.get("line.delim");
             if (lineDelim.equals("\r")) {
                 message.append("CR");
-            } else if (lineDelim.equals("\n")) {
+            } else if (lineDelim.equals("\n") || lineDelim.isEmpty()) {
                 message.append("LF");
             } else {
                 message.append("CRLF");
@@ -328,11 +293,7 @@ public final class HMSClient {
 
         message.append("ESCAPE '");
         if (parameters.containsKey("escape.delim")) {
-            String s = parameters.get("escape.delim");
-            message.append(s);
-			if (s.equals("'")) {
-				message.append(s);
-			}
+            transformString(message, parameters.get("escape.delim"), "OFF");
         } else {
             message.append("OFF");
         }
@@ -346,11 +307,7 @@ public final class HMSClient {
 
         message.append("(QUOTE '");
         if (parameters.containsKey("quoteChar")) {
-			String s = parameters.get("quoteChar");
-            message.append(s);
-			if (s.equals("'")) {
-				message.append(s);
-			}
+			transformString(message, parameters.get("quoteChar"), "\"");
         } else {
             message.append("\"");
         }
@@ -358,11 +315,7 @@ public final class HMSClient {
 
         message.append("DELIMITER '");
         if (parameters.containsKey("separatorChar")) {
-            String s = parameters.get("separatorChar");
-            message.append(s);
-			if (s.equals("'")) {
-				message.append(s);
-			}
+            transformString(message, parameters.get("separatorChar"), ",");
         } else {
             message.append(",");
         }
@@ -370,11 +323,7 @@ public final class HMSClient {
 
         message.append("ESCAPE '");
         if (parameters.containsKey("escapeChar")) {
-			String s = parameters.get("escapeChar");
-            message.append(s);
-			if (s.equals("'")) {
-				message.append(s);
-			}
+			transformString(message, parameters.get("escapeChar"), "\\");
         } else {
             message.append("\\");
         }
@@ -417,12 +366,19 @@ public final class HMSClient {
                                 TableMetaData metaData,
                                 MessageBuffer errMessage) {
         try {
-            Table table = client.getTable(dbName, tableName);
+            Table table;
+            List<String> items = extractItemFromPattern(dbName);
+
+            if (items.size() == 1) {
+                table = client.getTable(items.get(0), tableName);
+            } else {
+                table = client.getTable(items.get(0), items.get(1), tableName);
+            }
 
             int nKeys = table.getPartitionKeysSize();
 
             if (nKeys > 0) {
-                getPartTableMetaData(table, dbName, tableName, metaData);
+                getPartTableMetaData(table, metaData);
             } else {
                 getNormalTableMetaData(table, metaData);
             }
@@ -437,7 +393,16 @@ public final class HMSClient {
 
     public Object[] getTables(String dbName, MessageBuffer errMessage) {
         try {
-            List<String> results = client.getTables(dbName, null);
+            List<String> results;
+            String tablePattern = null;
+            List<String> items = extractItemFromPattern(dbName);
+
+            if (items.size() == 1) {
+                results = client.getTables(items.get(0), tablePattern);
+            } else {
+                results = client.getTables(items.get(0), items.get(1), tablePattern);
+            }
+
             return results.toArray();
         } catch (Exception e) {
             LOG.error("failed to execute getTables: {}", e.toString());
@@ -493,8 +458,27 @@ public final class HMSClient {
         return result;
     }
 
-    private String selectServPrincipal(String principal, String uri) throws Exception {
-        URI tmpUri = new URI(uri);
-        return SecurityUtil.getServerPrincipal(principal, tmpUri.getHost());
+    private String selectServPrincipal(String principal) throws Exception {
+        return SecurityUtil.getServerPrincipal(principal, InetAddress.getLocalHost().getCanonicalHostName());
+    }
+
+    private List<String> extractItemFromPattern(String pattern) throws Exception {
+        String errorMsg = " is not a valid Hive db name. "
+                + "Should be either <db_name> or <catalog_name.db_name>";
+        ArrayList<String> result = new ArrayList<>();
+        String[] tokens = pattern.split("[.]");
+
+        for (String tok : tokens) {
+            if (StringUtils.isBlank(tok)) {
+                continue;
+            }
+            result.add(tok.trim());
+        }
+
+        if (result.size() != 1 && result.size() != 2) {
+            throw new IllegalArgumentException("\"" + pattern + "\"" + errorMsg);
+        }
+
+        return result;
     }
 }

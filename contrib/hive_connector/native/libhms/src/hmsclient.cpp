@@ -36,7 +36,6 @@ static jmethodID   getVal;
 static jmethodID   resetVal;
 static jmethodID   openConnection;
 static jmethodID   openConnectionWithKerberos;
-static jmethodID   tableExists;
 static jmethodID   closeConnection;
 
 static jmethodID   consMsgBuf;
@@ -45,11 +44,6 @@ static jmethodID   consTable;
 
 static jmethodID   isPartitionTable;
 static jmethodID   getPartKeys;
-static jmethodID   getPartKeyTypes;
-static jmethodID   getPartKeyValues;
-static jmethodID   getPartValues;
-static jmethodID   getLocations;
-static jmethodID   getPartFields;
 static jmethodID   getField;
 static jmethodID   getTableMetaData;
 static jmethodID   getTables;
@@ -57,9 +51,9 @@ static jmethodID   getFormat;
 static jmethodID   getTableType;
 static jmethodID   getSerialLib;
 static jmethodID   getParameters;
-static jmethodID   getPartitionNumber;
 static jmethodID   getLocation;
 static jmethodID   isTransactionalTable;
+static jmethodID   getColumnComments;
 
 static void       *soHandle;
 
@@ -193,18 +187,10 @@ HmsInitialize(const char *libJvm, const char *classPath, char *errMessage)
 	}
 
 	openConnectionWithKerberos = jni->GetMethodID(clsHmsClient, "openConnection",
-				"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;LMessageBuffer;I)I");
+				"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;LMessageBuffer;I)I");
 	if (openConnectionWithKerberos == NULL)
 	{
-		errJvm = "failed to locate \"HMSClient->openConnection(String, String, String, MessageBuffer, int)\"";
-		goto failed;
-	}
-
-	tableExists = jni->GetMethodID(clsHmsClient, "tableExists",
-			"(Ljava/lang/String;Ljava/lang/String;LMessageBuffer;LMessageBuffer;)I");
-	if (tableExists == NULL)
-	{
-		errJvm = "failed to locate \"HMSClient->tableExists\"";
+		errJvm = "failed to locate \"HMSClient->openConnection(String, String, String, String, MessageBuffer, int)\"";
 		goto failed;
 	}
 
@@ -223,13 +209,6 @@ HmsInitialize(const char *libJvm, const char *classPath, char *errMessage)
 		goto failed;
 	}
 
-	getPartFields = jni->GetMethodID(clsTable, "getPartFields", "()[Ljava/lang/Object;");
-	if (getPartFields == NULL)
-	{
-		errJvm = "failed to locate \"TableMetaData->getPartFields\"";
-		goto failed;
-	}
-
 	getField = jni->GetMethodID(clsTable, "getField", "()Ljava/lang/Object;");
 	if (getField == NULL)
 	{
@@ -241,34 +220,6 @@ HmsInitialize(const char *libJvm, const char *classPath, char *errMessage)
 	if (getPartKeys == NULL)
 	{
 		errJvm = "failed to locate \"TableMetaData->getPartKeys\"";
-		goto failed;
-	}
-
-	getPartKeyTypes = jni->GetMethodID(clsTable, "getPartKeyTypes", "()[Ljava/lang/Object;");
-	if (getPartKeyTypes == NULL)
-	{
-		errJvm = "failed to locate \"TableMetaData->getPartKeyTypes\"";
-		goto failed;
-	}
-
-	getPartKeyValues = jni->GetMethodID(clsTable, "getPartKeyValues", "(I)[Ljava/lang/Object;");
-	if (getPartKeyValues == NULL)
-	{
-		errJvm = "failed to locate \"TableMetaData->getPartKeyValues\"";
-		goto failed;
-	}
-
-	getPartValues = jni->GetMethodID(clsTable, "getPartValues", "(I)[Ljava/lang/Object;");
-	if (getPartValues == NULL)
-	{
-		errJvm = "failed to locate \"TableMetaData->getPartValues\"";
-		goto failed;
-	}
-
-	getLocations = jni->GetMethodID(clsTable, "getLocations", "()[Ljava/lang/Object;");
-	if (getLocations == NULL)
-	{
-		errJvm = "failed to locate \"TableMetaData->getLocations\"";
 		goto failed;
 	}
 
@@ -307,13 +258,6 @@ HmsInitialize(const char *libJvm, const char *classPath, char *errMessage)
 		goto failed;
 	}
 
-	getPartitionNumber = jni->GetMethodID(clsTable, "getPartitionNumber", "()I");
-	if (getPartitionNumber == NULL)
-	{
-		errJvm = "failed to locate \"TableMetaData->getPartitionNumber\"";
-		goto failed;
-	}
-
 	getLocation = jni->GetMethodID(clsTable, "getLocation", "()Ljava/lang/Object;");
 	if (getLocation == NULL)
 	{
@@ -325,6 +269,13 @@ HmsInitialize(const char *libJvm, const char *classPath, char *errMessage)
 	if (isTransactionalTable == NULL)
 	{
 		errJvm = "failed to locate \"TableMetaData->isTransactionalTable\"";
+		goto failed;
+	}
+
+	getColumnComments = jni->GetMethodID(clsTable, "getColumnComments", "()[Ljava/lang/Object;");
+	if (getColumnComments == NULL)
+	{
+		errJvm = "failed to locate \"TableMetaData->getColumnComments\"";
 		goto failed;
 	}
 
@@ -521,6 +472,7 @@ HmsOpenConnectionWithKerberos(HmsHandle *handle, const char *uris,
 		const char *servicePrincipal,
 		const char *clientPrincipal,
 		const char *clientKeytab,
+		const char *rpcProtection,
 		bool debug)
 {
 	int result;
@@ -528,6 +480,7 @@ HmsOpenConnectionWithKerberos(HmsHandle *handle, const char *uris,
 	jstring jhmsServicePrincipal;
 	jstring jhmsClientPrincipal;
 	jstring jhmsClientKeytab;
+	jstring jhmsRpcProtection;
 
 	if ((jhmsUris = createJString(uris)) == NULL)
 	{
@@ -552,6 +505,11 @@ HmsOpenConnectionWithKerberos(HmsHandle *handle, const char *uris,
 		HmsProcessErrorMessage(handle, "out of memory");
 		return false;
 	}
+	if ((jhmsRpcProtection = createJString(rpcProtection)) == NULL)
+	{
+		HmsProcessErrorMessage(handle, "out of memory");
+		return false;
+	}
 
 	jni->CallVoidMethod(handle->objErrBuf, resetVal);
 	result = jni->CallIntMethod(handle->objHmsClient, openConnectionWithKerberos,
@@ -559,6 +517,7 @@ HmsOpenConnectionWithKerberos(HmsHandle *handle, const char *uris,
 							jhmsServicePrincipal,
 							jhmsClientPrincipal,
 							jhmsClientKeytab,
+							jhmsRpcProtection,
 							handle->objErrBuf,
 							debug ? 1 : 0);
 
@@ -566,6 +525,7 @@ HmsOpenConnectionWithKerberos(HmsHandle *handle, const char *uris,
 	jni->DeleteLocalRef(jhmsServicePrincipal);
 	jni->DeleteLocalRef(jhmsClientPrincipal);
 	jni->DeleteLocalRef(jhmsClientKeytab);
+	jni->DeleteLocalRef(jhmsRpcProtection);
 
 	if (result < 0)
 	{
@@ -580,57 +540,6 @@ void
 HmsCloseConnection(HmsHandle *handle)
 {
 	jni->CallVoidMethod(handle->objHmsClient, closeConnection);
-}
-
-int
-HmsTableExists(HmsHandle *handle, const char *dbName, const char *tableName, bool *exists)
-{
-	int result;
-	jstring jvalBuf;
-	char *val;
-	jstring jdbName;
-	jstring jtableName;
-
-	if ((jdbName= createJString(dbName)) == NULL)
-	{
-		HmsProcessErrorMessage(handle, "out of memory");
-		return -1;
-	}
-
-	if ((jtableName= createJString(tableName)) == NULL)
-	{
-		HmsProcessErrorMessage(handle, "out of memory");
-		return -1;
-	}
-
-	jni->CallVoidMethod(handle->objErrBuf, resetVal);
-	jni->CallVoidMethod(handle->objValBuf, resetVal);
-
-	result = jni->CallIntMethod(handle->objHmsClient, tableExists,
-							jdbName,
-							jtableName,
-							handle->objValBuf,
-							handle->objErrBuf);
-
-	jni->DeleteLocalRef(jdbName);
-	jni->DeleteLocalRef(jtableName);
-
-	if (result < 0)
-	{
-		HmsProcessErrorMessage(handle, NULL);
-		return -1;
-	}
-
-	jvalBuf = (jstring) jni->CallObjectMethod(handle->objValBuf, getVal);
-	val = (char *) jni->GetStringUTFChars(jvalBuf, NULL);
-	if (strcmp(val, "1") == 0) {
-		*exists = true;
-	} else {
-		*exists = false;
-	}
-	jni->ReleaseStringUTFChars(jvalBuf, val);
-
-	return 0;
 }
 
 int
@@ -691,7 +600,7 @@ HmsReleaseTableMetaData(HmsHandle *handle)
 }
 
 static char **
-HmsPartTableGetList(HmsHandle *handle, jmethodID method, int index)
+HmsTableGetList(HmsHandle *handle, jmethodID method, int index)
 {
 	jobjectArray elems;
 	char **results = NULL;
@@ -734,37 +643,7 @@ HmsPartTableGetList(HmsHandle *handle, jmethodID method, int index)
 char **
 HmsPartTableGetKeys(HmsHandle *handle)
 {
-	return HmsPartTableGetList(handle, getPartKeys, -1);
-}
-
-char **
-HmsPartTableGetKeyTypes(HmsHandle *handle)
-{
-	return HmsPartTableGetList(handle, getPartKeyTypes, -1);
-}
-
-char **
-HmsTableGetLocations(HmsHandle *handle)
-{
-	return HmsPartTableGetList(handle, getLocations, -1);
-}
-
-char **
-HmsPartTableGetKeyValues(HmsHandle *handle, int index)
-{
-	return HmsPartTableGetList(handle, getPartKeyValues, index);
-}
-
-char **
-HmsPartTableGetPartValues(HmsHandle *handle, int index)
-{
-	return HmsPartTableGetList(handle, getPartValues, index);
-}
-
-char **
-HmsPartTableGetFields(HmsHandle *handle)
-{
-	return HmsPartTableGetList(handle, getPartFields, -1);
+	return HmsTableGetList(handle, getPartKeys, -1);
 }
 
 char **
@@ -883,18 +762,14 @@ HmsTableGetParameters(HmsHandle *handle)
 	return getField_(handle, getParameters);
 }
 
-int
-HmsPartTableGetNumber(HmsHandle *handle)
-{
-	int result;
-
-	result = jni->CallIntMethod(handle->objMetaData, getPartitionNumber);
-
-	return result;
-}
-
 char *
 HmsTableGetLocation(HmsHandle *handle)
 {
 	return getField_(handle, getLocation);
+}
+
+char **
+HmsTableGetColumnComments(HmsHandle *handle)
+{
+	return HmsTableGetList(handle, getColumnComments, -1);
 }

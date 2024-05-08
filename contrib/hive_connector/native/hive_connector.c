@@ -129,6 +129,20 @@ _PG_init(void)
 	initStage = COMPLETE;
 }
 
+static void
+execCommentStatment(HmsHandle *hms, const char *tableName)
+{
+	int    i;
+	char   statement[4096];
+	char **statements = HmsTableGetColumnComments(hms);
+
+	for (i = 0; statements[i] != NULL; i++)
+	{
+		snprintf(statement, sizeof(statement), statements[i], tableName);
+		spiExec(statement);
+	}
+}
+
 void
 _PG_fini(void)
 {
@@ -150,11 +164,11 @@ sync_partition_table(HmsHandle *hms,
 	char *createStmt;
 	char **partKeys;
 	char *field;
+	char **commentStatement;
 
-	if (!validateMetaData(hms, hiveDbName, hiveTableName, &partKeys, NULL, NULL, NULL, &field))
+	if (!validateMetaData(hms, hiveDbName, hiveTableName, &partKeys, &field))
 		return;
 
-	partNum = HmsPartTableGetNumber(hms);
 	location = HmsTableGetLocation(hms);
 
 	createStmt = formCreateStmt2(hms,
@@ -174,6 +188,8 @@ sync_partition_table(HmsHandle *hms,
 		dropTable(destTableName, true);
 
 	spiExec(createStmt);
+
+	execCommentStatment(hms, destTableName);
 
 	pfree(field);
 	pfree(location);
@@ -216,6 +232,8 @@ sync_normal_table(HmsHandle *hms,
 		dropTable(destTableName, true);
 
 	spiExec(createStmt);
+
+	execCommentStatment(hms, destTableName);
 
 	pfree(location);
 	pfree(field);
@@ -402,6 +420,7 @@ initializeHms(const char *hiveClusterName,
 				conf->servicePrincipal,
 				conf->clientPrincipal,
 				conf->clientKeytabFile,
+				conf->rpcProtection == NULL ? "authentication" : conf->rpcProtection,
 				conf->debug ? 1 : 0);
 	else
 		elog(ERROR, "invalid auth_method \"%s\" for \"%s\": please use \"simple\",\"kerberos\"",

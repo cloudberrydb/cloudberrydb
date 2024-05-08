@@ -11,6 +11,7 @@ typedef struct ConfigItem
 	char *servicePrincipal;
 	char *clientPrincipal;
 	char *clientKeytabFile;
+	char *rpcProtection;
 	char *debug;
 } ConfigItem;
 

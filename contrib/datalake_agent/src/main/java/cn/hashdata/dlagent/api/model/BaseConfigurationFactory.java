@@ -139,6 +139,9 @@ public class BaseConfigurationFactory implements ConfigurationFactory {
         transformOptions(serverMap, hiveOptionMapping, configuration);
         if (Utilities.isSecurityEnabled(configuration)) {
             configuration.set("hive.metastore.sasl.enabled", "true");
+            String rpcProtection = (String) serverMap.get("hadoop_rpc_protection");
+
+            configuration.set("hadoop.rpc.protection", rpcProtection == null ? "authentication" : rpcProtection);
         }
     }
 

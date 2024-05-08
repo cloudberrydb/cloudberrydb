@@ -53,9 +53,6 @@ validateMetaData(HmsHandle *hms,
 				 const char *hiveDbName,
 				 const char *hiveTableName,
 				 char ***partKeys,
-				 char ***partKeyTypes,
-				 char ***partLocations,
-				 char ***fields,
 				 char **field);
 
 extern void

@@ -18,6 +18,7 @@ static const config_elt configElts[] = {
 	{"krb_service_principal", offsetof(ConfigItem, servicePrincipal)},
 	{"krb_client_principal", offsetof(ConfigItem, clientPrincipal)},
 	{"krb_client_keytab", offsetof(ConfigItem, clientKeytabFile)},
+	{"hadoop_rpc_protection", offsetof(ConfigItem, rpcProtection)},
 	{"debug", offsetof(ConfigItem, debug)}
 };
 
