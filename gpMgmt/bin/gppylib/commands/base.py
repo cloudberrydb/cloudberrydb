@@ -47,11 +47,11 @@ class WorkerPool(object):
 
     halt_command = 'halt command'
 
-    def __init__(self, numWorkers=16, items=None, daemonize=False, logger=gplog.get_default_logger()):
+    def __init__(self, numWorkers=16, should_stop = False, items=None, daemonize=False, logger=gplog.get_default_logger()):
         if numWorkers <= 0:
             raise Exception("WorkerPool(): numWorkers should be greater than 0.")
         self.workers = []
-        self.should_stop = False
+        self.should_stop = should_stop
         self.work_queue = Queue()
         self.completed_queue = Queue()
         self._assigned = 0

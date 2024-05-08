@@ -112,7 +112,8 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 {
 	bool		is_from = stmt->is_from;
 	bool		pipe = (stmt->filename == NULL || Gp_role == GP_ROLE_EXECUTE);
-	Relation	rel;
+	Relation	rel = NULL;
+	LOCKMODE	lockmode;
 	Oid			relid;
 	RawStmt    *query = NULL;
 	Node	   *whereClause = NULL;
@@ -139,6 +140,13 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 		options = lappend(options, makeDefElem("sreh", (Node *) sreh, -1));
 	}
 
+	lockmode = is_from ? RowExclusiveLock : AccessShareLock;
+	if (stmt->relation)
+	{
+		/* Open and lock the relation, using the appropriate lock type. */
+		rel = table_openrv(stmt->relation, lockmode);
+	}
+	
 	/*
 	 * Disallow COPY to/from file or program except to users with the
 	 * appropriate role.
@@ -156,7 +164,7 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 		}
 		else
 		{
-			if (is_from && !is_member_of_role(GetUserId(), ROLE_PG_READ_SERVER_FILES))
+			if (is_from && !is_member_of_role(GetUserId(), ROLE_PG_READ_SERVER_FILES) && rel->rd_rel->relkind != RELKIND_DIRECTORY_TABLE)
 				ereport(ERROR,
 						(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 						 errmsg("must be superuser or a member of the pg_read_server_files role to COPY from a file"),
@@ -174,7 +182,6 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 
 	if (stmt->relation)
 	{
-		LOCKMODE	lockmode = is_from ? RowExclusiveLock : AccessShareLock;
 		ParseNamespaceItem *nsitem;
 		RangeTblEntry *rte;
 		TupleDesc	tupDesc;
@@ -182,9 +189,6 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 		ListCell   *cur;
 
 		Assert(!stmt->query);
-
-		/* Open and lock the relation, using the appropriate lock type. */
-		rel = table_openrv(stmt->relation, lockmode);
 
 		if (is_from && !allowSystemTableMods && IsUnderPostmaster && IsSystemRelation(rel))
 		{
