@@ -17,7 +17,7 @@ PROGRAMS= analyzedb gpactivatestandby gpaddmirrors gpcheckcat gpcheckperf \
 	gpcheckresgroupimpl gpconfig gpdeletesystem gpexpand gpshrink gpinitstandby \
 	gpinitsystem gpload gpload.py gplogfilter gpmovemirrors \
 	gppkg gprecoverseg gpreload gpscp gpsd gpssh gpssh-exkeys gpstart \
-	gpstate gpstop minirepro gpmemwatcher gpmemreport gpdemo
+	gpstate gpstop minirepro gpmemwatcher gpmemreport gpdemo gpdirtableload
 
 GPDEMO_LIBS = gpdemo-defaults.sh lalshell generate_certs.sh demo_cluster.sh \
 				probe_config.sh README
