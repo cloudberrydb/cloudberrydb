@@ -94,11 +94,6 @@ DirectoryTableDropStorage(Relation rel)
 	tablespaceoid = spcform->oid;
 	tablespace_name = pstrdup(NameStr(((Form_pg_tablespace) GETSTRUCT(tuple))->spcname));
 
-	/* Must be tablespace owner */
-	if (!pg_tablespace_ownercheck(tablespaceoid, GetUserId()))
-		aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_TABLESPACE,
-					   tablespace_name);
-
 	table_endscan(scandesc);
 	table_close(spcrel, RowExclusiveLock);
 
