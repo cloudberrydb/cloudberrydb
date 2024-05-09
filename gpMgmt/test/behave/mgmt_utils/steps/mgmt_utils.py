@@ -23,9 +23,8 @@ from contextlib import closing
 from gppylib.gparray import GpArray, ROLE_PRIMARY, ROLE_MIRROR
 from gppylib.commands.gp import SegmentStart, GpStandbyStart, CoordinatorStop
 from gppylib.commands import gp
-from gppylib.commands.pg import PgBaseBackup
+from gppylib.commands.unix import findCmdInPath, Scp
 from gppylib.operations.startSegments import MIRROR_MODE_MIRRORLESS
-from gppylib.operations.buildMirrorSegments import get_recovery_progress_pattern
 from gppylib.operations.unix import ListRemoteFilesByPattern, CheckRemoteFile
 from test.behave_utils.gpfdist_utils.gpfdist_mgmt import Gpfdist
 from test.behave_utils.utils import *
@@ -35,7 +34,7 @@ from test.behave_utils.gpexpand_dml import TestDML
 from gppylib.commands.base import Command, REMOTE
 from gppylib import pgconf
 from gppylib.operations.package import linux_distribution_id, linux_distribution_version
-from gppylib.commands.gp import get_coordinatordatadir
+
 
 coordinator_data_dir = gp.get_coordinatordatadir()
 if coordinator_data_dir is None:
@@ -341,7 +340,7 @@ def impl(context, dbname):
     drop_database(context, dbname)
 
 
-@given('"{env_var}" environment variable is not set')
+@given('{env_var} environment variable is not set')
 def impl(context, env_var):
     if not hasattr(context, 'orig_env'):
         context.orig_env = dict()
@@ -350,15 +349,7 @@ def impl(context, env_var):
     if env_var in os.environ:
         del os.environ[env_var]
 
-@given('the environment variable "{env_var}" is set to "{val}"')
-def impl(context, env_var, val):
-    if not hasattr(context, 'orig_env'):
-        context.orig_env = dict()
-
-    context.orig_env[env_var] = os.environ.get(env_var)
-    os.environ[env_var] = val
-
-@then('"{env_var}" environment variable should be restored')
+@then('{env_var} environment variable should be restored')
 def impl(context, env_var):
     if not hasattr(context, 'orig_env'):
         raise Exception('%s can not be reset' % env_var)
@@ -366,28 +357,11 @@ def impl(context, env_var):
     if env_var not in context.orig_env:
         raise Exception('%s can not be reset.' % env_var)
 
-    if context.orig_env[env_var] is None:
-        del os.environ[env_var]
-    else:
-        os.environ[env_var] = context.orig_env[env_var]
+    os.environ[env_var] = context.orig_env[env_var]
 
     del context.orig_env[env_var]
 
-
-@given('all files in pg_wal directory are deleted from data directory of preferred primary of content {content_ids}')
-def impl(context, content_ids):
-    all_segments = GpArray.initFromCatalog(dbconn.DbURL()).getDbList()
-    segments = filter(lambda seg: seg.getSegmentPreferredRole() == ROLE_PRIMARY and
-                      seg.getSegmentContentId() in [int(c) for c in content_ids.split(',')], all_segments)
-    for seg in segments:
-        cmd = Command(name="Remove pg_wal files",
-                      cmdStr='rm -rf {}'.format(os.path.join(seg.getSegmentDataDirectory(), 'pg_wal')),
-                      remoteHost=seg.getSegmentHostName(), ctxt=REMOTE)
-        cmd.run(validateAfter=True)
-
-
 @given('the user {action} the walsender on the {segment} on content {content}')
-@when('the user {action} the walsender on the {segment} on content {content}')
 @then('the user {action} the walsender on the {segment} on content {content}')
 def impl(context, action, segment, content):
     if segment == 'mirror':
@@ -427,84 +401,11 @@ def impl(context, segment, content):
 @then('the user waits until all bytes are sent to mirror on content {content}')
 def impl(context, content):
     host, port = get_primary_segment_host_port_for_content(content)
-    query = "SELECT pg_current_wal_lsn() - sent_lsn FROM pg_stat_replication;"
+    query = "SELECT CASE WHEN sync_state='sync' THEN (pg_current_wal_lsn() - sent_lsn) ELSE 1 END FROM pg_stat_replication;"
     desired_result = 0
-    dburl = dbconn.DbURL(hostname=host, port=port, dbname='template1')
-    wait_for_desired_query_result(dburl, query, desired_result, utility=True)
-
-    # Wait for replication state to be in 'sync'
-    query = "SELECT sync_state FROM pg_stat_replication;"
-    desired_result = 'sync'
-    dburl = dbconn.DbURL(hostname=host, port=port, dbname='template1')
-    wait_for_desired_query_result(dburl, query, desired_result, utility=True)
-
-@given('the user waits until recovery_progress.file is created in {logdir} and verifies its format')
-@when('the user waits until recovery_progress.file is created in {logdir} and verifies its format')
-@then('the user waits until recovery_progress.file is created in {logdir} and verifies its format')
-def impl(context, logdir):
-    attempt = 0
-    num_retries = 60000
-    log_dir = _get_gpAdminLogs_directory() if logdir == 'gpAdminLogs' else logdir
-    recovery_progress_file = '{}/recovery_progress.file'.format(log_dir)
-    while attempt < num_retries:
-        attempt += 1
-        if os.path.exists(recovery_progress_file):
-            with open(recovery_progress_file, 'r') as fp:
-                context.recovery_lines = fp.readlines()
-            for line in context.recovery_lines:
-                recovery_type, dbid, progress = line.strip().split(':', 2)
-                progress_pattern = re.compile(get_recovery_progress_pattern())
-                # TODO: assert progress line in the actual hosts bb/rewind progress file
-                if re.search(progress_pattern, progress) and dbid.isdigit() and recovery_type in ['full', 'incremental']:
-                    return
-                else:
-                    raise Exception('File present but incorrect format line "{}"'.format(line))
-        time.sleep(0.01)
-        if attempt == num_retries:
-            raise Exception('Timed out after {} retries'.format(num_retries))
+    wait_for_desired_query_result_on_segment(host, port, query, desired_result)
 
 
-@then( 'verify if the gprecoverseg.lock directory is present in coordinator_data_directory')
-def impl(context):
-    gprecoverseg_lock_file = "%s/gprecoverseg.lock" % gp.get_coordinatordatadir()
-    if not os.path.exists(gprecoverseg_lock_file):
-        raise Exception('gprecoverseg.lock directory does not exist')
-    else:
-        return
-
-
-@then('verify that lines from recovery_progress.file are present in segment progress files in {logdir}')
-def impl(context, logdir):
-    all_progress_lines_by_dbid = {}
-    for line in context.recovery_lines:
-        recovery_type, dbid, line_from_combined_progress_file = line.strip().split(':', 2)
-        all_progress_lines_by_dbid[int(dbid)] = [recovery_type, line_from_combined_progress_file]
-
-    all_segments = GpArray.initFromCatalog(dbconn.DbURL()).getDbList()
-
-    log_dir = _get_gpAdminLogs_directory() if logdir == 'gpAdminLogs' else logdir
-    for seg in all_segments:
-        seg_dbid = seg.getSegmentDbId()
-        if seg_dbid in all_progress_lines_by_dbid:
-            recovery_type, line_from_combined_progress_file = all_progress_lines_by_dbid[seg_dbid]
-            process_name = 'pg_basebackup' if recovery_type == 'full' else 'pg_rewind'
-            seg_progress_file = '{}/{}.*.dbid{}.out'.format(log_dir, process_name, seg_dbid)
-            check_cmd_str = 'grep "{}" {}'.format(line_from_combined_progress_file, seg_progress_file)
-            check_cmd = Command(name='check line in segment progress file',
-                          cmdStr=check_cmd_str,
-                          ctxt=REMOTE,
-                          remoteHost=seg.getSegmentHostName())
-            check_cmd.run()
-            if check_cmd.get_return_code() != 0:
-                raise Exception('Expected line {} in segment progress file {} on host {} but not found.'
-                                .format(line_from_combined_progress_file, seg_progress_file, seg.getSegmentHostName()))
-
-
-@then('recovery_progress.file should not exist in {logdir}')
-def impl(context, logdir):
-    log_dir = _get_gpAdminLogs_directory() if logdir == 'gpAdminLogs' else logdir
-    if os.path.exists('{}/recovery_progress.file'.format(log_dir)):
-        raise Exception('recovery_progress.file is still present under {}'.format(log_dir))
 
 def backup_bashrc():
     home_dir = os.environ.get('HOME')
@@ -537,7 +438,6 @@ def restore_bashrc():
 @then('the user runs "{command}"')
 def impl(context, command):
     run_gpcommand(context, command)
-
 
 @when('the user sets banner on host')
 def impl(context):
@@ -618,43 +518,14 @@ def impl(context, process_name, secs):
     run_async_command(context, command)
 
 
-@when('the user asynchronously sets up to end {process_name} process when {log_msg} is printed in the logs')
-def impl(context, process_name, log_msg):
+@when('the user asynchronously sets up to end gpinitsystem process when {log_msg} is printed in the logs')
+def impl(context, log_msg):
     command = "while sleep 0.1; " \
-              "do if egrep --quiet %s  ~/gpAdminLogs/%s*log ; " \
-              "then ps ux | grep bin/%s |awk '{print $2}' | xargs kill ;break 2; " \
-              "fi; done" % (log_msg, process_name, process_name)
+              "do if egrep --quiet %s  ~/gpAdminLogs/gpinitsystem*log ; " \
+              "then ps ux | grep bin/gpinitsystem |awk '{print $2}' | xargs kill ;break 2; " \
+              "fi; done" % (log_msg)
     run_async_command(context, command)
 
-@then('the user asynchronously sets up to end {kill_process_name} process when {log_msg} is printed in the {logfile_name} logs')
-def impl(context, kill_process_name, log_msg, logfile_name):
-    command = "while sleep 0.1; " \
-              "do if egrep --quiet %s  ~/gpAdminLogs/%s*log ; " \
-              "then ps ux | grep bin/%s |awk '{print $2}' | xargs kill -2 ;break 2; " \
-              "fi; done" % (log_msg, logfile_name, kill_process_name)
-    run_async_command(context, command)
-
-@given('the user asynchronously sets up to end {process_name} process with SIGINT')
-@when('the user asynchronously sets up to end {process_name} process with SIGINT')
-@then('the user asynchronously sets up to end {process_name} process with SIGINT')
-def impl(context, process_name):
-    command = "ps ux | grep bin/%s | awk '{print $2}' | xargs kill -2" % (process_name)
-    run_async_command(context, command)
-
-
-@given('the user asynchronously sets up to end {process_name} process with SIGHUP')
-@when('the user asynchronously sets up to end {process_name} process with SIGHUP')
-@then('the user asynchronously sets up to end {process_name} process with SIGHUP')
-def impl(context, process_name):
-    command = "ps ux | grep bin/%s | awk '{print $2}' | xargs kill -9" % (process_name)
-    run_async_command(context, command)
-
-@given('the user asynchronously ends {process_name} process with SIGHUP')
-@when('the user asynchronously ends {process_name} process with SIGHUP')
-@then('the user asynchronously ends {process_name} process with SIGHUP')
-def impl(context, process_name):
-    command = "ps ux | grep %s | awk '{print $2}' | xargs kill -9" % (process_name)
-    run_async_command(context, command)
 
 @when('the user asynchronously sets up to end gpcreateseg process when it starts')
 def impl(context):
@@ -688,7 +559,6 @@ def impl(context, ret_code):
 
 
 @when('the user waits until saved async process is completed')
-@then('the user waits until saved async process is completed')
 def impl(context):
     context.asyncproc.communicate2()
 
@@ -828,45 +698,9 @@ def impl(context, command, out_msg, num):
         raise Exception("Expected %s to occur %s times. Found %d. stdout: %s" % (out_msg, num, count, msg_list))
 
 
-@given('the user records the current timestamp in log_timestamp table')
-@when('the user records the current timestamp in log_timestamp table')
-@then('the user records the current timestamp in log_timestamp table')
-def impl(context):
-    sql = "CREATE TABLE log_timestamp AS SELECT CURRENT_TIMESTAMP;"
-    rc, output, error = run_cmd("psql -d template1 -c \'%s\'" %sql)
-    if rc:
-        raise Exception(error)
-
-
-@then('the user drops log_timestamp table')
-def impl(context):
-    rc, output, error = run_cmd("psql -d template1 -c \"DROP TABLE log_timestamp;\"")
-    if rc:
-        raise Exception(error)
-
-
-@then('the pg_log files on primary segments should not contain "{msg}"')
-def impl(context, msg):
-
-    gparray = GpArray.initFromCatalog(dbconn.DbURL())
-    segments = gparray.getDbList()
-    conn = dbconn.connect(dbconn.DbURL(dbname='template1'), unsetSearchPath=False)
-
-    for seg in segments:
-        if seg.isSegmentPrimary():
-            segname = "seg"+str(seg.content)
-            sql = "select * from gp_toolkit.__gp_log_segment_ext where logsegment='%s' and logtime > (select * from log_timestamp) and logmessage like '%s'" %(segname, msg)
-            try:
-                cursor = dbconn.query(conn, sql)
-                if cursor.fetchone():
-                    raise Exception("Fatal message exists in pg_log file on primary segment %s" %segname)
-            finally:
-                pass
-    conn.close()
-
 def lines_matching_both(in_str, str_1, str_2):
     lines = [x.strip() for x in in_str.split('\n')]
-    return [line for line in lines if line.count(str_1) and line.count(str_2)]
+    return [x for x in lines if x.count(str_1) and x.count(str_2)]
 
 
 @then('check if {command} ran "{called_command}" {num} times with args "{args}"')
@@ -908,21 +742,6 @@ def impl(context):
 
     for i in range(times):
         if are_segments_synchronized():
-            return
-        time.sleep(sleeptime)
-
-    raise Exception('segments are not in sync after %d seconds' % (times * sleeptime))
-
-
-@then('the segments are synchronized for content {content_ids}')
-def impl(context, content_ids):
-    if content_ids == 'None':
-        return
-    times = 60
-    sleeptime = 10
-    content_ids_to_check = [int(c) for c in content_ids.split(',')]
-    for i in range(times):
-        if are_segments_synchronized_for_content_ids(content_ids_to_check):
             return
         time.sleep(sleeptime)
 
@@ -1384,26 +1203,12 @@ def stop_all_primary_or_mirror_segments_on_hosts(context, segment_type, hosts):
 
 
 @given('the {role} on content {contentID} is stopped')
-@when('the {role} on content {contentID} is stopped')
-@then('the {role} on content {contentID} is stopped')
 def stop_segments_on_contentID(context, role, contentID):
     if role not in ("primary", "mirror"):
         raise Exception("Expected segment_type to be 'primary' or 'mirror', but found '%s'." % role)
 
     role = ROLE_PRIMARY if role == 'primary' else ROLE_MIRROR
     stop_segments(context, lambda seg: seg.getSegmentRole() == role and seg.content == int(contentID))
-
-@given('the {role} on content {contents} is stopped with the immediate flag')
-@when('the {role} on content {contents} is stopped with the immediate flag')
-@then('the {role} on content {contents} is stopped with the immediate flag')
-def stop_segments_on_contentID(context, role, contents):
-    if role not in ("primary", "mirror"):
-        raise Exception("Expected segment_type to be 'primary' or 'mirror', but found '%s'." % role)
-    content_ids = [int(i) for i in contents.split(',')]
-
-    role = ROLE_PRIMARY if role == 'primary' else ROLE_MIRROR
-    stop_segments_immediate(context, lambda seg: seg.getSegmentRole() == role and seg.content in content_ids)
-
 
 
 # where_clause is a lambda that takes a segment to select what segments to stop
@@ -1418,17 +1223,6 @@ def stop_segments(context, where_clause):
                                'source %s/greenplum_path.sh && pg_ctl stop -m fast -D %s -w -t 120' % (
                                    pipes.quote(os.environ.get("GPHOME")), pipes.quote(seg.getSegmentDataDirectory()))
                                ])
-
-
-@given('user immediately stops all {segment_type} processes for content {content}')
-@then('user immediately stops all {segment_type} processes for content {content}')
-def stop_all_primary_or_mirror_segments(context, segment_type, content):
-    if segment_type not in ("primary", "mirror"):
-        raise Exception("Expected segment_type to be 'primary' or 'mirror', but found '%s'." % segment_type)
-    content_ids = [int(i) for i in content.split(',')]
-    role = ROLE_PRIMARY if segment_type == 'primary' else ROLE_MIRROR
-    stop_segments_immediate(context, lambda seg: seg.getSegmentRole() == role and seg.content in content_ids)
-
 
 @given('user immediately stops all {segment_type} processes')
 @when('user immediately stops all {segment_type} processes')
@@ -1458,6 +1252,13 @@ def stop_segments_immediate(context, where_clause):
 @then('user can start transactions')
 def impl(context):
     wait_for_unblocked_transactions(context)
+
+
+@given('the environment variable "{var}" is set to "{val}"')
+def impl(context, var, val):
+    context.env_var = os.environ.get(var)
+    os.environ[var] = val
+
 
 @given('below sql is executed in "{dbname}" db')
 @when('below sql is executed in "{dbname}" db')
@@ -1541,22 +1342,24 @@ def impl(context):
     return
 
 
-@given('verify that mirror on content {content_ids} is {expected_status}')
-@when('verify that mirror on content {content_ids} is {expected_status}')
-@then('verify that mirror on content {content_ids} is {expected_status}')
-def impl(context, content_ids, expected_status):
-    if content_ids == 'None':
-        return
-    if expected_status not in ('up', 'down'):
-        raise Exception("expected_status can only be 'up' or 'down'")
+@given('the "{seg}" segment information is saved')
+@when('the "{seg}" segment information is saved')
+@then('the "{seg}" segment information is saved')
+def impl(context, seg):
+    gparray = GpArray.initFromCatalog(dbconn.DbURL())
 
-    for content in content_ids.split(','):
-        if expected_status == 'up' and not is_segment_running(ROLE_MIRROR, int(content)):
-            raise Exception("mirror for content {} is not up".format(content))
-        elif expected_status == 'down' and is_segment_running(ROLE_MIRROR, int(content)):
-            raise Exception("mirror for content {} is not down".format(content))
-
-    return
+    if seg == "primary":
+        primary_segs = [seg for seg in gparray.getDbList() if seg.isSegmentPrimary()]
+        context.pseg = primary_segs[0]
+        context.pseg_data_dir = context.pseg.getSegmentDataDirectory()
+        context.pseg_hostname = context.pseg.getSegmentHostName()
+        context.pseg_dbid = context.pseg.getSegmentDbId()
+    elif seg == "mirror":
+        mirror_segs = [seg for seg in gparray.getDbList() if seg.isSegmentMirror()]
+        context.mseg = mirror_segs[0]
+        context.mseg_hostname = context.mseg.getSegmentHostName()
+        context.mseg_dbid = context.mseg.getSegmentDbId()
+        context.mseg_data_dir = context.mseg.getSegmentDataDirectory()
 
 
 @given('the cluster configuration has no segments where "{filter}"')
@@ -1610,7 +1413,7 @@ def impl(context, seg):
                   remoteHost=hostname, ctxt=REMOTE)
     cmd.run(validateAfter=True)
 
-    cmd = Command(name="Copy background script to remote host", cmdStr='rsync %s %s:/tmp' % (filename, hostname))
+    cmd = Command(name="Copy background script to remote host", cmdStr='scp %s %s:/tmp' % (filename, hostname))
     cmd.run(validateAfter=True)
 
     cmd = Command(name="Run Bg process to save pid",
@@ -1660,20 +1463,23 @@ def impl(context, seg):
     pid_file = os.path.join(data_dir, 'postmaster.pid')
     pid_file_orig = pid_file + '.orig'
 
-    cpCmd = Command(name='copy pid file to coordinator for editing', cmdStr='rsync %s:%s /tmp' % (hostname, pid_file_orig))
+    cmd = Command(name="Copy pid file", cmdStr='cp %s %s' % (pid_file_orig, pid_file), remoteHost=hostname, ctxt=REMOTE)
+    cmd.run(validateAfter=True)
+
+    cpCmd = Command(name='copy pid file to coordinator for editing', cmdStr='scp %s:%s /tmp' % (hostname, pid_file))
 
     cpCmd.run(validateAfter=True)
 
-    with open('/tmp/postmaster.pid.orig', 'r') as fr:
+    with open('/tmp/postmaster.pid', 'r') as fr:
         lines = fr.readlines()
 
     lines[0] = "%s\n" % context.bg_pid
 
-    with open('/tmp/postmaster.pid.orig', 'w') as fw:
+    with open('/tmp/postmaster.pid', 'w') as fw:
         fw.writelines(lines)
 
     cpCmd = Command(name='copy pid file to segment after editing',
-                    cmdStr='rsync /tmp/postmaster.pid.orig %s:%s' % (hostname, pid_file))
+                    cmdStr='scp /tmp/postmaster.pid %s:%s' % (hostname, pid_file))
     cpCmd.run(validateAfter=True)
 
 
@@ -1697,7 +1503,7 @@ def impl(context, seg):
     cmd = Command(name="Copy pid file", cmdStr='cp %s %s' % (pid_file_orig, pid_file), remoteHost=hostname, ctxt=REMOTE)
     cmd.run(validateAfter=True)
 
-    cpCmd = Command(name='copy pid file to coordinator for editing', cmdStr='rsync %s:%s /tmp' % (hostname, pid_file))
+    cpCmd = Command(name='copy pid file to coordinator for editing', cmdStr='scp %s:%s /tmp' % (hostname, pid_file))
 
     cpCmd.run(validateAfter=True)
 
@@ -1720,7 +1526,7 @@ def impl(context, seg):
         fw.writelines(lines)
 
     cpCmd = Command(name='copy pid file to segment after editing',
-                    cmdStr='rsync /tmp/postmaster.pid %s:%s' % (hostname, pid_file))
+                    cmdStr='scp /tmp/postmaster.pid %s:%s' % (hostname, pid_file))
     cpCmd.run(validateAfter=True)
 
 
@@ -2582,10 +2388,10 @@ def impl(context, location):
             host_opts.extend(['-h', host])
 
         subprocess.check_call([
-            'gpsync',
-            '-av',
+            'gpscp',
+            '-rv',
             ] + host_opts + [
-            os.getenv('GPHOME')+'/',
+            os.getenv('GPHOME'),
             '=:{}'.format(location),
         ])
 
@@ -2596,47 +2402,12 @@ def impl(context, location):
         ])
 
 @given('all files in gpAdminLogs directory are deleted')
-@when('all files in gpAdminLogs directory are deleted')
 @then('all files in gpAdminLogs directory are deleted')
 def impl(context):
     log_dir = _get_gpAdminLogs_directory()
     files_found = glob.glob('%s/*' % (log_dir))
     for file in files_found:
         os.remove(file)
-
-
-@given('all files in gpAdminLogs directory are deleted on hosts {hosts}')
-def impl(context, hosts):
-    host_list = hosts.split(',')
-    log_dir = _get_gpAdminLogs_directory()
-    for host in host_list:
-        rm_cmd = Command(name="remove files in gpAdminLogs",
-                              cmdStr="rm -rf {}/*".format(log_dir),
-                              remoteHost=host, ctxt=REMOTE)
-        rm_cmd.run(validateAfter=True)
-
-@given('all files in "{dir}" directory are deleted on all hosts in the cluster')
-@then('all files in "{dir}" directory are deleted on all hosts in the cluster')
-def impl(context, dir):
-    host_list = GpArray.initFromCatalog(dbconn.DbURL()).getHostList()
-    for host in host_list:
-        rm_cmd = Command(name="remove files in {}".format(dir),
-                         cmdStr="rm -rf {}/*".format(dir),
-                         remoteHost=host, ctxt=REMOTE)
-        rm_cmd.run(validateAfter=True)
-
-@given('all files in gpAdminLogs directory are deleted on all hosts in the cluster')
-@when('all files in gpAdminLogs directory are deleted on all hosts in the cluster')
-@then('all files in gpAdminLogs directory are deleted on all hosts in the cluster')
-def impl(context):
-    host_list = GpArray.initFromCatalog(dbconn.DbURL()).getHostList()
-    log_dir = _get_gpAdminLogs_directory()
-    for host in host_list:
-        rm_cmd = Command(name="remove files in gpAdminLogs",
-                         cmdStr="rm -rf {}/*".format(log_dir),
-                         remoteHost=host, ctxt=REMOTE)
-        rm_cmd.run(validateAfter=True)
-
 
 @then('gpAdminLogs directory {has} "{expected_file}" files')
 def impl(context, has, expected_file):
@@ -2646,61 +2417,6 @@ def impl(context, has, expected_file):
         raise Exception("expected no %s files in %s, but found %s" % (expected_file, log_dir, files_found))
     if (not files_found) and (has == 'has'):
         raise Exception("expected %s file in %s, but not found" % (expected_file, log_dir))
-
-
-@then('gpAdminLogs directory has "{expected_file}" files on respective hosts only for content {content_ids}')
-def impl(context, expected_file, content_ids):
-    content_list = [int(c) for c in content_ids.split(',')]
-    all_segments = GpArray.initFromCatalog(dbconn.DbURL()).getDbList()
-    segments = filter(lambda seg: seg.getSegmentRole() == ROLE_MIRROR and
-                                  seg.content in content_list, all_segments)
-    host_to_seg_dbids = {}
-    for seg in segments:
-        segHost = seg.getSegmentHostName()
-        if segHost in host_to_seg_dbids:
-            host_to_seg_dbids[segHost].append('dbid{}'.format(seg.dbid))
-        else:
-            host_to_seg_dbids[segHost] = ['dbid{}'.format(seg.dbid)]
-
-    for segHost, expected_files_on_host in host_to_seg_dbids.items():
-        log_dir = "%s/gpAdminLogs" % os.path.expanduser("~")
-        listdir_cmd = Command(name="list logfiles on host",
-                              cmdStr="ls -l {}/{}".format(log_dir, expected_file),
-                              remoteHost=segHost, ctxt=REMOTE)
-        listdir_cmd.run(validateAfter=True)
-        ls_outs = listdir_cmd.get_results().stdout.split('\n')
-        files_found = [ls_line.split(' ')[-1] for ls_line in ls_outs if ls_line]
-
-        if not files_found:
-            raise Exception("expected {} files in {} on host {}, but not found".format(expected_file, log_dir, segHost))
-
-        if len(files_found) != len(expected_files_on_host):
-            raise Exception("expected {} {} files in {} on host {}, but found {}: {}"
-                            .format(len(expected_files_on_host), expected_file, log_dir, segHost, len(files_found),
-                                    files_found))
-        for file in files_found:
-            if file.split('.')[-2] not in expected_files_on_host:
-                raise Exception("Found unexpected file {} in {}".format(file, log_dir))
-
-
-@then('gpAdminLogs directory {has} "{expected_file}" files on all segment hosts')
-def impl(context, has, expected_file):
-    all_segments = GpArray.initFromCatalog(dbconn.DbURL()).getDbList()
-    all_segment_hosts = [seg.getSegmentHostName() for seg in all_segments if seg.getSegmentContentId() >= 0]
-
-    for seg_host in all_segment_hosts:
-        log_dir = "%s/gpAdminLogs" % os.path.expanduser("~")
-        listdir_cmd = Command(name="list logfiles on host",
-                              cmdStr="ls -l {}/{} | wc -l".format(log_dir, expected_file),
-                              remoteHost=seg_host, ctxt=REMOTE)
-        listdir_cmd.run(validateAfter=True)
-        ls_outs = listdir_cmd.get_results().stdout
-        files_found = int(ls_outs)
-        if files_found > 0 and (has == 'has no'):
-            raise Exception("expected no {} files in {} on host {}, but found".format(expected_file, log_dir, seg_host))
-        if files_found == 0 and (has == 'has'):
-            raise Exception("expected {} files in {} on host {}, but not found".format(expected_file, log_dir, seg_host))
-
 
 @given('"{filepath}" is copied to the install directory')
 def impl(context, filepath):
@@ -2930,7 +2646,6 @@ def step_impl(context, segment_id):
     wait_for_unblocked_transactions(context)
 
 @given('the user runs gpexpand with a static inputfile for a two-node cluster with mirrors')
-@when('the user runs gpexpand with a static inputfile for a two-node cluster with mirrors')
 def impl(context):
     inputfile_contents = """
 sdw1|sdw1|20502|/tmp/gpexpand_behave/two_nodes/data/primary/gpseg2|6|2|p
@@ -3171,7 +2886,7 @@ def impl(context, hostnames):
 
 @given("a temporary directory under '{tmp_base_dir}' with mode '{mode}' is created")
 @given('a temporary directory under "{tmp_base_dir}" to expand into')
-def make_temp_dir(context, tmp_base_dir, mode=''):
+def make_temp_dir(context,tmp_base_dir, mode=''):
     if not tmp_base_dir:
         raise Exception("tmp_base_dir cannot be empty")
     if not os.path.exists(tmp_base_dir):
@@ -3179,7 +2894,7 @@ def make_temp_dir(context, tmp_base_dir, mode=''):
     context.temp_base_dir = tempfile.mkdtemp(dir=tmp_base_dir)
     if mode:
         os.chmod(path.normpath(path.join(tmp_base_dir, context.temp_base_dir)),
-                 int(mode, 8))
+                 int(mode,8))
 
 @given('the new host "{hostnames}" is ready to go')
 def impl(context, hostnames):
@@ -3294,32 +3009,27 @@ def impl(context, config_file):
 
 @when('check segment conf: postgresql.conf')
 @then('check segment conf: postgresql.conf')
-@given('check segment conf: postgresql.conf')
 def step_impl(context):
     query = "select dbid, port, hostname, datadir from gp_segment_configuration where content >= 0"
     conn = dbconn.connect(dbconn.DbURL(dbname='postgres'), unsetSearchPath=False)
-    try:
-        segments = dbconn.query(conn, query).fetchall()
-        for segment in segments:
-            dbid = "'%s'" % segment[0]
-            port = "'%s'" % segment[1]
-            hostname = segment[2]
-            datadir = segment[3]
+    segments = dbconn.query(conn, query).fetchall()
+    for segment in segments:
+        dbid = "'%s'" % segment[0]
+        port = "'%s'" % segment[1]
+        hostname = segment[2]
+        datadir = segment[3]
 
-            ## check postgresql.conf
-            remote_postgresql_conf = "%s/%s" % (datadir, 'postgresql.conf')
-            local_conf_copy = os.path.join(gp.get_coordinatordatadir(), "%s.%s" % ('postgresql.conf', hostname))
-            cmd = Command(name="Copy remote conf to local to diff",
-                        cmdStr='rsync %s:%s %s' % (hostname, remote_postgresql_conf, local_conf_copy))
-            cmd.run(validateAfter=True)
+        ## check postgresql.conf
+        remote_postgresql_conf = "%s/%s" % (datadir, 'postgresql.conf')
+        local_conf_copy = os.path.join(gp.get_coordinatordatadir(), "%s.%s" % ('postgresql.conf', hostname))
+        cmd = Command(name="Copy remote conf to local to diff",
+                    cmdStr='scp %s:%s %s' % (hostname, remote_postgresql_conf, local_conf_copy))
+        cmd.run(validateAfter=True)
 
-            dic = pgconf.readfile(filename=local_conf_copy)
-            if str(dic['port']) != port:
-                raise Exception("port value in postgresql.conf of %s is incorrect. Expected:%s, given:%s" %
-                                (hostname, port, dic['port']))
-    finally:
-        if conn:
-            conn.close()
+        dic = pgconf.readfile(filename=local_conf_copy)
+        if str(dic['port']) != port:
+            raise Exception("port value in postgresql.conf of %s is incorrect. Expected:%s, given:%s" %
+                            (hostname, port, dic['port']))
 
 @given('the transactions are started for dml')
 def impl(context):
@@ -3660,10 +3370,10 @@ def impl(context):
     standby_local_gp_segment_configuration_file = "%s/%s.standby" % \
             (coordinator_datadir, gp_segment_configuration_backup)
 
-    cmd = Command(name="Copy standby file to coordinator", cmdStr='rsync %s %s' % \
+    cmd = Command(name="Copy standby file to coordinator", cmdStr='scp %s %s' % \
             (standby_remote_statusfile, standby_local_statusfile))
     cmd.run(validateAfter=True)
-    cmd = Command(name="Copy standby file to coordinator", cmdStr='rsync %s %s' % \
+    cmd = Command(name="Copy standby file to coordinator", cmdStr='scp %s %s' % \
             (standby_remote_gp_segment_configuration_file, standby_local_gp_segment_configuration_file))
     cmd.run(validateAfter=True)
 
@@ -3783,54 +3493,3 @@ def impl(context, args):
 def impl(context):
     locale = get_en_utf_locale()
     context.execute_steps('''When a demo cluster is created using gpinitsystem args "--lc-ctype=%s"''' % locale)
-
-
-@given('the user asynchronously runs pg_basebackup with {segment} of content {contentid} as source and the process is saved')
-@when('the user asynchronously runs pg_basebackup with {segment} of content {contentid} as source and the process is saved')
-@then('the user asynchronously runs pg_basebackup with {segment} of content {contentid} as source and the process is saved')
-def impl(context, segment, contentid):
-    if segment == 'mirror':
-        role = 'm'
-    elif segment == 'primary':
-        role = 'p'
-
-    all_segments = GpArray.initFromCatalog(dbconn.DbURL()).getDbList()
-
-    basebackup_target = all_segments[0]
-    basebackup_source = all_segments[0]
-    for seg in all_segments:
-        if role == seg.role and str(seg.content) == contentid:
-            basebackup_source = seg
-        elif str(seg.content) == contentid:
-            basebackup_target = seg
-
-    make_temp_dir(context, '/tmp')
-
-    cmd = PgBaseBackup(target_datadir=context.temp_base_dir,
-                       source_host=basebackup_source.getSegmentHostName(),
-                       source_port=str(basebackup_source.getSegmentPort()),
-                       create_slot=True,
-                       replication_slot_name="replication_slot",
-                       forceoverwrite=True,
-                       target_gp_dbid=basebackup_target.getSegmentDbId())
-    asyncproc = cmd.runNoWait()
-    context.asyncproc = asyncproc
-
-
-@given('gp_stat_replication table has pg_basebackup entry for content {contentid}')
-@when('gp_stat_replication table has pg_basebackup entry for content {contentid}')
-@then('gp_stat_replication table has pg_basebackup entry for content {contentid}')
-def impl(context, contentid):
-    sql = "select gp_segment_id from gp_stat_replication where application_name = 'pg_basebackup'"
-
-    try:
-        with closing(dbconn.connect(dbconn.DbURL())) as conn:
-            res = dbconn.query(conn, sql)
-            rows = res.fetchall()
-    except Exception as e:
-        raise Exception("Failed to query gp_stat_replication: %s" % str(e))
-
-    segments_with_running_basebackup = {str(row[0]) for row in rows}
-
-    if str(contentid) not in segments_with_running_basebackup:
-        raise Exception("pg_basebackup entry was not found for content %s in gp_stat_replication" % contentid)
