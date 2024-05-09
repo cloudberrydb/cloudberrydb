@@ -203,7 +203,15 @@ GArrowScalar *
 ArrowScalarNew(GArrowType type, Datum datum, Oid pg_type, int32 typmod)
 {
 	g_autoptr(GArrowScalar) ret = NULL;
-
+	if (pg_type == TIDOID)
+	{
+		ItemPointerData ctid;
+		int64 ctid_int64;
+		ctid = *DatumGetItemPointer(datum);
+		ctid_int64 = ((int64) ItemPointerGetBlockNumber(&ctid)) << 16 | ItemPointerGetOffsetNumber(&ctid);
+		ret = (GArrowScalar*)garrow_int64_scalar_new(ctid_int64);
+		return garrow_move_ptr(ret);
+	}
 	switch (type)
 	{
 		case GARROW_TYPE_NA:

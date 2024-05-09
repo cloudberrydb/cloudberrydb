@@ -263,8 +263,11 @@ TupDescToSchema(TupleDesc tupdesc)
 		FormData_pg_attribute *attr = &tupdesc->attrs[i];
 		g_autoptr(GArrowDataType) datatype = NULL;
 		g_autoptr(GArrowField) field = NULL;
-
-		datatype = PGTypeToArrow(attr->atttypid);
+		/* dummy arrow type for index mapping */
+		if (!PGTypeToArrowID(attr->atttypid))
+			datatype = (GArrowDataType *) garrow_null_data_type_new();
+		else
+			datatype = PGTypeToArrow(attr->atttypid);
 		name = GetUniqueAttrName(attr->attname.data, i + 1);
 		field = garrow_field_new(name, datatype);
 		fields = garrow_list_append_ptr(fields, field);

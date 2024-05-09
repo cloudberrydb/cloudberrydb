@@ -151,8 +151,14 @@ is_aggfn_vectorable(Oid aggfnOid)
  * Remove this after all scanning type supported.
  */
 static bool
-is_scan_type_vectorable(Oid typeOid)
+is_scan_type_vectorable(Form_pg_attribute attr)
 {
+	Oid typeOid = attr->atttypid;
+	if (typeOid == TIDOID && attr->attnum != SelfItemPointerAttributeNumber)
+	{
+		elog(DEBUG2, "Fallback to non-vectorization; scan type user tid not support");
+		return false;
+	}
 	if (typeOid == BYTEAOID || type_is_array(typeOid))
 	{
 		elog(DEBUG2, "Fallback to non-vectorization; scan type %d not support", typeOid);
@@ -1006,8 +1012,7 @@ is_relation_vectorable(Scan* seqscan, List *rtable, bool isForeign)
 	for (attnum = 1; attnum <= tupdesc->natts; attnum++)
 	{
 		Form_pg_attribute attr = TupleDescAttr(tupdesc, attnum - 1);
-
-		if (!is_scan_type_vectorable(attr->atttypid))
+		if (!is_scan_type_vectorable(attr))
 			return false;
 
 		/* no opts for pax and fdw, skip compresstype checking */
