@@ -751,7 +751,8 @@ VecAdapter::VecAdapter(TupleDesc tuple_desc, const int max_batch_size,
       vec_cache_buffer_lens_(0),
       process_columns_(nullptr),
       current_cached_pax_columns_index_(0),
-      build_ctid_(build_ctid) {
+      build_ctid_(build_ctid),
+      group_base_offset_(0) {
   Assert(rel_tuple_desc_);
   Assert(max_batch_size_ > 0);
 };
@@ -765,9 +766,13 @@ VecAdapter::~VecAdapter() {
   }
 }
 
-void VecAdapter::SetDataSource(PaxColumns *columns) {
+void VecAdapter::SetDataSource(PaxColumns *columns, int group_base_offset) {
   Assert(columns);
+  Assert(group_base_offset >= 0);
+  Assert(group_base_offset < static_cast<int>(PAX_MAX_NUM_TUPLES_PER_FILE));
+
   process_columns_ = columns;
+  group_base_offset_ = group_base_offset;
   current_cached_pax_columns_index_ = 0;
   cached_batch_lens_ = 0;
   // FIXME(jiaqizho): should expand vec_cache_buffer_
@@ -854,7 +859,7 @@ int VecAdapter::AppendToVecBuffer() {
     // copy null bitmap
     vec_cache_buffer_[index].null_counts = 0;
     CopyBitmapToVecBuffer(column, micro_partition_visibility_bitmap_,
-                          range_begin + micro_partition_row_offset_,
+                          range_begin + group_base_offset_,
                           range_begin, range_lens, data_range_lens,
                           out_range_lens, &vec_cache_buffer_[index]);
 
@@ -871,10 +876,10 @@ int VecAdapter::AppendToVecBuffer() {
                       (out_range_lens * VEC_SHORT_NUMERIC_STORE_BYTES));
         Assert(!vec_buffer->GetBuffer());
 
-        vec_buffer->Set((char *)cbdb::Palloc(align_size), align_size);
+        vec_buffer->Set(BlockBuffer::Alloc<char *>(align_size), align_size);
 
         CopyDecimalRawBuffer(column, micro_partition_visibility_bitmap_,
-                             range_begin + micro_partition_row_offset_,
+                             range_begin + group_base_offset_,
                              range_begin, range_lens, data_index_begin,
                              data_range_lens, vec_buffer);
         break;
@@ -893,7 +898,7 @@ int VecAdapter::AppendToVecBuffer() {
                            offset_align_bytes);
 
         CopyNonFixedRawBuffer(column, micro_partition_visibility_bitmap_,
-                              range_begin + micro_partition_row_offset_,
+                              range_begin + group_base_offset_,
                               range_begin, range_lens, data_index_begin,
                               data_range_lens, offset_buffer, vec_buffer,
                               column_type == PaxColumnTypeInMem::kTypeBpChar);
@@ -907,7 +912,7 @@ int VecAdapter::AppendToVecBuffer() {
 
         vec_buffer->Set(BlockBuffer::Alloc<char *>(align_size), align_size);
         CopyFixedBuffer(column, micro_partition_visibility_bitmap_,
-                        range_begin + micro_partition_row_offset_, range_begin,
+                        range_begin + group_base_offset_, range_begin,
                         range_lens, data_index_begin, data_range_lens,
                         vec_buffer);
 
@@ -916,7 +921,7 @@ int VecAdapter::AppendToVecBuffer() {
       case PaxColumnTypeInMem::kTypeBitPacked: {
         auto align_size = TYPEALIGN(MEMORY_ALIGN_SIZE, (out_range_lens / 8));
         Assert(!vec_buffer->GetBuffer());
-        auto boolean_buffer = (char *)cbdb::Palloc0(align_size);
+        auto boolean_buffer = BlockBuffer::Alloc<char *>(align_size);
         vec_buffer->Set(boolean_buffer, align_size);
 
         Bitmap8 vec_bool_bitmap(
@@ -925,7 +930,7 @@ int VecAdapter::AppendToVecBuffer() {
 
         CopyBooleanBufferToArrowLayout(
             column, micro_partition_visibility_bitmap_,
-            range_begin + micro_partition_row_offset_, range_begin, range_lens,
+            range_begin + group_base_offset_, range_begin, range_lens,
             data_index_begin, data_range_lens, &vec_bool_bitmap);
         break;
       }
@@ -952,21 +957,26 @@ void VecAdapter::BuildCtidOffset(size_t range_begin, size_t range_lens) {
       BlockBuffer::Alloc<int32 *>(buffer_len), buffer_len, false, false);
 
   size_t range_row_index = 0;
-  for (size_t i = 0; i < cached_batch_lens_; i++) {
-    while (micro_partition_visibility_bitmap_ &&
-           micro_partition_visibility_bitmap_->Test(range_begin +
-                                                    range_row_index) &&
-           range_row_index < range_lens) {
-      range_row_index++;
-    }
+  size_t offset = group_base_offset_ + range_begin;
+  if (micro_partition_visibility_bitmap_) {
+    for (size_t i = 0; i < cached_batch_lens_; i++) {
+      while (range_row_index < range_lens &&
+             micro_partition_visibility_bitmap_->Test(offset)) {
+        range_row_index++;
+        offset++;
+      }
 
-    // has loop all visibility map
-    if (range_row_index >= range_lens) {
-      break;
-    }
+      // has loop all visibility map
+      if (unlikely(range_row_index >= range_lens)) break;
 
-    (*ctid_offset_in_current_range_)[i] = range_row_index++;
-    ctid_offset_in_current_range_->Brush(sizeof(int32));
+      (*ctid_offset_in_current_range_)[i] = static_cast<int32>(offset++);
+      ctid_offset_in_current_range_->Brush(sizeof(int32));
+    }
+  } else {
+    for (size_t i = 0; i < cached_batch_lens_; i++) {
+      (*ctid_offset_in_current_range_)[i] = static_cast<int32>(offset++);
+      ctid_offset_in_current_range_->Brush(sizeof(int32));
+    }
   }
 
   //
@@ -980,19 +990,19 @@ void VecAdapter::FullWithCTID(TupleTableSlot *slot,
   auto buffer_len = sizeof(int64) * cached_batch_lens_;
   DataBuffer<int64> ctid_data_buffer(BlockBuffer::Alloc<int64 *>(buffer_len),
                                      buffer_len, false, false);
-
-  auto base_offset = GetTupleOffset(slot->tts_tid);
+  auto ctid = slot->tts_tid;
 
   for (size_t i = 0; i < cached_batch_lens_; i++) {
-    SetTupleOffset(&slot->tts_tid,
-                   base_offset + (*ctid_offset_in_current_range_)[i]);
-    ctid_data_buffer[i] = CTIDToUint64(slot->tts_tid);
+    SetTupleOffset(&ctid,
+                   (*ctid_offset_in_current_range_)[i]);
+    ctid_data_buffer[i] = CTIDToUint64(ctid);
   }
   batch_buffer->vec_buffer.Set(ctid_data_buffer.Start(),
                                ctid_data_buffer.Capacity());
   batch_buffer->vec_buffer.SetMemTakeOver(false);
   batch_buffer->vec_buffer.BrushAll();
   PAX_DELETE(ctid_offset_in_current_range_);
+  ctid_offset_in_current_range_ = nullptr;
 }
 
 template <typename T>

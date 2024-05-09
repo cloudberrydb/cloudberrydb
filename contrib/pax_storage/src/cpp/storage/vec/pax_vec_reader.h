@@ -40,11 +40,6 @@ class PaxVecReader : public MicroPartitionReader {
   MicroPartitionReader::Group *working_group_;
   size_t current_group_index_;
   PaxFilter *filter_;
-
-  size_t ctid_offset_;
-
-  // only reference
-  std::shared_ptr<Bitmap8> visibility_bitmap_ = nullptr;
 };
 
 }  // namespace pax

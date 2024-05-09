@@ -15,16 +15,18 @@ PaxVecReader::PaxVecReader(MicroPartitionReader *reader,
       adapter_(adapter),
       working_group_(nullptr),
       current_group_index_(0),
-      filter_(filter),
-      ctid_offset_(0) {
+      filter_(filter) {
   Assert(reader && adapter);
 }
 
 PaxVecReader::~PaxVecReader() { PAX_DELETE(reader_); }
 
 void PaxVecReader::Open(const ReaderOptions &options) {
-  visibility_bitmap_ = options.visibility_bitmap;
+  auto visimap = options.visibility_bitmap;
   reader_->Open(options);
+  if (visimap) {
+    adapter_->SetVisibitilyMapInfo(visimap);
+  }
 }
 
 void PaxVecReader::Close() { reader_->Close(); }
@@ -45,11 +47,8 @@ retry_read_group:
 
     working_group_ = reader_->ReadGroup(group_index);
 
-    adapter_->SetDataSource(working_group_->GetAllColumns());
-    if (visibility_bitmap_) {
-      size_t group_row_offset = working_group_->GetRowOffset();
-      adapter_->SetVisibitilyMapInfo(group_row_offset, visibility_bitmap_);
-    }
+    adapter_->SetDataSource(working_group_->GetAllColumns(),
+                            working_group_->GetRowOffset());
   }
 
   auto flush_nums_of_rows = adapter_->AppendToVecBuffer();
@@ -63,13 +62,7 @@ retry_read_group:
     goto retry_read_group;
   }
   
-  if (adapter_->ShouldBuildCtid()) {
-    SetTupleOffset(&slot->tts_tid, ctid_offset_);
-    adapter_->FlushVecBuffer(slot);
-    ctid_offset_ += flush_nums_of_rows;
-  } else {
-    adapter_->FlushVecBuffer(slot);
-  }
+  adapter_->FlushVecBuffer(slot);
 
   return true;
 }

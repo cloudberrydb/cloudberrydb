@@ -4,4 +4,6 @@ test: alter_distributed
 test: detoast ddl numeric types filter
 test: update
 
+test: visimap_vec
+
 test: teardown

@@ -28,7 +28,7 @@ class VecAdapter final {
 
   ~VecAdapter();
 
-  void SetDataSource(PaxColumns *columns);
+  void SetDataSource(PaxColumns *columns, int group_base_offset);
 
   bool IsInitialized() const;
 
@@ -48,10 +48,8 @@ class VecAdapter final {
 
   bool ShouldBuildCtid() const;
 
-  inline void SetVisibitilyMapInfo(size_t row_offset_begin,
-                                   std::shared_ptr<Bitmap8> visibility_bitmap) {
-    micro_partition_row_offset_ = row_offset_begin;
-    micro_partition_visibility_bitmap_ = visibility_bitmap;
+  inline void SetVisibitilyMapInfo(std::shared_ptr<Bitmap8> visibility_bitmap) {
+    micro_partition_visibility_bitmap_ = std::move(visibility_bitmap);
   }
 
   static int GetMaxBatchSizeFromStr(char *max_batch_size_str,
@@ -68,8 +66,9 @@ class VecAdapter final {
 
     // The number of bits which set to 1 in visibility map is the number of
     // invisible tuples
+    auto begin = group_base_offset_ + range_begin;
     return micro_partition_visibility_bitmap_->CountBits(
-        range_begin, range_begin + range_lens - 1);
+        begin, begin + range_lens - 1);
   }
 
   void BuildCtidOffset(size_t range_begin, size_t range_lengs);
@@ -85,7 +84,7 @@ class VecAdapter final {
   size_t current_cached_pax_columns_index_;
   bool build_ctid_;
 
-  size_t micro_partition_row_offset_;
+  int group_base_offset_;
   // only referenced
   std::shared_ptr<Bitmap8> micro_partition_visibility_bitmap_ = nullptr;
 

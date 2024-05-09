@@ -265,6 +265,7 @@ UPDATE upview set a = 'b', b = 15 WHERE b = 4;
 
 -- cleanup
 DROP VIEW upview;
+DROP TABLE mintab;
 
 -- RETURNING having whole-row vars.
 :init_range_parted;

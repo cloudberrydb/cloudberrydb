@@ -37,7 +37,7 @@ build: $(SRC)
 	mkdir -p build
 	cd build && cmake .. -DCMAKE_INSTALL_PREFIX=$(DESTDIR)$(prefix) && make -j8 && cp src/cpp/libpax.so ../pax.so
 
-pax-test: build
+pax-unit-test: build
 ifeq ($(enable_debug), yes)
 	cd build && ./src/cpp/test_main
 endif
@@ -51,11 +51,11 @@ install: install-data
 	@if [ -f build/src/cpp/pax_dump ]; then $(INSTALL_PROGRAM) build/src/cpp/pax_dump '$(DESTDIR)$(bindir)/pax_dump'; fi;
 	make -C build install
 
-# .PHONY: installcheck
-# installcheck: pax-test
-# 	$(PG_REGRESS) \
-# 		--init-file=init_file --schedule=pax_schedule \
-# 		--load-extension=gp_inject_fault --dbname=pax_test
+.PHONY: pax-test
+pax-test:
+	$(PG_REGRESS) \
+		--init-file=init_file --schedule=pax_schedule \
+		--load-extension=gp_inject_fault --dbname=pax_test
 	
 .PHONY: icw_test
 icw_test:

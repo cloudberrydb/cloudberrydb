@@ -185,9 +185,9 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
 
   columns->AddRows(column->GetRows());
   columns->Append(column);
-  adapter->SetDataSource(columns);
+  adapter->SetDataSource(columns, 0);
   if (with_visimap) {
-    adapter->SetVisibitilyMapInfo(0, visimap);
+    adapter->SetVisibitilyMapInfo(visimap);
   }
 
   size_t visiable_tuple1_count = VEC_BATCH_LENGTH;
@@ -401,7 +401,7 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
 
   columns->AddRows(column->GetRows());
   columns->Append(column);
-  adapter->SetDataSource(columns);
+  adapter->SetDataSource(columns, 0);
 
   auto append_rc = adapter->AppendToVecBuffer();
   ASSERT_EQ(append_rc, VEC_BATCH_LENGTH);
@@ -656,7 +656,7 @@ TEST_P(PaxVecTest, PaxColumnToVecNoFull) {
 
   columns->AddRows(column->GetRows());
   columns->Append(column);
-  adapter->SetDataSource(columns);
+  adapter->SetDataSource(columns, 0);
   auto append_rc = adapter->AppendToVecBuffer();
   ASSERT_EQ(append_rc, 1000);
 
@@ -766,7 +766,7 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
 
   columns->AddRows(column->GetRows());
   columns->Append(column);
-  adapter->SetDataSource(columns);
+  adapter->SetDataSource(columns, 0);
   auto append_rc = adapter->AppendToVecBuffer();
   ASSERT_EQ(static_cast<size_t>(append_rc), 1000 + null_counts);
 
@@ -902,7 +902,7 @@ TEST_P(PaxVecTest, PaxColumnAllNullToVec) {
 
   columns->AddRows(column->GetRows());
   columns->Append(column);
-  adapter->SetDataSource(columns);
+  adapter->SetDataSource(columns, 0);
   auto append_rc = adapter->AppendToVecBuffer();
   ASSERT_EQ(append_rc, 1000);
 
@@ -1000,7 +1000,7 @@ TEST_P(PaxVecTest, DecimalTest) {
   columns->SetStorageFormat(PaxStorageFormat::kTypeStoragePorcVec);
   columns->AddRows(column->GetRows());
   columns->Append(column);
-  adapter->SetDataSource(columns);
+  adapter->SetDataSource(columns, 0);
   auto append_rc = adapter->AppendToVecBuffer();
   ASSERT_EQ(append_rc, VEC_BATCH_LENGTH);
 
@@ -1103,9 +1103,9 @@ TEST_P(PaxVecTest, PaxColumnWithNullAndVisimapToVec) {
 
   columns->AddRows(column->GetRows());
   columns->Append(column);
-  adapter->SetDataSource(columns);
+  adapter->SetDataSource(columns, 0);
   if (with_visimap) {
-    adapter->SetVisibitilyMapInfo(0, visimap);
+    adapter->SetVisibitilyMapInfo(visimap);
   }
 
   size_t visiable_tuple1_count = VEC_BATCH_LENGTH;
@@ -1226,9 +1226,6 @@ TEST_P(PaxVecTest, PaxColumnBuildCtidToVec) {
     visimap = std::make_shared<Bitmap8>(VEC_BATCH_LENGTH + 1000);
   }
 
-  int64 base_ctid = 1;
-  pax::SetTupleOffset(&tuple_slot->tts_tid, base_ctid);
-
   adapter = PAX_NEW<VecAdapter>(tuple_slot->tts_tupleDescriptor,
                                 VEC_BATCH_LENGTH, true);
   columns = PAX_NEW<PaxColumns>();
@@ -1258,9 +1255,9 @@ TEST_P(PaxVecTest, PaxColumnBuildCtidToVec) {
 
   columns->AddRows(column->GetRows());
   columns->Append(column);
-  adapter->SetDataSource(columns);
+  adapter->SetDataSource(columns, 0);
   if (with_visimap) {
-    adapter->SetVisibitilyMapInfo(0, visimap);
+    adapter->SetVisibitilyMapInfo(visimap);
   }
 
   size_t visiable_tuple1_count = VEC_BATCH_LENGTH;
@@ -1314,10 +1311,10 @@ TEST_P(PaxVecTest, PaxColumnBuildCtidToVec) {
     for (size_t i = 0; i < visiable_tuple1_count; i++) {
       if (with_visimap) {
         ASSERT_EQ(*(int64 *)(buffer + (i * sizeof(int64))),
-                  static_cast<int64>((i + 1) * 2 + base_ctid));
+                  static_cast<int64>((i + 1) * 2));
       } else {
         ASSERT_EQ(*(int64 *)(buffer + (i * sizeof(int64))),
-                  static_cast<int64>(i + 1 + base_ctid));
+                  static_cast<int64>(i + 1));
       }
     }
 
