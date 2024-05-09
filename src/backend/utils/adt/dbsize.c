@@ -25,6 +25,7 @@
 #include "commands/tablespace.h"
 #include "common/relpath.h"
 #include "executor/spi.h"
+#include "funcapi.h"
 #include "miscadmin.h"
 #include "storage/fd.h"
 #include "utils/acl.h"
@@ -54,6 +55,7 @@
 #define half_rounded(x)   (((x) + ((x) < 0 ? -1 : 1)) / 2)
 
 static int64 calculate_total_relation_size(Relation rel);
+static HTAB *cbdb_get_size_from_segDBs(const char *cmd, int32 relnum);
 
 /* Hook for plugins to calculate relation size */
 relation_size_hook_type relation_size_hook = NULL;
@@ -1324,4 +1326,275 @@ pg_relation_filepath(PG_FUNCTION_ARGS)
 	path = relpathbackend(rnode, backend, MAIN_FORKNUM);
 
 	PG_RETURN_TEXT_P(cstring_to_text(path));
+}
+
+/**
+ * cbdb_relation_size accepts a group of relation
+ * oids and return their size.
+ * arg0: oid array
+ * arg1: fork name
+ *
+ * cbdb_relation_size is similar to pg_relation_size
+ * but when getting multiple relations's size, it can
+ * get better performance. On each segment, it gets a
+ * group of relations's size once and sum them up on
+ * the dispatcher. Compared with pg_relation_size,
+ * which only computes one relation's size at one time
+ * and dispatches the sql command for different relations
+ * multiple times, it saves a lot of work.
+ *
+ * If there are duplicated oids in the oid array,
+ * cbdb_relation_size doesn't deal with that now.
+ */
+typedef struct
+{
+	Oid 	reloid;
+	int64 	size;
+} RelSize;
+
+typedef struct
+{
+	int32	index;
+	int32 	num_entries;
+	RelSize *relsize;
+} get_relsize_cxt;
+
+Datum
+cbdb_relation_size(PG_FUNCTION_ARGS)
+{
+	FuncCallContext	*funcctx;
+	get_relsize_cxt	*cxt;
+	int32			len = 0; /* the length of oid array */
+	Relation		rel;
+	StringInfoData	oidInfo;
+	RelSize			*result;
+
+	ForkNumber		forkNumber;
+	ArrayType  		*array = PG_GETARG_ARRAYTYPE_P(0);
+	text	   		*forkName = PG_GETARG_TEXT_PP(1);
+	Oid 			*oidArray =  (Oid *) ARR_DATA_PTR(array);
+
+
+	if (array_contains_nulls(array))
+		ereport(ERROR, (errcode(ERRCODE_ARRAY_ELEMENT_ERROR),
+			errmsg("cannot work with arrays containing NULLs")));
+	len = ArrayGetNItems(ARR_NDIM(array), ARR_DIMS(array));
+
+	/* caculate all the relation size */
+	if (SRF_IS_FIRSTCALL())
+	{
+#define RELSIZE_NATTS 2
+		MemoryContext oldcontext;
+		/* create a function context for cross-call persistence */
+		funcctx = SRF_FIRSTCALL_INIT();
+		/* Switch to memory context appropriate for multiple function calls */
+		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+		TupleDesc tupdesc = CreateTemplateTupleDesc(RELSIZE_NATTS);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "reloid", OIDOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "size", INT8OID, -1, 0);
+		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
+
+		result = (RelSize*) palloc0(sizeof(RelSize) * len);
+
+		ERROR_ON_ENTRY_DB();
+
+		int relnum = 0; /* the num of oid appended to the oidInfo */
+		for (int i = 0; i< len; i++)
+		{
+			result[i].reloid = oidArray[i];
+
+			rel = try_relation_open(oidArray[i], AccessShareLock, false);
+
+			/*
+			 * Before 9.2, we used to throw an error if the relation didn't exist, but
+			 * that makes queries like "SELECT pg_relation_size(oid) FROM pg_class"
+			 * less robust, because while we scan pg_class with an MVCC snapshot,
+			 * someone else might drop the table. It's better to return NULL for
+			 * already-dropped tables than throw an error and abort the whole query.
+			 *
+			 * For cbdb_relation_size, for rel not existed, just set the size to 0
+			 */
+			if (rel == NULL)
+			{
+				continue;
+			}
+
+			/* for foreign table, only get its size on the dispatcher */
+			if (rel->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
+			{
+				FdwRoutine *fdwroutine;
+				bool        ok = false;
+
+				fdwroutine = GetFdwRoutineForRelation(rel, false);
+
+				if (fdwroutine->GetRelationSizeOnSegment != NULL)
+					ok = fdwroutine->GetRelationSizeOnSegment(rel, &result[i].size);
+
+				if (!ok)
+					ereport(WARNING,
+							(errmsg("skipping \"%s\" --- cannot calculate this foreign table size",
+									RelationGetRelationName(rel))));
+				relation_close(rel, AccessShareLock);
+				continue;
+			}
+
+			forkNumber = forkname_to_number(text_to_cstring(forkName));
+
+			result[i].size = calculate_relation_size(rel, forkNumber);
+			relation_close(rel, AccessShareLock);
+
+			relnum ++;
+			if (Gp_role == GP_ROLE_DISPATCH)
+			{
+				if (relnum == 1)
+				{
+					initStringInfo(&oidInfo);
+					appendStringInfo(&oidInfo, "%u", oidArray[i]);
+				}
+				else
+					appendStringInfo(&oidInfo, ",%u", oidArray[i]);
+			}
+		}
+
+		if (Gp_role == GP_ROLE_DISPATCH && relnum > 0)
+		{
+			char	*sql;
+			HTAB	*segsize;
+			sql = psprintf("select * from pg_catalog.cbdb_relation_size(array[%s]::oid[], '%s')", oidInfo.data,
+					forkNames[forkNumber]);
+			segsize = cbdb_get_size_from_segDBs(sql, relnum);
+
+			for (int i = 0; i< len; i++)
+			{
+				bool 	found;
+				RelSize *entry;
+				Oid oid = result[i].reloid;
+				entry = hash_search(segsize, &oid, HASH_FIND, &found);
+				/* some tables may only exist on dispatcher */
+				if (found)
+				{
+					result[i].size += entry->size;
+				}
+			}
+		}
+
+		cxt = (get_relsize_cxt *) palloc(sizeof(get_relsize_cxt));
+		cxt->num_entries = len;
+		cxt->index = 0;
+		cxt->relsize = result;
+
+		funcctx->user_fctx = cxt;
+		MemoryContextSwitchTo(oldcontext);
+	}
+
+	funcctx = SRF_PERCALL_SETUP();
+	cxt = (get_relsize_cxt *) funcctx->user_fctx;
+
+	while (cxt->index < cxt->num_entries)
+	{
+		RelSize 	*relsize = &cxt->relsize[cxt->index];
+		Datum       values[RELSIZE_NATTS];
+		bool        nulls[RELSIZE_NATTS];
+		HeapTuple	tuple;
+		Datum		res;
+
+		MemSet(nulls, 0, sizeof(nulls));
+		values[0] = ObjectIdGetDatum(relsize->reloid);
+		values[1] = Int64GetDatum(relsize->size);
+		cxt->index++;
+		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
+		res = HeapTupleGetDatum(tuple);
+
+		SRF_RETURN_NEXT(funcctx, res);
+	}
+
+	SRF_RETURN_DONE(funcctx);
+}
+
+/*
+ * Helper function to dispatch a size-returning command.
+ *
+ * Dispatches the given SQL query to segments, and sums up the results.
+ */
+static HTAB*
+cbdb_get_size_from_segDBs(const char *cmd, int32 relnum)
+{
+	CdbPgResults cdb_pgresults = {NULL, 0};
+	int			i;
+	HTAB       *res_htab = NULL;
+
+	Assert(Gp_role == GP_ROLE_DISPATCH);
+
+	if (!res_htab)
+	{
+		HASHCTL     hctl;
+
+		memset(&hctl, 0, sizeof(HASHCTL));
+		hctl.keysize = sizeof(Oid);
+		hctl.entrysize = sizeof(RelSize);
+		hctl.hcxt = CurrentMemoryContext;
+
+		res_htab = hash_create("cbdb_get_size_from_segDBs",
+				relnum,
+				&hctl,
+				HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
+	}
+	if (relnum == 0)
+		return res_htab;
+
+	CdbDispatchCommand(cmd, DF_WITH_SNAPSHOT, &cdb_pgresults);
+
+	for (i = 0; i < cdb_pgresults.numResults; i++)
+	{
+		ExecStatusType status;
+		int ntuples;
+		int nfields;
+
+		struct pg_result *pgresult = cdb_pgresults.pg_results[i];
+
+		status = PQresultStatus(pgresult);
+		if (status != PGRES_TUPLES_OK)
+		{
+			cdbdisp_clearCdbPgResults(&cdb_pgresults);
+			ereport(ERROR,
+					(errmsg("unexpected result from segment: %d",
+							status)));
+		}
+
+		ntuples = PQntuples(pgresult);
+		nfields = PQnfields(pgresult);
+
+		if (ntuples != relnum || nfields != RELSIZE_NATTS)
+		{
+			cdbdisp_clearCdbPgResults(&cdb_pgresults);
+			ereport(ERROR,
+					(errmsg("unexpected shape of result from segment (%d rows, %d cols)",
+							ntuples, nfields)));
+		}
+
+		for ( int j = 0; j < ntuples; j++)
+		{
+			bool		found;
+			RelSize		*entry;
+			int64		size;
+			if (PQgetisnull(pgresult, j, 0) || PQgetisnull(pgresult, j, 1))
+				continue;
+
+			Oid oid = DatumGetObjectId(DirectFunctionCall1(oidin,
+						CStringGetDatum(PQgetvalue(pgresult, j, 0))));
+			size = DatumGetInt64(DirectFunctionCall1(int8in,
+						CStringGetDatum(PQgetvalue(pgresult, j, 1))));
+			entry = hash_search(res_htab, &oid, HASH_ENTER, &found);
+			if (!found)
+			{
+				entry->reloid = oid;
+				entry->size = size;
+			}
+			else
+			{
+				entry->size += size;
+			}
+		}
+	}
+	return res_htab;
 }
