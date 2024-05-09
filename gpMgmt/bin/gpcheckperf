@@ -82,9 +82,9 @@ def strcmd(cmd):
     return reduce(lambda x, y: x + ' ' + y, map(lambda x: x.find(' ') > 0 and "'" + x + "'" or x, cmd))
 
 
-def gpssh(cmd, call_verbose=True):
+def gpssh(cmd):
     c = ['%s/bin/gpssh' % GPHOME]
-    if GV.opt['-V'] and call_verbose:
+    if GV.opt['-V']:
         c.append('-v')
     if GV.opt['-f']:
         c.append('-f')
@@ -541,7 +541,7 @@ def spawnNetperfTestBetween(x, y, netperf_path, netserver_port, sec=5):
          x, cmd]
     proc = None
     try:
-        if GV.opt['-v'] or GV.opt['-V']:
+        if GV.opt['-v']:
             print('[Info]', strcmd(c))
         proc = subprocess.Popen(c, stdout=subprocess.PIPE)
     except KeyboardInterrupt:
@@ -740,23 +740,13 @@ def get_host_map(hostlist):
     uniqhosts = dict()  # unique host list
 
     # get list of hostnames
-    # disabling verbose mode for gpssh as it is adding extra lines of output
-    rc, out = gpssh('hostname', False)
-
+    rc, out = gpssh('hostname')
     if not rc:
         raise Exception('Encountered error running hostname')
 
-    ''' Sample output:
-        [sdw1] sdw1
-        [sdw2] sdw2
-    '''
-
     # get unique hostname list
     for line in out.splitlines():
-        seg, host = line.translate(str.maketrans('','','[]')).split()
-        # removing \r and b coming in the output of the command in hostname
-        host = host.replace('\\r\'', '')
-        host = host.replace('b\'', '')
+        seg, host = line.translate(None, '[]').split()
         uniqhosts[host] = seg
 
     # get list of segments associated with each host (can't use gpssh since it de-dupes hosts)
@@ -765,8 +755,7 @@ def get_host_map(hostlist):
 
         proc = None
         try:
-            if GV.opt['-v'] or GV.opt['-V']:
-                print('[Info]', strcmd(cmd))
+            if GV.opt['-v']: print('[Info]', strcmd(cmd))
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             out = proc.stdout.read(-1)
             rc = proc.wait()
@@ -792,7 +781,7 @@ def runNetPerfTestMatrix():
     '''
     (netperf, hostlist, netserver_port) = setupNetPerfTest()
     if not netperf:
-        return None, None
+        return None
 
     # dict() of seglist[segname] = hostname, uniqhosts[hostname] = 1 segment name
     seglist, uniqhosts = get_host_map(hostlist)
@@ -818,21 +807,19 @@ def runNetPerfTestMatrix():
 
 
 def printMatrixResult(result, seglist):
-    if not result:
-        return
     print('Full matrix netperf bandwidth test')
 
     # sum up Rx/Tx rate for each host
     netTx = dict()
     netRx = dict()
     for h in result:
-        if h[0] in netTx:
+        if netTx.has_key(h[0]):
             netTx[h[0]] += float(h[6])
         else:
             netTx[h[0]] = float(h[6])
 
         # netRx requires that we lookup the hostname for a given segment name
-        if seglist[h[1]] in netRx:
+        if netRx.has_key(seglist[h[1]]):
             netRx[seglist[h[1]]] += float(h[6])
         else:
             netRx[seglist[h[1]]] = float(h[6])
@@ -863,7 +850,7 @@ def printMatrixResult(result, seglist):
 
     copy = n[:]
     copy.sort()
-    median = copy[len(copy) // 2]
+    median = copy[len(copy) / 2]
 
     print('')
     print('Summary:')
@@ -876,8 +863,6 @@ def printMatrixResult(result, seglist):
 
 
 def printNetResult(result):
-    if not result:
-        return
     print('Netperf bisection bandwidth test')
     for h in result:
         print('%s -> %s = %f' % (h[0], h[1], h[6]))
@@ -909,8 +894,6 @@ def printNetResult(result):
 
 
 def printResult(title, result):
-    if not result:
-        return
     totTime = 0
     totBytes = 0
     totMBPS = 0
