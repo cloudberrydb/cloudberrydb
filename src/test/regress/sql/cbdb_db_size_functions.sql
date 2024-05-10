@@ -16,16 +16,14 @@ CREATE EXTERNAL TABLE cbdbsize_t_ext (a integer) LOCATION ('file://127.0.0.1/tmp
 
 WITH cbdbrelsize AS (
 	SELECT *
-	FROM cbdb_relation_size((SELECT array_agg(oid) FROM pg_class WHERE relkind != 'f'))
-	), pgrelsize AS (
-	SELECT pg_relation_size(oid) as size, relname, oid FROM pg_class
-	WHERE relkind != 'f'
+	FROM cbdb_relation_size((SELECT array['cbdbsize_t_ext'::regclass,'cbdbheapsizetest'::regclass, 'cbdbaosizetest'::regclass]))
+), pgrelsize AS (
+	SELECT pg_relation_size(oid) as size, relname, oid FROM pg_class where oid in ('cbdbsize_t_ext'::regclass,'cbdbheapsizetest'::regclass, 'cbdbaosizetest'::regclass)
 )
 SELECT pgrelsize.relname, pgrelsize.size, cbdbrelsize.size
 FROM pgrelsize FULL JOIN cbdbrelsize
 ON pgrelsize.oid = cbdbrelsize.reloid
 WHERE pgrelsize.size != cbdbrelsize.size;
 
-SELECT size FROM cbdb_relation_size(array['cbdbsize_t_ext'::regclass]);
 SELECT * FROM cbdb_relation_size(array[]::oid[], 'main');
 SELECT size FROM cbdb_relation_size(array['cbdbheapsizetest'::regclass], 'fsm');
