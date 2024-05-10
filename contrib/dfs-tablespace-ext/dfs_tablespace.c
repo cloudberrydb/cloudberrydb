@@ -261,7 +261,6 @@ dfsDropTableSpace(DropTableSpaceStmt *stmt)
 	Oid			tablespaceoid;
 	char	   *detail;
 	char	   *detail_log;
-	StorageServer *server;
 
 	/*
 	 * Find the target tuple
@@ -298,8 +297,6 @@ dfsDropTableSpace(DropTableSpaceStmt *stmt)
 
 	spcform = (Form_pg_tablespace) GETSTRUCT(tuple);
 	tablespaceoid = spcform->oid;
-
-	server = GetStorageServer(tablespaceoid);
 
 	/* Must be tablespace owner */
 	if (!pg_tablespace_ownercheck(tablespaceoid, GetUserId()))
