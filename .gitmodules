@@ -1,6 +1,6 @@
 [submodule "gpcontrib/gpcloud/test/googletest"]
 	path = gpcontrib/gpcloud/test/googletest
-	url = https://github.com/google/googletest.git
+	url = https://code.hashdata.xyz/cloudberry/googletest.git
 [submodule "contrib/pax_storage/src/cpp/contrib/googletest"]
 	path = contrib/pax_storage/src/cpp/contrib/googletest
 	url = https://code.hashdata.xyz/cloudberry/googletest.git
