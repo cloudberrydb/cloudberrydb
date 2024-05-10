@@ -1378,7 +1378,6 @@ cbdb_relation_size(PG_FUNCTION_ARGS)
 	if (array_contains_nulls(array))
 		ereport(ERROR, (errcode(ERRCODE_ARRAY_ELEMENT_ERROR),
 			errmsg("cannot work with arrays containing NULLs")));
-	len = ArrayGetNItems(ARR_NDIM(array), ARR_DIMS(array));
 
 	/* caculate all the relation size */
 	if (SRF_IS_FIRSTCALL())
@@ -1387,6 +1386,8 @@ cbdb_relation_size(PG_FUNCTION_ARGS)
 		MemoryContext oldcontext;
 		/* create a function context for cross-call persistence */
 		funcctx = SRF_FIRSTCALL_INIT();
+		len = ArrayGetNItems(ARR_NDIM(array), ARR_DIMS(array));
+		forkNumber = forkname_to_number(text_to_cstring(forkName));
 		/* Switch to memory context appropriate for multiple function calls */
 		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
 		TupleDesc tupdesc = CreateTemplateTupleDesc(RELSIZE_NATTS);
@@ -1438,8 +1439,6 @@ cbdb_relation_size(PG_FUNCTION_ARGS)
 				continue;
 			}
 
-			forkNumber = forkname_to_number(text_to_cstring(forkName));
-
 			result[i].size = calculate_relation_size(rel, forkNumber);
 			relation_close(rel, AccessShareLock);
 
@@ -1463,6 +1462,8 @@ cbdb_relation_size(PG_FUNCTION_ARGS)
 			sql = psprintf("select * from pg_catalog.cbdb_relation_size(array[%s]::oid[], '%s')", oidInfo.data,
 					forkNames[forkNumber]);
 			segsize = cbdb_get_size_from_segDBs(sql, relnum);
+			pfree(oidInfo.data);
+			pfree(sql);
 
 			for (int i = 0; i< len; i++)
 			{
