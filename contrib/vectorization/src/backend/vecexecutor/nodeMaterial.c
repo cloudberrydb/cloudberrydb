@@ -38,7 +38,6 @@
 #include "vecexecutor/execslot.h"
 #include "utils/tuplestore_vec.h"
 
-static void ExecVecMaterialExplainEnd(PlanState *planstate, struct StringInfoData *buf);
 static void ExecChildVecRescan(MaterialState *node);
 
 static void ExecEagerFreeVecMaterial(MaterialState *node);
@@ -58,12 +57,6 @@ ExecVecMaterial(PlanState *pstate)
 {
 	MaterialState *node = (MaterialState*) pstate;
 	VecMaterialState *vnode = (VecMaterialState*) pstate;
-	EState	   *estate;
-	ScanDirection dir;
-	bool		forward;
-	Tuplestorestate *tuplestorestate;
-	bool		eof_tuplestore;
-	TupleTableSlot *slot;
 
 	CHECK_FOR_INTERRUPTS();
 
@@ -75,159 +68,7 @@ ExecVecMaterial(PlanState *pstate)
 		return outerslot;
 	}
 
-	/*
-	 * get state info from node
-	 */
-	estate = node->ss.ps.state;
-	dir = estate->es_direction;
-	forward = ScanDirectionIsForward(dir);
-	tuplestorestate = node->tuplestorestate;
-
-	/*
-	 * If first time through, and we need a tuplestore, initialize it.
-	 */
-	if (tuplestorestate == NULL && node->eflags != 0)
-	{
-		tuplestorestate = tuplestore_begin_batch(true, false, PlanStateOperatorMemKB(&node->ss.ps));
-		tuplestore_set_eflags(tuplestorestate, node->eflags);
-		if (node->eflags & EXEC_FLAG_MARK)
-		{
-			/*
-			 * Allocate a second read pointer to serve as the mark. We know it
-			 * must have index 1, so needn't store that.
-			 */
-			int			ptrno PG_USED_FOR_ASSERTS_ONLY;
-
-			ptrno = tuplestore_alloc_read_pointer(tuplestorestate,
-												  node->eflags);
-			Assert(ptrno == 1);
-		}
-		node->tuplestorestate = tuplestorestate;
-
-		/* CDB: Offer extra info for EXPLAIN ANALYZE. */
-		if (node->ss.ps.instrument && node->ss.ps.instrument->need_cdb)
-		{
-			/* Let the tuplestore share our Instrumentation object. */
-			tuplestore_set_instrument(tuplestorestate, node->ss.ps.instrument);
-
-			/* Request a callback at end of query. */
-			node->ss.ps.cdbexplainfun = ExecVecMaterialExplainEnd;
-		}
-
-		/*
-		 * MPP: If requested, fetch all rows from subplan and put them
-		 * in the tuplestore.  This decouples a middle slice's receiving
-		 * and sending Motion operators to neutralize a deadlock hazard.
-		 * MPP TODO: Remove when a better solution is implemented.
-		 *
-		 * See motion_sanity_walker() for details on how a deadlock may occur.
-		 */
-		if (((Material *) node->ss.ps.plan)->cdb_strict)
-		{
-			for (;;)
-			{
-				TupleTableSlot *outerslot = ExecProcNode(outerPlanState(node));
-
-				if (TupIsNull(outerslot))
-					break;
-				tuplestore_putvecslot(tuplestorestate, outerslot);
-			}
-			node->eof_underlying = true;
-			tuplestore_rescan(tuplestorestate);
-		}
-	}
-
-	/*
-	 * If we are not at the end of the tuplestore, or are going backwards, try
-	 * to fetch a tuple from tuplestore.
-	 */
-	eof_tuplestore = (tuplestorestate == NULL) ||
-		tuplestore_ateof(tuplestorestate);
-
-	if (!forward && eof_tuplestore)
-	{
-		if (!node->eof_underlying)
-		{
-			/*
-			 * When reversing direction at tuplestore EOF, the first
-			 * gettupleslot call will fetch the last-added tuple; but we want
-			 * to return the one before that, if possible. So do an extra
-			 * fetch.
-			 */
-			if (!tuplestore_advance_vec(tuplestorestate, forward))
-				return NULL;	/* the tuplestore must be empty */
-		}
-		eof_tuplestore = false;
-	}
-
-	/*
-	 * If we can fetch another tuple from the tuplestore, return it.
-	 */
-	slot = node->ss.ps.ps_ResultTupleSlot;
-	if (!eof_tuplestore)
-	{
-		if (tuplestore_getvecslot(tuplestorestate, forward, false, slot))
-		{
-			return slot;
-		}
-
-		if (forward)
-			eof_tuplestore = true;
-	}
-
-	/*
-	 * If necessary, try to fetch another row from the subplan.
-	 *
-	 * Note: the eof_underlying state variable exists to short-circuit further
-	 * subplan calls.  It's not optional, unfortunately, because some plan
-	 * node types are not robust about being called again when they've already
-	 * returned NULL.
-	 *
-	 * GPDB: If reusing cached workfiles, there is no need to execute subplan
-	 * at all.
-	 */
-	if (eof_tuplestore && !node->eof_underlying)
-	{
-		PlanState  *outerNode;
-		TupleTableSlot *outerslot;
-
-		/*
-		 * We can only get here with forward==true, so no need to worry about
-		 * which direction the subplan will go.
-		 */
-		outerNode = outerPlanState(node);
-		outerslot = ExecProcNode(outerNode);
-		if (TupIsNull(outerslot))
-		{
-			node->eof_underlying = true;
-			if (!node->delayEagerFree)
-			{
-				ExecEagerFreeVecMaterial(node);
-			}
-
-			return NULL;
-		}
-
-		/*
-		 * Append a copy of the returned tuple to tuplestore.  NOTE: because
-		 * the tuplestore is certainly in EOF state, its read position will
-		 * move forward over the added tuple.  This is what we want.
-		 */
-		if (tuplestorestate)
-			tuplestore_putvecslot(tuplestorestate, outerslot);
-
-		return outerslot;
-	}
-
-	if (!node->delayEagerFree)
-	{
-		ExecEagerFreeVecMaterial(node);
-	}
-
-	/*
-	 * Nothing left ...
-	 */
-	return ExecClearTuple(slot);
+	return ExecuteVecPlan(&((VecMaterialState*)pstate)->estate);
 }
 
 /* ----------------------------------------------------------------
@@ -246,6 +87,7 @@ ExecInitVecMaterial(Material *node, EState *estate, int eflags)
 	vmatstate = (VecMaterialState*) palloc0(sizeof(VecMaterialState));
 	NodeSetTag(vmatstate, T_MaterialState);
 	vmatstate->is_skip = false;
+	vmatstate->cdb_strict = node->cdb_strict;
 
 	matstate = (MaterialState*)vmatstate;
 	matstate->ss.ps.plan = (Plan *) node;
@@ -350,23 +192,9 @@ ExecInitVecMaterial(Material *node, EState *estate, int eflags)
 	 * initialize tuple type.
 	 */
 	ExecCreateScanSlotFromOuterPlan(estate, &matstate->ss, &TTSOpsVecTuple);
-
+	BuildVecPlan((PlanState *)vmatstate, &vmatstate->estate);
 	return matstate;
 }
-
-/*
- * ExecMaterialExplainEnd
- *      Called before ExecutorEnd to finish EXPLAIN ANALYZE reporting.
- *
- * Some of the cleanup that ordinarily would occur during ExecEndMaterial()
- * needs to be done earlier in order to report statistics to EXPLAIN ANALYZE.
- * Note that ExecEndMaterial() will be called again during ExecutorEnd().
- */
-static void
-ExecVecMaterialExplainEnd(PlanState *planstate, struct StringInfoData *buf)
-{
-	ExecEagerFreeVecMaterial((MaterialState*)planstate);
-}                               /* ExecMaterialExplainEnd */
 
 
 /* ----------------------------------------------------------------

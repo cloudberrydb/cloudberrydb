@@ -14,6 +14,7 @@
 #include "postgres.h"
 
 #include "catalog/pg_operator_d.h"
+#include "catalog/pg_tablespace_d.h"
 #include "cdb/cdbvars.h"
 #include "nodes/nodeFuncs.h"
 #include "nodes/nodes.h"
@@ -45,6 +46,15 @@ typedef enum
 	Mergesort,
 	Consuming,
 } SinkType;
+
+typedef enum
+{
+	IN_MEMORY,
+	IN_SINGLE,
+	IN_CHUNK,
+	IN_SINGLE_UNSAFE,
+	IN_CHUNK_UNSAFE
+}StoreType;
 
 typedef struct PlanBuildContext
 {
@@ -109,6 +119,13 @@ typedef struct PlanBuildContext
 	bool is_append;
 	int sub_slice;
 	int append_filed_index;
+
+	/* MaterialNode fileds */
+	bool is_materialize;
+	char *store_file;
+	StoreType store_type;
+	int64_t chunk_size;
+	bool cdb_strict;
 } PlanBuildContext;
 
 typedef struct SortKey
@@ -177,6 +194,33 @@ static GArrowExecuteNode*
 build_orderby_node(PlanState *planstate, GArrowExecutePlan *plan,  GArrowExecuteNode *input, PlanBuildContext *pcontext);
 static GArrowExpression *
 build_literal_expression(GArrowType type, Datum datum, bool isnull, Oid pg_type, int32 typmod);
+static void
+BuildMaterializePlan(PlanBuildContext *pcontext, VecExecuteState *estate);
+static GArrowStoreType
+to_arrow_storetype(StoreType type);
+
+static char *
+build_materialize_file_name()
+{
+	Oid tblspcOid = InvalidOid;
+	time_t timestamp = time(NULL);
+	int random_number = 0;
+	char ts_path[128] = { 0 };
+	char *file_name = NULL;
+
+	tblspcOid = MyDatabaseTableSpace ? MyDatabaseTableSpace : DEFAULTTABLESPACE_OID;
+
+	TempTablespacePath(ts_path, tblspcOid);
+
+	file_name = palloc0(PATH_MAX);
+	srand((unsigned int)timestamp);
+	random_number = rand();
+
+	snprintf(file_name, PATH_MAX - 1, "%s/%s%s%d.%d",
+			ts_path, PG_TEMP_FILE_PREFIX, "materialize", MyProcPid, random_number);
+
+	return file_name;
+}
 
 static PlanState *
 get_sequence_exact_result_ps(PlanState *plan)
@@ -1499,6 +1543,39 @@ new_winagg_info(WindowFunc *wfunc, PlanBuildContext *pcontext)
 	return agginfo;
 }
 
+static void
+BuildMaterializePlan(PlanBuildContext *pcontext, VecExecuteState *estate)
+{
+	g_autoptr(GArrowExecuteNode) source_node = NULL;
+	g_autoptr(GArrowMaterializeNodeOptions)	materialize_node_options = NULL;
+	g_autoptr(GArrowExecuteNode) materialize_exec_node = NULL;
+	g_autoptr(GError) error = NULL;
+	GArrowStoreType type;
+
+	type = to_arrow_storetype(pcontext->store_type);
+
+	source_node = BuildSource(pcontext);
+
+	materialize_node_options =
+			garrow_materialize_node_options_new(pcontext->store_file, type, pcontext->chunk_size, pcontext->cdb_strict, &error);
+
+	if (error)
+		elog(ERROR, "build materialize node option fail caused by %s", error->message);
+
+	materialize_exec_node =
+			garrow_execute_plan_build_materialize_node(pcontext->plan,
+										source_node,
+										materialize_node_options,
+										&error);
+
+	if (error)
+		elog(ERROR, "build materialize node fail caused by %s", error->message);
+
+	BuildSink(materialize_exec_node, estate, pcontext);
+
+	return;
+}
+
 static GArrowExecuteNode *
 BuildAppendPlan(PlanBuildContext *pcontext, VecExecuteState *estate)
 {
@@ -1609,6 +1686,11 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 	pcontext.case_when_type = InvalidOid;
 	pcontext.is_append = false;
 	pcontext.append_filed_index = 0;
+	pcontext.is_materialize = false;
+	pcontext.store_file = NULL;
+	pcontext.chunk_size = 0;
+	pcontext.store_type = IN_MEMORY;
+
 
 	/* change sinktype and pipeline when merging some arrow plans into a big one. */
 	if (enable_arrow_plan_merge)
@@ -1655,6 +1737,22 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 				g_autofree gchar *str = garrow_schema_to_string(pcontext.inputschema);
 				elog(DEBUG1, "input schema for Windowagg: %s", str);
 			}
+		}
+		break;
+		case T_MaterialState:
+		{
+			VecMaterialState *vmatstate = (VecMaterialState *)planstate;
+			if (!outerPlanState(planstate))
+				elog(ERROR, "Material node can't be leaf in vector plan");
+			pcontext.inputschema = GetSchemaFromSlot(
+					outerPlanState(planstate)->ps_ResultTupleSlot);
+			pcontext.is_materialize = true;
+			pcontext.store_file = build_materialize_file_name();
+			pcontext.chunk_size = 0;
+			pcontext.store_type = IN_SINGLE;
+			pcontext.cdb_strict = vmatstate->cdb_strict;
+			pcontext.pipeline = false;
+			pcontext.sinktype = Plain;
 		}
 		break;
 		case T_ResultState:
@@ -1757,6 +1855,8 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 		BuildJoinPlan(&pcontext, estate);
 	else if (IsA(planstate, SequenceState))
 		BuildSequencePlan(&pcontext, estate);
+	else if (pcontext.is_materialize)
+		BuildMaterializePlan(&pcontext, estate);
 	else
 	{
 		g_autoptr(GArrowExecuteNode) curnode = NULL;
@@ -3161,6 +3261,29 @@ build_aggregatation_options(GList *aggregations, PlanBuildContext *pcontext)
 		pfree(pcontext->keys);
 
 	return garrow_move_ptr(options);
+}
+
+static GArrowStoreType
+to_arrow_storetype(StoreType type)
+{
+	switch (type)
+	{
+		case IN_MEMORY:
+			return GARROW_IN_MEMORY;
+			break;
+		case IN_SINGLE:
+			return GARROW_IN_SINGLE;
+			break;
+		case IN_CHUNK:
+			return GARROW_IN_CHUNK;
+			break;
+		default:
+			elog(ERROR, "store type not supported by arrow storefile %d", type);
+			break;
+	}
+
+	/* never run here */
+	return GARROW_IN_MEMORY;
 }
 
 static GArrowJoinType

@@ -207,6 +207,8 @@ typedef struct VecMaterialState
 {
 	MaterialState base;
 	bool is_skip; /* can skip material, for example it combo with nestloop */
+	VecExecuteState estate;
+	bool cdb_strict;
 }VecMaterialState;
 
 typedef struct VecShareInputScanState
