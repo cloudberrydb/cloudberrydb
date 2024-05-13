@@ -63,24 +63,6 @@ ExecVecSort(PlanState *pstate)
 
     vnode = (VecSortState *) node;
 
-	if (!vnode->started)
-	{
-		BuildVecPlan((PlanState *)vnode, &vnode->estate);
-		vnode->started = true;
-	}
-
-	/* FIXME: always false. may be we can delete skip field. */
-    if (vnode->skip)
-	{
-		PlanState *outerNode = outerPlanState(node);
-		TupleTableSlot *slot = ExecProcNode(outerNode);
-
-        if (TupIsNull(slot))
-			return NULL;
-
-		return slot;
-	}
-
 	TupleTableSlot *slot = ExecuteVecPlan(&vnode->estate);
 
 	if (TupIsNull(slot) && !node->delayEagerFree)
@@ -216,6 +198,7 @@ ExecInitVecSort(Sort *node, EState *estate, int eflags)
 
 	SO1_printf("ExecInitVecSort: %s\n",
 			   "sort node initialized");
+	PostBuildVecPlan((PlanState *)vsortstate, &vsortstate->estate);
 
 	return sortstate;
 }

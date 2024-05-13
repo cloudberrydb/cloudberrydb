@@ -136,8 +136,7 @@ static GArrowExecuteNode *BuildAggregatation(List *aggInfos,
 static void *get_scan_next_batch(PlanState *node);
 static void *get_foreign_next_batch(PlanState *node);
 static void *get_current_next_batch(PlanState *node);
-static GList* build_sort_keys(PlanState *planstate, GArrowSchema *schema,
-		PlanBuildContext *pcontext);
+static GList* build_sort_keys(PlanState *planstate, GArrowSchema *schema);
 static GArrowProjectNodeOptions* build_project_options(List *targetList,
 		PlanBuildContext *pcontext);
 static GArrowProjectNodeOptions* build_agg_project_options(List *targetList, List *aggInfos,
@@ -1686,8 +1685,6 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 			 *		The ps_ProjInfo initialization need to be rewrite for
 			 *		arrow plan, to find whether project is need.
 			 */
-			if ((!planstate->plan->qual) && (!planstate->ps_ProjInfo))
-				return;
 			pcontext.inputschema = scanstate->vecdesc->schema;
 			pcontext.map = scanstate->columnmap;
 		}
@@ -1712,21 +1709,9 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 		{
 			SortState *sortstate = (SortState*)planstate;
 			PlanState  *outerNode = outerPlanState(sortstate);
-			Sort *sort = (Sort *)planstate->plan;
 			if (IsA(outerNode, SequenceState))
 				outerNode = get_sequence_exact_result_ps(outerNode);
 			pcontext.inputschema = GetSchemaFromSlot(outerNode->ps_ResultTupleSlot);
-			pcontext.nkey = sort->numCols;
-			pcontext.pipeline = false;
-			if (sortstate->bounded)
-			{
-				pcontext.sinktype = Selectk;
-				pcontext.nlimit = sortstate->bound;
-			}
-			else
-			{ 
-				pcontext.sinktype = Orderby;
-			}
 		}
 		break;
 		case T_LimitState:
@@ -2039,7 +2024,7 @@ ExecuteVecPlan(VecExecuteState *estate)
  *   GList of GArrowSortKey.
  */
 GList *
-build_sort_keys(PlanState *planstate, GArrowSchema *schema, PlanBuildContext *pcontext)
+build_sort_keys(PlanState *planstate, GArrowSchema *schema)
 {
 	Assert(IsA(planstate->plan, Sort));
 	SortSupport sortKeys;
@@ -2095,35 +2080,6 @@ BuildSink(GArrowExecuteNode *input, VecExecuteState *estate, PlanBuildContext *p
 
 	switch(pcontext->sinktype)
 	{
-		case Selectk:
-		{
-			GList *keys = NULL;
-			g_autoptr(GArrowSelectKOptions) selectkoption = NULL;
-
-			keys = build_sort_keys(pcontext->planstate, schema, pcontext);
-			selectkoption = garrow_selectk_options_new(pcontext->nlimit, keys);
-			options = GARROW_SINK_NODE_OPTIONS(
-					garrow_selectk_sink_node_options_new(selectkoption));
-			sink = garrow_execute_plan_build_selectk_sink_node(pcontext->plan, input, GARROW_SELECTK_SINK_NODE_OPTIONS(options), &error);
-			garrow_list_free_ptr(&keys);
-		}
-		break;
-		case Orderby:
-		{
-			GList *keys = NULL;
-			g_autoptr(GArrowSortOptions) sortoption = NULL;
-
-			/* Fixme: move ExecSort() to here. */
-			keys = build_sort_keys(pcontext->planstate, schema, pcontext);
-			sortoption = garrow_sort_options_new(keys);
-			options = GARROW_SINK_NODE_OPTIONS(
-					garrow_orderby_sink_node_options_new(sortoption));
-			sink = garrow_execute_plan_build_orderby_sink_node(pcontext->plan, input,
-								 GARROW_ORDERBY_SINK_NODE_OPTIONS(options), &error);
-			garrow_list_free_ptr(&keys);
-
-		}
-		break;
 		case Plain:
 		{
 			options = garrow_sink_node_options_new();
@@ -2473,30 +2429,13 @@ BuildProject(List *targetList, List *qualList, GArrowExecuteNode *input, PlanBui
 		g_autoptr(GArrowExecuteNode) aggregation_input = NULL;
 		g_autoptr(GArrowExecuteNode) aggregation = NULL;
 		List *agginfos = pcontext->agginfos;
-
-		if (IsA(pcontext->planstate, AggState) && IsA(pcontext->planstate->lefttree, SortState))
-		{
-			VecSortState *state = (VecSortState *)outerPlanState(pcontext->planstate);
-			if (state->skip)
-			{
-				orderby_node = build_orderby_node(pcontext->planstate, pcontext->plan, current, pcontext);
-			}
-		}
-
 		/* build project for aggregate input */
-		if (orderby_node)
-			aggregation_input = BuildAggProject(targetList, agginfos, orderby_node, pcontext);
-		else
-			aggregation_input = BuildAggProject(targetList, agginfos, current, pcontext);
-
+		aggregation_input = BuildAggProject(targetList, agginfos, current, pcontext);
 		if (aggregation_input)
 			aggregation = BuildAggregatation(agginfos, aggregation_input, pcontext); 
-		else if (orderby_node)
-			aggregation = BuildAggregatation(agginfos, orderby_node, pcontext);
 		else
 			aggregation = BuildAggregatation(agginfos, current, pcontext);
 		garrow_store_ptr(current, aggregation);
-
 		free_agg_infos(agginfos);
 	}
 
@@ -2541,6 +2480,13 @@ BuildProject(List *targetList, List *qualList, GArrowExecuteNode *input, PlanBui
 		if (error)
 			elog(ERROR, "Failed to create Arrow project node: %s.", error->message);
 		garrow_store_ptr(current, project);
+	}
+
+	if (IsA(pcontext->planstate->plan, Sort))
+	{
+		g_autoptr(GArrowExecuteNode) sort = NULL;
+		sort = build_orderby_node(pcontext->planstate, pcontext->plan, current, pcontext);
+		garrow_store_ptr(current, sort);
 	}
 
 	return garrow_move_ptr(current);
@@ -3109,14 +3055,14 @@ build_orderby_node(PlanState *planstate, GArrowExecutePlan *plan,  GArrowExecute
 	GArrowExecuteNode *orderby_node = NULL;
 	g_autoptr(GArrowSchema) schema = NULL;
 
-	VecSortState *node = (VecSortState *)outerPlanState(planstate);
+	VecSortState *node = (VecSortState *) planstate;
 	Sort	   *plannode = (Sort *) node->base.ss.ps.plan;
 
 	schema = garrow_execute_node_get_output_schema(input);
 	nkeys = plannode->numCols;
 
 	/* sort option */
-	sort_keys = build_sort_keys((PlanState *)node, schema, pcontext);
+	sort_keys = build_sort_keys(planstate, schema);
 	sortoption = garrow_sort_options_new(sort_keys);
 	orderby_options = garrow_orderby_node_options_new(sortoption);
 	orderby_node = garrow_execute_plan_build_orderby_node(plan, input, orderby_options, &error);
@@ -3575,6 +3521,11 @@ SetArrowPlan(PlanState *ps, GArrowExecutePlan *plan)
 		VecAssertOpState *vaos = (VecAssertOpState *)ps;
 		vaos->estate.plan = plan;
 	}
+	else if (IsA(ps, LimitState))
+	{
+		VecLimitState *vlimit = (VecLimitState *)ps;
+		vlimit->estate.plan = plan;
+	}
 	else
 		return;
 }
@@ -3600,6 +3551,11 @@ GetArrowPlan(PlanState *ps)
 		VecResultState *vrs = (VecResultState *)ps;
 		return vrs->estate.plan;
 	}
+	else if (IsA(ps, AggState))
+	{
+		VecAggState *vas = (VecAggState *)ps;
+		return vas->estate.plan;
+	}
 	else if (IsA(ps, SubqueryScanState))
 	{
 		VecSubqueryScanState *vsss = (VecSubqueryScanState *)ps;
@@ -3615,8 +3571,185 @@ GetArrowPlan(PlanState *ps)
 		VecAssertOpState *vaos = (VecAssertOpState *)ps;
 		return vaos->estate.plan;
 	}
+	else if (IsA(ps, SortState))
+	{
+		VecSortState *vsort = (VecSortState *)ps;
+		return vsort->estate.plan;
+	}
+	else if (IsA(ps, LimitState))
+	{
+		VecLimitState *vlimit = (VecLimitState *)ps;
+		return vlimit->estate.plan;
+	}
+	else if (IsA(ps, WindowAggState))
+	{
+		VecWindowAggState *vwindow = (VecWindowAggState *)ps;
+		return vwindow->estate.plan;
+	}
+	// FIXME: Sequence,nestloop
 	else
 		return NULL;
+}
+
+/* like ExecSetTupleBound in execProcnode, Backpropagation setting vec_plan limits bound */ 
+void
+ExecVecSetTupleBound(int64 tuples_needed, PlanState *child_node)
+{
+	/*
+	 * Since this function recurses, in principle we should check stack depth
+	 * here.  In practice, it's probably pointless since the earlier node
+	 * initialization tree traversal would surely have consumed more stack.
+	 */
+
+	if (IsA(child_node, SortState))
+	{
+		/*
+		 * If it is a Sort node, notify it that it can use bounded sort.
+		 *
+		 * Note: it is the responsibility of nodeSort.c to react properly to
+		 * changes of these parameters.  If we ever redesign this, it'd be a
+		 * good idea to integrate this signaling with the parameter-change
+		 * mechanism.
+		 */
+		SortState  *sortState = (SortState *) child_node;
+
+		if (tuples_needed < 0)
+		{
+			/* make sure flag gets reset if needed upon rescan */
+			sortState->bounded = false;
+		}
+		else
+		{
+			GArrowExecutePlan* sort_plan = NULL;
+			GArrowSchema* schema = NULL;
+			g_autoptr(GArrowSelectKOptions) selectk_option = NULL;   
+			g_autoptr(GArrowSinkNodeOptions) node_options = NULL;
+			GList *keys = NULL;
+			GError *error = NULL;
+			sortState->bounded = true;
+			sortState->bound = tuples_needed;
+			schema = GetSchemaFromSlot(child_node->ps_ResultTupleSlot);    
+			sort_plan = GetArrowPlan(child_node);
+			keys = build_sort_keys(child_node, schema);
+			selectk_option = garrow_selectk_options_new(tuples_needed, keys);
+			node_options = GARROW_SINK_NODE_OPTIONS(
+						garrow_selectk_sink_node_options_new(selectk_option));
+			garrow_execute_plan_make_topk_node(sort_plan, GARROW_SELECTK_SINK_NODE_OPTIONS(node_options), &error);
+			if (error)
+			{
+				elog(DEBUG1, "Failed to set topk sort plan, cause: %s", error->message);
+				return;
+			}
+			garrow_list_free_ptr(&keys);
+		}
+	}
+	else if (IsA(child_node, IncrementalSortState))
+	{
+		/*
+		 * If it is an IncrementalSort node, notify it that it can use bounded
+		 * sort.
+		 *
+		 * Note: it is the responsibility of nodeIncrementalSort.c to react
+		 * properly to changes of these parameters.  If we ever redesign this,
+		 * it'd be a good idea to integrate this signaling with the
+		 * parameter-change mechanism.
+		 */
+		IncrementalSortState *sortState = (IncrementalSortState *) child_node;
+
+		if (tuples_needed < 0)
+		{
+			/* make sure flag gets reset if needed upon rescan */
+			sortState->bounded = false;
+		}
+		else
+		{
+			sortState->bounded = true;
+			sortState->bound = tuples_needed;
+		}
+	}
+	else if (IsA(child_node, AppendState))
+	{
+		/*
+		 * If it is an Append, we can apply the bound to any nodes that are
+		 * children of the Append, since the Append surely need read no more
+		 * than that many tuples from any one input.
+		 */
+		AppendState *aState = (AppendState *) child_node;
+		int			i;
+
+		for (i = 0; i < aState->as_nplans; i++)
+			ExecVecSetTupleBound(tuples_needed, aState->appendplans[i]);
+	}
+	else if (IsA(child_node, MergeAppendState))
+	{
+		/*
+		 * If it is a MergeAppend, we can apply the bound to any nodes that
+		 * are children of the MergeAppend, since the MergeAppend surely need
+		 * read no more than that many tuples from any one input.
+		 */
+		MergeAppendState *maState = (MergeAppendState *) child_node;
+		int			i;
+
+		for (i = 0; i < maState->ms_nplans; i++)
+			ExecVecSetTupleBound(tuples_needed, maState->mergeplans[i]);
+	}
+	else if (IsA(child_node, ResultState))
+	{
+		/*
+		 * Similarly, for a projecting Result, we can apply the bound to its
+		 * child node.
+		 *
+		 * If Result supported qual checking, we'd have to punt on seeing a
+		 * qual.  Note that having a resconstantqual is not a showstopper: if
+		 * that condition succeeds it affects nothing, while if it fails, no
+		 * rows will be demanded from the Result child anyway.
+		 */
+		if (outerPlanState(child_node))
+			ExecVecSetTupleBound(tuples_needed, outerPlanState(child_node));
+	}
+	else if (IsA(child_node, SubqueryScanState))
+	{
+		/*
+		 * We can also descend through SubqueryScan, but only if it has no
+		 * qual (otherwise it might discard rows).
+		 */
+		SubqueryScanState *subqueryState = (SubqueryScanState *) child_node;
+
+		if (subqueryState->ss.ps.qual == NULL)
+			ExecVecSetTupleBound(tuples_needed, subqueryState->subplan);
+	}
+	else if (IsA(child_node, GatherState))
+	{
+		/*
+		 * A Gather node can propagate the bound to its workers.  As with
+		 * MergeAppend, no one worker could possibly need to return more
+		 * tuples than the Gather itself needs to.
+		 *
+		 * Note: As with Sort, the Gather node is responsible for reacting
+		 * properly to changes to this parameter.
+		 */
+		GatherState *gstate = (GatherState *) child_node;
+
+		gstate->tuples_needed = tuples_needed;
+
+		/* Also pass down the bound to our own copy of the child plan */
+		ExecVecSetTupleBound(tuples_needed, outerPlanState(child_node));
+	}
+	else if (IsA(child_node, GatherMergeState))
+	{
+		/* Same comments as for Gather */
+		GatherMergeState *gstate = (GatherMergeState *) child_node;
+
+		gstate->tuples_needed = tuples_needed;
+
+		ExecVecSetTupleBound(tuples_needed, outerPlanState(child_node));
+	}
+	/*
+	 * In principle we could descend through any plan node type that is
+	 * certain not to discard or combine input rows; but on seeing a node that
+	 * can do that, we can't propagate the bound any further.  For the moment
+	 * it's unclear that any other cases are worth checking here.
+	 */
 }
 
 void

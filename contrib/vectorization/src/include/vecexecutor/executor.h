@@ -116,4 +116,5 @@ extern void ExecutorEndWrapper(QueryDesc *queryDesc);
 extern bool find_extension_context(List *context);
 
 extern void PostBuildVecPlan(PlanState *planstate, VecExecuteState *estate);
+extern void ExecVecSetTupleBound(int64 tuples_needed, PlanState *child_node);
 #endif							/* VEC_EXECUTOR_H */

@@ -15,7 +15,7 @@ OS="$(. /etc/os-release && echo "${ID}")"
 BUILD_TYPE="release"
 ARROW_BUILD_TYPE="release"
 ARROW_BRANCH="hdw"
-LAST_COMMIT="0684f8ab9f903fc2d2c744880c269c4c7c48fba5"
+LAST_COMMIT="d8ce2aaf0c47cb852e823c6a4f2f9d976631a3dd"
 
 if [ $# -eq 2 ] && [ "${2,,}" = "debug" ]; then
   ARROW_BUILD_TYPE="debug"
