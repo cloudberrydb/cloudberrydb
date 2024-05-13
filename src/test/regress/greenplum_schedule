@@ -127,7 +127,7 @@ test: gp_runtime_filter
 #test: olap_window
 #test: tpch500GB
 
-test: db_size_functions
+test: db_size_functions cbdb_db_size_functions
 
 # FIXME: These tests no longer work, because they try to set
 # gp_interconnect_type, which doesn't work:

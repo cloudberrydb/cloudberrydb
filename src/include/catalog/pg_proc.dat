@@ -12518,3 +12518,18 @@
   prosrc => 'pg_export_snapshot_def', proexeclocation => 's' },
 ]
 
+#Cloudberry specific functions
+{ oid => '8960',
+  descr => 'disk space usage for the main fork of a group of tables or indexes',
+  proname => 'cbdb_relation_size', prolang => 'sql', provolatile => 'v', proparallel => 'u',
+  prorettype => 'record', prorows => '100', proretset => 't',
+  proargtypes => '_oid', proallargtypes => '{_oid,oid,int8}',
+  proargmodes => '{i,o,o}', proargnames => '{reloids,reloid,size}',
+  prosrc => 'see system_functions.sql' },
+{ oid => '8961',
+  descr => 'disk space usage for the specified fork of a group of tables or indexes',
+  proname => 'cbdb_relation_size', provolatile => 'v', proparallel => 'u',
+  prorettype => 'record', prorows => '100', proretset => 't',
+  proargtypes => '_oid text', proallargtypes => '{_oid,text,oid,int8}',
+  proargmodes => '{i,i,o,o}', proargnames => '{reloids,forkname,reloid,size}',
+  prosrc => 'cbdb_relation_size' },

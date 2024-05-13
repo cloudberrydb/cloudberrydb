@@ -281,6 +281,15 @@ CREATE OR REPLACE FUNCTION pg_relation_size(regclass)
  PARALLEL UNSAFE STRICT COST 1
 RETURN pg_relation_size($1, 'main');
 
+CREATE OR REPLACE FUNCTION
+ cbdb_relation_size(in reloids oid[], out reloid oid, out size int8)
+ RETURNS SETOF record
+ LANGUAGE sql
+ PARALLEL UNSAFE STRICT COST 1
+BEGIN ATOMIC
+select * from cbdb_relation_size($1, 'main');
+END;
+
 CREATE OR REPLACE FUNCTION obj_description(oid, name)
  RETURNS text
  LANGUAGE sql
