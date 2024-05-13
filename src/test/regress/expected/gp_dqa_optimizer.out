@@ -2338,12 +2338,16 @@ insert into dqa_f3 values ('123', 2), ('213', 0), ('231', 2), ('312', 0), ('321'
 --           ->  Seq Scan on public.dqa_f3
 --                 Output: b, a, (b)::text
 select count(distinct (b)::text) as b, count(distinct (a)::text) as a from dqa_f3;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Multiple Distinct Qualified Aggregates are disabled in the optimizer
  b | a 
 ---+---
  3 | 7
 (1 row)
 
 explain (verbose, costs off) select count(distinct (b)::text) as b, count(distinct (a)::text) as a from dqa_f3;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Multiple Distinct Qualified Aggregates are disabled in the optimizer
                                            QUERY PLAN
 ------------------------------------------------------------------------------------------------
  Finalize Aggregate
@@ -2369,12 +2373,16 @@ explain (verbose, costs off) select count(distinct (b)::text) as b, count(distin
 
 -- Case 2: Same as the above one, but convert the type of column 'a' to 'varchar' via binary-compatible types.
 select count(distinct (b)::text) as b, count(distinct (a)::text::varchar) as a from dqa_f3;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Multiple Distinct Qualified Aggregates are disabled in the optimizer
  b | a 
 ---+---
  3 | 7
 (1 row)
 
 explain (verbose, costs off) select count(distinct (b)::text) as b, count(distinct (a)::text::varchar) as a from dqa_f3;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Multiple Distinct Qualified Aggregates are disabled in the optimizer
                                                  QUERY PLAN
 -------------------------------------------------------------------------------------------------------------
  Finalize Aggregate
@@ -2410,12 +2418,16 @@ explain (verbose, costs off) select count(distinct (b)::text) as b, count(distin
 --           ->  Seq Scan on public.dqa_f3
 --                 Output: b, a, (b)::text, (a)::integer
 select count(distinct (b)::text) as b, count(distinct (a)::int) as a from dqa_f3;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Multiple Distinct Qualified Aggregates are disabled in the optimizer
  b | a 
 ---+---
  3 | 7
 (1 row)
 
 explain (verbose, costs off) select count(distinct (b)::text) as b, count(distinct (a)::int) as a from dqa_f3;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Multiple Distinct Qualified Aggregates are disabled in the optimizer
                                             QUERY PLAN
 ---------------------------------------------------------------------------------------------------
  Finalize Aggregate
@@ -2442,12 +2454,16 @@ explain (verbose, costs off) select count(distinct (b)::text) as b, count(distin
 -- Case 4: When converting the type of column 'a' from 'varchar' to 'int' to 'varchar', TupleSplit should generate an additional
 -- column '(a)::integer::varchar' as part of hash-key in Redistribute-Motion.
 select count(distinct (b)::text) as b, count(distinct (a)::int::varchar) as a from dqa_f3;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Multiple Distinct Qualified Aggregates are disabled in the optimizer
  b | a 
 ---+---
  3 | 7
 (1 row)
 
 explain (verbose, costs off) select count(distinct (b)::text) as b, count(distinct (a)::int::varchar) as a from dqa_f3;
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Feature not supported: Multiple Distinct Qualified Aggregates are disabled in the optimizer
                                                        QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------
  Finalize Aggregate
