@@ -5797,7 +5797,7 @@ Explainlocus(ExplainState *es, CdbLocusType locustype, int parallel)
 			locus = "SegmentGeneralWorkers";
 			break;
 		case CdbLocusType_OuterQuery:
-			locus = "OuteryQuery";
+			locus = "OuterQuery";
 			break;
 		case CdbLocusType_Replicated:
 			locus = "Replicated";
