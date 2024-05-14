@@ -627,7 +627,10 @@ create_plan_recurse(PlannerInfo *root, Path *best_path, int flags)
 	}
 
 	Assert(best_path->parallel_workers == best_path->locus.parallel_workers);
-	plan->locustype = best_path->locus.locustype;
+	if (plan->locustype == CdbLocusType_Null)
+	{
+		plan->locustype = best_path->locus.locustype;
+	}
 	plan->parallel = best_path->locus.parallel_workers;
 
 	return plan;
@@ -2344,6 +2347,12 @@ inject_projection_plan(Plan *subplan, List *tlist, bool parallel_safe)
 	 */
 	copy_plan_costsize(plan, subplan);
 	plan->parallel_safe = parallel_safe;
+
+	if (subplan != NULL)
+	{
+		plan->locustype = subplan->locustype;
+		plan->parallel = subplan->parallel;
+	}
 
 	return plan;
 }
@@ -7282,6 +7291,9 @@ make_sort(Plan *lefttree, int numCols,
 	node->collations = collations;
 	node->nullsFirst = nullsFirst;
 
+	plan->locustype = lefttree->locustype;
+	plan->parallel = lefttree->parallel;
+
 	Assert(sortColIdx[0] != 0);
 
 	node->noduplicates = false; /* CDB */
@@ -8016,6 +8028,8 @@ make_unique_from_sortclauses(Plan *lefttree, List *distinctList)
 	plan->qual = NIL;
 	plan->lefttree = lefttree;
 	plan->righttree = NULL;
+	plan->locustype = lefttree->locustype;
+	plan->parallel = lefttree->parallel;
 
 	/*
 	 * convert SortGroupClause list into arrays of attr indexes and equality
