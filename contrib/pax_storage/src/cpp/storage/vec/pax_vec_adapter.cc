@@ -919,7 +919,7 @@ int VecAdapter::AppendToVecBuffer() {
         break;
       }
       case PaxColumnTypeInMem::kTypeBitPacked: {
-        auto align_size = TYPEALIGN(MEMORY_ALIGN_SIZE, (out_range_lens / 8));
+        auto align_size = TYPEALIGN(MEMORY_ALIGN_SIZE, BITS_TO_BYTES(out_range_lens));
         Assert(!vec_buffer->GetBuffer());
         auto boolean_buffer = BlockBuffer::Alloc<char *>(align_size);
         vec_buffer->Set(boolean_buffer, align_size);
