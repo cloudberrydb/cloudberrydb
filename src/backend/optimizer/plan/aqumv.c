@@ -115,7 +115,6 @@ answer_query_using_materialized_views(PlannerInfo *root,
 	/* Group By without agg could be possible though IMMV doesn't support it yet. */
 	bool can_not_use_mv = (parse->commandType != CMD_SELECT) ||
 						  (parse->rowMarks != NIL) ||
-						  (parse->distinctClause != NIL) ||
 						  (parse->scatterClause != NIL) ||
 						  (parse->cteList != NIL) ||
 						  (parse->setOperations != NULL) ||
@@ -345,6 +344,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		viewQuery->groupClause = parse->groupClause;
 		viewQuery->groupingSets = parse->groupingSets;
 		viewQuery->sortClause = parse->sortClause;
+		viewQuery->distinctClause = parse->distinctClause;
 
 		/*
 		 * AQUMV
@@ -419,13 +419,12 @@ answer_query_using_materialized_views(PlannerInfo *root,
 			/*
 			 * Update pathkeys which may be changed by qp_callback.
 			 * Set belows if corresponding feature is supported.
-			 * distinct_pathkey
 			 * window_pathkeys
 			 */
 			root->group_pathkeys = subroot->group_pathkeys;
 			root->sort_pathkeys = subroot->sort_pathkeys;
 			root->query_pathkeys = subroot->query_pathkeys;
-
+			root->distinct_pathkeys = subroot->distinct_pathkeys;
 			/*
 			 * AQUMV_FIXME_MVP
 			 * Use new query's ecs.
