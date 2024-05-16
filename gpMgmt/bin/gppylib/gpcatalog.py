@@ -21,8 +21,32 @@ logger = gplog.get_default_logger()
 class GPCatalogException(Exception):
     pass
 
-# Hard coded since "coordinator only" is not defined in the catalog
-COORDINATOR_ONLY_TABLES = [
+# The following lists capture "coordinator only" tables. They are hard-coded
+# since there is no notion of "coordinator only" defined in the catalog.
+# Depending on whether a relation is mapped or not, we have 2 sub-lists.
+# See RelationIsMapped().
+
+COORDINATOR_ONLY_TABLES_MAPPED = [
+    'pg_auth_time_constraint',
+    'pg_shdescription',
+    'gp_configuration_history',
+    'gp_segment_configuration',
+    'pg_stat_last_shoperation',
+    'gp_matview_aux',
+    'gp_matview_tables',
+]
+
+COORDINATOR_ONLY_TABLES_NON_MAPPED = [
+    'pg_description',
+    'pg_stat_last_operation',
+    'pg_statistic',
+    'pg_statistic_ext',
+    'pg_statistic_ext_data',
+    'gp_partition_template', # GPDB_12_MERGE_FIXME: is gp_partition_template intentionally missing from segments?
+    'pg_event_trigger'
+]
+
+COORDINATOR_ONLY_TABLES = [ # TODO: Why 'gp_segment_configuration' is missing here?
     'gp_configuration_history',
     'pg_auth_time_constraint',
     'pg_description',
