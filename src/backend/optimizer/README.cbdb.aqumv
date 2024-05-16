@@ -227,7 +227,7 @@ Below are not supported now:
       Group By/Grouping Sets/Rollup/Cube (on view_query)
       Window Functions
       CTE
-      Distinct
+      Distinct (on view_query)
       Distinct On
       UNION/INTERSECT/EXCEPT
       FOR UPDATE, FOR NO KEY UPDATE, FOR SHARE, FOR KEY SHARE
