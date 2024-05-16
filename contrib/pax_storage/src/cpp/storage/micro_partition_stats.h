@@ -56,7 +56,7 @@ class MicroPartitionStats final {
                                        int natts);
   MicroPartitionStats *LightReset();
 
-  void AddRow(TupleTableSlot *slot);
+  void AddRow(TupleTableSlot *slot, TupleDesc desc);
   MicroPartitionStatsData *GetStatsData() { return stats_; }
   const MicroPartitionStatsData *GetStatsData() const { return stats_; }
   const std::vector<int> GetMinMaxColumnIndex() const {

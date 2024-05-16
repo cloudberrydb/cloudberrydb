@@ -202,7 +202,7 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
   current_blockno_ = std::stol(block_id);
 
   options.rel_oid = relation_->rd_id;
-  options.desc = relation_->rd_att;
+  options.rel_tuple_desc = relation_->rd_att;
   options.block_id = std::move(block_id);
   options.file_name = std::move(file_path);
   options.encoding_opts = std::move(GetRelEncodingOptions());

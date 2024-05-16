@@ -204,7 +204,8 @@ OrcWriter::OrcWriter(
                               writer_options.lengths_encoding_opts,
                               writer_options.storage_format);
 
-  TupleDesc desc = writer_options.desc;
+  TupleDesc desc = writer_options.rel_tuple_desc;
+  Assert(desc);
   for (int i = 0; i < desc->natts; i++) {
     auto attr = &desc->attrs[i];
     Assert((size_t)i < pax_columns_->GetColumns());
@@ -291,7 +292,7 @@ void OrcWriter::Flush() {
 
 void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
   int n;
-  TupleDesc table_desc;
+  TupleDesc tuple_desc;
   int16 type_len;
   bool type_by_val;
   bool is_null;
@@ -301,20 +302,23 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
 
   summary_.num_tuples++;
 
-  table_desc = table_slot->tts_tupleDescriptor;
+  // The reason why
+  tuple_desc = writer_options_.rel_tuple_desc;
+  Assert(tuple_desc);
+
   SetTupleOffset(&table_slot->tts_tid, row_index_++);
-  n = table_desc->natts;
+  n = tuple_desc->natts;
 
   CBDB_CHECK(pax_columns_->GetColumns() == static_cast<size_t>(n),
              cbdb::CException::ExType::kExTypeSchemaNotMatch);
 
   for (int i = 0; i < n; i++) {
-    type_len = table_desc->attrs[i].attlen;
-    type_by_val = table_desc->attrs[i].attbyval;
+    type_len = tuple_desc->attrs[i].attlen;
+    type_by_val = tuple_desc->attrs[i].attbyval;
     is_null = table_slot->tts_isnull[i];
     tts_value = table_slot->tts_values[i];
 
-    AssertImply(table_desc->attrs[i].attisdropped, is_null);
+    AssertImply(tuple_desc->attrs[i].attisdropped, is_null);
 
     if (is_null) {
       (*pax_columns_)[i]->AppendNull();
@@ -366,7 +370,7 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
 
           if (COLUMN_STORAGE_FORMAT_IS_VEC(pax_columns_)) {
             // NUMERIC requires a complete Datum
-            if (table_desc->attrs[i].atttypid == NUMERICOID) {
+            if (tuple_desc->attrs[i].atttypid == NUMERICOID) {
               Assert((*pax_columns_)[i]->GetPaxColumnTypeInMem() ==
                      PaxColumnTypeInMem::kTypeVecDecimal);
               (*pax_columns_)[i]->Append(reinterpret_cast<char *>(detoast_vl),
@@ -392,7 +396,7 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
   }
 
   pax_columns_->AddRows(1);
-  stats_collector_.AddRow(table_slot);
+  stats_collector_.AddRow(table_slot, tuple_desc);
 
   if (has_detoast) {
     for (int i = 0; i < n; i++) {
@@ -428,7 +432,7 @@ void OrcWriter::MergeTo(MicroPartitionWriter *writer) {
   // Update summary
   summary_.num_tuples += orc_writer->summary_.num_tuples;
   if (mp_stats_) {
-    mp_stats_->MergeTo(orc_writer->mp_stats_, writer_options_.desc);
+    mp_stats_->MergeTo(orc_writer->mp_stats_, writer_options_.rel_tuple_desc);
   }
 }
 
@@ -442,8 +446,8 @@ void OrcWriter::MergePaxColumns(OrcWriter *writer) {
   }
 
   BufferedOutputStream buffer_mem_stream(2048);
-  ok = WriteStripe(&buffer_mem_stream, columns,
-                   &(writer->stats_collector_), writer->mp_stats_);
+  ok = WriteStripe(&buffer_mem_stream, columns, &(writer->stats_collector_),
+                   writer->mp_stats_);
 
   // must be ok
   Assert(ok);
@@ -600,7 +604,7 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
                pax_column->HasNull() ? "true" : "false", pax_column->GetRows());
   }
   if (file_stats) {
-    file_stats->MergeTo(stripe_stats, writer_options_.desc);
+    file_stats->MergeTo(stripe_stats, writer_options_.rel_tuple_desc);
   }
 
   stats_data->Reset();

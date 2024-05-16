@@ -45,7 +45,6 @@ bool MicroPartitionStats::MicroPartitionStatisticsInfoCombine(
     // if we have not update allnull/hasnull it in `AddRows`.
     // The current stats may not have been serialized in disk.
 
-
     // if current column stats do have collation but
     // not same, then we can't combine two of stats
     if (left_column_stats.info().collation() !=
@@ -213,8 +212,7 @@ MicroPartitionStats *MicroPartitionStats::LightReset() {
   return this;
 }
 
-void MicroPartitionStats::AddRow(TupleTableSlot *slot) {
-  auto desc = slot->tts_tupleDescriptor;
+void MicroPartitionStats::AddRow(TupleTableSlot *slot, TupleDesc desc) {
   auto n = desc->natts;
 
   DoInitialCheck(desc);

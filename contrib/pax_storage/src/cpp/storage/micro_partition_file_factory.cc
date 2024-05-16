@@ -42,7 +42,7 @@ MicroPartitionWriter *MicroPartitionFileFactory::CreateMicroPartitionWriter(
     std::vector<pax::porc::proto::Type_Kind> type_kinds;
     MicroPartitionWriter *writer = nullptr;
     type_kinds = OrcWriter::BuildSchema(
-        options.desc,
+        options.rel_tuple_desc,
         options.storage_format == PaxStorageFormat::kTypeStoragePorcVec);
     writer =
         PAX_NEW<OrcWriter>(std::move(options), std::move(type_kinds), file);

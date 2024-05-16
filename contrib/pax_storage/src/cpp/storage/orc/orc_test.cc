@@ -117,7 +117,7 @@ TEST_F(OrcTest, WriteTuple) {
   EXPECT_NE(nullptr, file_ptr);
 
   OrcWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   auto writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
@@ -138,7 +138,7 @@ TEST_F(OrcTest, OpenOrc) {
   EXPECT_NE(nullptr, file_ptr);
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
   auto writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
 
@@ -168,7 +168,7 @@ TEST_F(OrcTest, WriteReadStripes) {
   EXPECT_NE(nullptr, file_ptr);
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   // file_ptr in orc writer will be freed when writer do destruct
   // current OrcWriter::CreateWriter only for test
@@ -207,7 +207,7 @@ TEST_F(OrcTest, WriteReadStripesTwice) {
   EXPECT_NE(nullptr, file_ptr);
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
   auto writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
 
@@ -260,7 +260,7 @@ TEST_F(OrcTest, WriteReadMultiStripes) {
   EXPECT_NE(nullptr, file_ptr);
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   auto writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
@@ -303,7 +303,7 @@ TEST_F(OrcTest, WriteReadEmptyOrc) {
   EXPECT_NE(nullptr, file_ptr);
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   auto writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
@@ -333,7 +333,7 @@ TEST_F(OrcTest, ReadTuple) {
   EXPECT_NE(nullptr, file_ptr);
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   auto writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
@@ -367,7 +367,7 @@ TEST_F(OrcTest, GetTuple) {
   EXPECT_NE(nullptr, file_ptr);
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
   writer_options.group_limit = 100;
 
   auto writer = OrcWriter::CreateWriter(
@@ -479,7 +479,7 @@ TEST_P(OrcEncodingTest, ReadTupleWithEncoding) {
   types_encoding.emplace_back(std::make_tuple(encoding_kind, 0));
   MicroPartitionWriter::WriterOptions writer_options;
   writer_options.encoding_opts = types_encoding;
-  writer_options.desc = tuple_desc;
+  writer_options.rel_tuple_desc = tuple_desc;
 
   auto writer = new OrcWriter(writer_options, types, file_ptr);
 
@@ -559,7 +559,7 @@ TEST_P(OrcCompressTest, ReadTupleWithCompress) {
   types_encoding.emplace_back(std::make_tuple(encoding_kind, 5));
   MicroPartitionWriter::WriterOptions writer_options;
   writer_options.encoding_opts = types_encoding;
-  writer_options.desc = tuple_desc;
+  writer_options.rel_tuple_desc = tuple_desc;
 
   auto writer = new OrcWriter(writer_options, types, file_ptr);
 
@@ -624,7 +624,7 @@ TEST_F(OrcTest, ReadTupleDefaultColumn) {
   EXPECT_NE(nullptr, file_ptr);
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   auto *writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
@@ -659,7 +659,8 @@ TEST_F(OrcTest, ReadTupleDefaultColumn) {
   tuple_slot_empty->tts_tupleDescriptor->constr->missing[3].am_present = true;
   reader->ReadTuple(tuple_slot_empty);
 
-  ASSERT_EQ(tuple_slot_empty->tts_values[3], static_cast<size_t>(INT32_COLUMN_VALUE_DEFAULT));
+  ASSERT_EQ(tuple_slot_empty->tts_values[3],
+            static_cast<size_t>(INT32_COLUMN_VALUE_DEFAULT));
 
   reader->Close();
 
@@ -678,7 +679,7 @@ TEST_F(OrcTest, ReadTupleDroppedColumn) {
   EXPECT_NE(nullptr, file_ptr);
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   auto *writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
@@ -714,7 +715,7 @@ TEST_F(OrcTest, ReadTupleDroppedColumnWithProjection) {
   EXPECT_NE(nullptr, file_ptr);
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   auto writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
@@ -780,7 +781,7 @@ TEST_F(OrcTest, WriteReadBigTuple) {
   types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_INT);
   types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_INT);
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_desc;
+  writer_options.rel_tuple_desc = tuple_desc;
 
   auto writer = OrcWriter::CreateWriter(writer_options, types, file_ptr);
 
@@ -822,7 +823,7 @@ TEST_F(OrcTest, WriteReadNoFixedColumnInSameTuple) {
   EXPECT_NE(nullptr, file_ptr);
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   auto writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
@@ -876,7 +877,7 @@ TEST_F(OrcTest, WriteReadWithNullField) {
   EXPECT_NE(nullptr, file_ptr);
 
   OrcWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   auto *writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
@@ -954,7 +955,7 @@ TEST_F(OrcTest, WriteReadWithBoundNullField) {
   EXPECT_NE(nullptr, file_ptr);
 
   OrcWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   auto *writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
@@ -1021,7 +1022,7 @@ TEST_F(OrcTest, WriteReadWithALLNullField) {
   EXPECT_NE(nullptr, file_ptr);
 
   OrcWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   auto *writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
@@ -1081,7 +1082,7 @@ TEST_P(OrcTestProjection, ReadTupleWithProjectionColumn) {
   EXPECT_NE(nullptr, file_ptr);
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   auto writer = OrcWriter::CreateWriter(
       writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
@@ -1124,8 +1125,8 @@ TEST_P(OrcTestProjection, ReadTupleWithProjectionColumn) {
 }
 
 INSTANTIATE_TEST_SUITE_P(OrcTestProjectionCombine, OrcTestProjection,
-                        testing::Combine(testing::Values(0, 1, 2, 3),
-                                         testing::Values(false, true)));
+                         testing::Combine(testing::Values(0, 1, 2, 3),
+                                          testing::Values(false, true)));
 
 TEST_P(OrcEncodingTest, WriterMerge) {
   TupleTableSlot *tuple_slot = CreateTestTupleTableSlot();
@@ -1156,7 +1157,7 @@ TEST_P(OrcEncodingTest, WriterMerge) {
   types_encoding.emplace_back(std::make_tuple(encoding_kind, 0));
   writer_options.encoding_opts = types_encoding;
   writer_options.group_limit = 100;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   auto *writer1 = new OrcWriter(writer_options,
                                 std::move(CreateTestSchemaTypes()), file1_ptr);

@@ -25,7 +25,7 @@ class MicroPartitionWriter {
   struct WriterOptions {
     std::string file_name;
     std::string block_id;
-    TupleDesc desc = nullptr;
+    TupleDesc rel_tuple_desc = nullptr;
     Oid rel_oid = InvalidOid;
     std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
     std::pair<ColumnEncoding_Kind, int> lengths_encoding_opts;
@@ -38,14 +38,14 @@ class MicroPartitionWriter {
     WriterOptions(WriterOptions &&wo)
         : file_name(std::move(wo.file_name)),
           block_id(std::move(wo.block_id)),
-          desc(wo.desc),
+          rel_tuple_desc(wo.rel_tuple_desc),
           rel_oid(wo.rel_oid),
           encoding_opts(std::move(wo.encoding_opts)),
           group_limit(wo.group_limit) {}
     WriterOptions &operator=(WriterOptions &&wo) {
       file_name = std::move(wo.file_name);
       block_id = std::move(wo.block_id);
-      desc = wo.desc;
+      rel_tuple_desc = wo.rel_tuple_desc;
       rel_oid = wo.rel_oid;
       encoding_opts = std::move(wo.encoding_opts);
       group_limit = wo.group_limit;
@@ -147,7 +147,8 @@ class MicroPartitionReader {
     // from buffer. more details in `storage/columns`
     virtual PaxColumns *GetAllColumns() const = 0;
 
-    virtual void SetVisibilityMap(std::shared_ptr<Bitmap8>visibility_bitmap) = 0;
+    virtual void SetVisibilityMap(
+        std::shared_ptr<Bitmap8> visibility_bitmap) = 0;
   };
 
   struct ReaderOptions {

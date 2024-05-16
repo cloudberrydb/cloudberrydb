@@ -58,7 +58,7 @@ TEST_F(MicroPartitionFileFactoryTest, CreateMicroPartitionWriter) {
       std::make_tuple(ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED, 0));
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
   writer_options.encoding_opts = types_encoding;
 
   auto writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(
@@ -88,7 +88,7 @@ TEST_F(MicroPartitionFileFactoryTest, CreateMicroPartitionReader) {
       std::make_tuple(ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED, 0));
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
   writer_options.encoding_opts = types_encoding;
 
   auto writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(
@@ -135,7 +135,7 @@ TEST_F(MicroPartitionFileFactoryTest, OrcReadWithVisibilitymap) {
       std::make_tuple(ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED, 0));
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
   writer_options.encoding_opts = types_encoding;
 
   auto writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(
@@ -170,7 +170,8 @@ TEST_F(MicroPartitionFileFactoryTest, OrcReadWithVisibilitymap) {
   int read_tuple_count = 0;
   while (reader->ReadTuple(tuple_slot_empty)) {
     ASSERT_FALSE(tuple_slot_empty->tts_isnull[2]);
-    ASSERT_EQ(tuple_slot_empty->tts_values[2], static_cast<Datum>(read_tuple_count * 2 + 1));
+    ASSERT_EQ(tuple_slot_empty->tts_values[2],
+              static_cast<Datum>(read_tuple_count * 2 + 1));
 
     read_tuple_count++;
   }
@@ -202,7 +203,7 @@ TEST_F(MicroPartitionFileFactoryTest, VecReadWithVisibilitymap) {
       std::make_tuple(ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED, 0));
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
   writer_options.encoding_opts = types_encoding;
 
   auto writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(

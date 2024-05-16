@@ -76,7 +76,7 @@ TEST_F(OrcVecTest, WriteReadGroup) {
   types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_INT);
   OrcWriter::WriterOptions writer_options;
 
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
   writer_options.storage_format = PaxStorageFormat::kTypeStoragePorcVec;
 
   auto writer = OrcWriter::CreateWriter(writer_options, types, file_ptr);
@@ -152,8 +152,9 @@ TEST_F(OrcVecTest, WriteReadGroup) {
   ASSERT_EQ(0UL, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
 
   ASSERT_EQ(10001UL, column1_offsets->GetSize());
-  ASSERT_LE(static_cast<size_t>((*column1_offsets)[column1_offsets->GetSize() - 1]),
-            column1_data->GetSize());
+  ASSERT_LE(
+      static_cast<size_t>((*column1_offsets)[column1_offsets->GetSize() - 1]),
+      column1_data->GetSize());
 
   ASSERT_EQ(10000UL, column2_data->GetSize());
 
@@ -194,8 +195,9 @@ TEST_F(OrcVecTest, WriteReadGroup) {
   ASSERT_EQ(0UL, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
 
   ASSERT_EQ(2UL, column1_offsets->GetSize());
-  ASSERT_LE(static_cast<size_t>((*column1_offsets)[column1_offsets->GetSize() - 1]),
-            column1_data->GetSize());
+  ASSERT_LE(
+      static_cast<size_t>((*column1_offsets)[column1_offsets->GetSize() - 1]),
+      column1_data->GetSize());
   // still contain memalign size
   ASSERT_EQ(2UL, column2_data->GetSize());
 
@@ -225,7 +227,7 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
       std::make_tuple(ColumnEncoding_Kind::ColumnEncoding_Kind_RLE_V2, 0));
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
   writer_options.encoding_opts = types_encoding;
   writer_options.storage_format = PaxStorageFormat::kTypeStoragePorcVec;
 
@@ -302,8 +304,9 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
   ASSERT_EQ(0UL, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
 
   ASSERT_EQ(10001UL, column1_offsets->GetSize());
-  ASSERT_LE(static_cast<size_t>((*column1_offsets)[column1_offsets->GetSize() - 1]),
-            column1_data->GetSize());
+  ASSERT_LE(
+      static_cast<size_t>((*column1_offsets)[column1_offsets->GetSize() - 1]),
+      column1_data->GetSize());
 
   column2->GetBuffer(0);
 
@@ -344,8 +347,9 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
   ASSERT_EQ(0UL, column2_data->Capacity() % MEMORY_ALIGN_SIZE);
 
   ASSERT_EQ(2UL, column1_offsets->GetSize());
-  ASSERT_LE(static_cast<size_t>((*column1_offsets)[column1_offsets->GetSize() - 1]),
-            column1_data->GetSize());
+  ASSERT_LE(
+      static_cast<size_t>((*column1_offsets)[column1_offsets->GetSize() - 1]),
+      column1_data->GetSize());
 
   ASSERT_EQ((*column2_data)[0], 10000);
 
