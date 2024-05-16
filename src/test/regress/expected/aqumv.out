@@ -1868,6 +1868,224 @@ select c1, sum(c3) as sum_c3 from aqumv_t5 where c1 > 90 group by c1 order by su
 (10 rows)
 
 abort;
+-- Test DISTINCT
+begin;
+create table aqumv_t6(c1 int, c2 int, c3 int, c4 int) distributed by (c1);
+insert into aqumv_t6 select i, i+1, i+2, i+3 from generate_series(1, 100) i;
+insert into aqumv_t6 select i, i+1, i+2, i+3 from generate_series(1, 100) i;
+insert into aqumv_t6 values (91, NULL, 97, 98);
+analyze aqumv_t6;
+create incremental materialized view aqumv_mvt6_0 as
+  select c1 as mc1, c2 as mc2
+  from aqumv_t6 where c1 > 90;
+analyze aqumv_mvt6_0;
+-- DISTINCT
+\pset null NULL
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select distinct c2, c1 from aqumv_t6 where c1 > 90;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: c2, c1
+   ->  HashAggregate
+         Output: c2, c1
+         Group Key: aqumv_t6.c2, aqumv_t6.c1
+         ->  Seq Scan on public.aqumv_t6
+               Output: c1, c2, c3, c4
+               Filter: (aqumv_t6.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'off', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(10 rows)
+
+select distinct c2, c1 from aqumv_t6 where c1 > 90 order by c2, c1;
+  c2  | c1  
+------+-----
+   92 |  91
+   93 |  92
+   94 |  93
+   95 |  94
+   96 |  95
+   97 |  96
+   98 |  97
+   99 |  98
+  100 |  99
+  101 | 100
+ NULL |  91
+(11 rows)
+
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select distinct c2, c1 from aqumv_t6 where c1 > 90;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: mc2, mc1
+   ->  HashAggregate
+         Output: mc2, mc1
+         Group Key: aqumv_mvt6_0.mc2, aqumv_mvt6_0.mc1
+         ->  Seq Scan on public.aqumv_mvt6_0
+               Output: mc1, mc2
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(9 rows)
+
+select distinct c2, c1 from aqumv_t6 where c1 > 90 order by c2, c1;
+  c2  | c1  
+------+-----
+   92 |  91
+   93 |  92
+   94 |  93
+   95 |  94
+   96 |  95
+   97 |  96
+   98 |  97
+   99 |  98
+  100 |  99
+  101 | 100
+ NULL |  91
+(11 rows)
+
+-- Agg DISTINCT
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select count(c1) as count_c1, count(distinct c1) as count_distinct_c1,
+sum(c2) as sum_c2, sum(distinct c2) as sum_distinct_c2 from aqumv_t6 where c1 > 90;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Aggregate
+   Output: count(c1), count(DISTINCT c1), sum(c2), sum(DISTINCT c2)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: c1, c2
+         ->  Seq Scan on public.aqumv_t6
+               Output: c1, c2
+               Filter: (aqumv_t6.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'off', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(9 rows)
+
+select count(c1) as count_c1, count(distinct c1) as count_distinct_c1,
+sum(c2) as sum_c2, sum(distinct c2) as sum_distinct_c2 from aqumv_t6 where c1 > 90;
+ count_c1 | count_distinct_c1 | sum_c2 | sum_distinct_c2 
+----------+-------------------+--------+-----------------
+       21 |                10 |   1930 |             965
+(1 row)
+
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select count(c1) as count_c1, count(distinct c1) as count_distinct_c1,
+sum(c2) as sum_c2, sum(distinct c2) as sum_distinct_c2 from aqumv_t6 where c1 > 90;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Aggregate
+   Output: count(mc1), count(DISTINCT mc1), sum(mc2), sum(DISTINCT mc2)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: mc1, mc2
+         ->  Seq Scan on public.aqumv_mvt6_0
+               Output: mc1, mc2
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(8 rows)
+
+select count(c1) as count_c1, count(distinct c1) as count_distinct_c1,
+sum(c2) as sum_c2, sum(distinct c2) as sum_distinct_c2 from aqumv_t6 where c1 > 90;
+ count_c1 | count_distinct_c1 | sum_c2 | sum_distinct_c2 
+----------+-------------------+--------+-----------------
+       21 |                10 |   1930 |             965
+(1 row)
+
+-- Group DISTINCT
+create incremental materialized view aqumv_mvt6_1 as
+  select c3 as mc3, c4 as mc4, c1 as mc1, c2 as mc2
+  from aqumv_t6 where c1 > 97;
+analyze aqumv_mvt6_1;
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c2, c3, sum(c4) from aqumv_t6 where c1 > 97 group by distinct rollup(c1, c2), rollup(c1, c3);
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ MixedAggregate
+   Output: c1, c2, c3, sum(c4)
+   Hash Key: aqumv_t6.c1, aqumv_t6.c3
+   Group Key: aqumv_t6.c1, aqumv_t6.c2, aqumv_t6.c3
+   Group Key: aqumv_t6.c1, aqumv_t6.c2
+   Group Key: aqumv_t6.c1
+   Group Key: ()
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: c1, c2, c3, c4
+         Merge Key: c1, c2, c3
+         ->  Sort
+               Output: c1, c2, c3, c4
+               Sort Key: aqumv_t6.c1, aqumv_t6.c2, aqumv_t6.c3
+               ->  Seq Scan on public.aqumv_t6
+                     Output: c1, c2, c3, c4
+                     Filter: (aqumv_t6.c1 > 97)
+ Settings: enable_answer_query_using_materialized_views = 'off', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(18 rows)
+
+select c1, c2, c3, sum(c4) from aqumv_t6 where c1 > 97 group by distinct rollup(c1, c2), rollup(c1, c3);
+  c1  |  c2  |  c3  | sum 
+------+------+------+-----
+   98 |   99 |  100 | 202
+   98 |   99 | NULL | 202
+   98 | NULL | NULL | 202
+   99 |  100 |  101 | 204
+   99 |  100 | NULL | 204
+   99 | NULL | NULL | 204
+  100 |  101 |  102 | 206
+  100 |  101 | NULL | 206
+  100 | NULL | NULL | 206
+ NULL | NULL | NULL | 612
+  100 | NULL |  102 | 206
+   99 | NULL |  101 | 204
+   98 | NULL |  100 | 202
+(13 rows)
+
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c2, c3, sum(c4) from aqumv_t6 where c1 > 97 group by distinct rollup(c1, c2), rollup(c1, c3);
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ MixedAggregate
+   Output: mc1, mc2, mc3, sum(mc4)
+   Hash Key: aqumv_mvt6_1.mc1, aqumv_mvt6_1.mc3
+   Group Key: aqumv_mvt6_1.mc1, aqumv_mvt6_1.mc2, aqumv_mvt6_1.mc3
+   Group Key: aqumv_mvt6_1.mc1, aqumv_mvt6_1.mc2
+   Group Key: aqumv_mvt6_1.mc1
+   Group Key: ()
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: mc1, mc2, mc3, mc4
+         Merge Key: mc1, mc2, mc3
+         ->  Sort
+               Output: mc1, mc2, mc3, mc4
+               Sort Key: aqumv_mvt6_1.mc1, aqumv_mvt6_1.mc2, aqumv_mvt6_1.mc3
+               ->  Seq Scan on public.aqumv_mvt6_1
+                     Output: mc1, mc2, mc3, mc4
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(17 rows)
+
+select c1, c2, c3, sum(c4) from aqumv_t6 where c1 > 97 group by distinct rollup(c1, c2), rollup(c1, c3);
+  c1  |  c2  |  c3  | sum 
+------+------+------+-----
+   98 |   99 |  100 | 202
+   98 |   99 | NULL | 202
+   98 | NULL | NULL | 202
+   99 |  100 |  101 | 204
+   99 |  100 | NULL | 204
+   99 | NULL | NULL | 204
+  100 |  101 |  102 | 206
+  100 |  101 | NULL | 206
+  100 | NULL | NULL | 206
+ NULL | NULL | NULL | 612
+  100 | NULL |  102 | 206
+   99 | NULL |  101 | 204
+   98 | NULL |  100 | 202
+(13 rows)
+
+\pset null ''
+abort;
 reset optimizer;
 reset enable_answer_query_using_materialized_views;
 drop table aqumv_t1 cascade;

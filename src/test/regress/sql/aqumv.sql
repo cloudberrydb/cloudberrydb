@@ -462,6 +462,62 @@ select c1, sum(c3) as sum_c3 from aqumv_t5 where c1 > 90 group by c1 order by su
 select c1, sum(c3) as sum_c3 from aqumv_t5 where c1 > 90 group by c1 order by sum_c3 asc;
 abort;
 
+-- Test DISTINCT
+begin;
+create table aqumv_t6(c1 int, c2 int, c3 int, c4 int) distributed by (c1);
+insert into aqumv_t6 select i, i+1, i+2, i+3 from generate_series(1, 100) i;
+insert into aqumv_t6 select i, i+1, i+2, i+3 from generate_series(1, 100) i;
+insert into aqumv_t6 values (91, NULL, 97, 98);
+analyze aqumv_t6;
+
+create incremental materialized view aqumv_mvt6_0 as
+  select c1 as mc1, c2 as mc2
+  from aqumv_t6 where c1 > 90;
+analyze aqumv_mvt6_0;
+
+-- DISTINCT
+\pset null NULL
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select distinct c2, c1 from aqumv_t6 where c1 > 90;
+select distinct c2, c1 from aqumv_t6 where c1 > 90 order by c2, c1;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select distinct c2, c1 from aqumv_t6 where c1 > 90;
+select distinct c2, c1 from aqumv_t6 where c1 > 90 order by c2, c1;
+
+-- Agg DISTINCT
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select count(c1) as count_c1, count(distinct c1) as count_distinct_c1,
+sum(c2) as sum_c2, sum(distinct c2) as sum_distinct_c2 from aqumv_t6 where c1 > 90;
+select count(c1) as count_c1, count(distinct c1) as count_distinct_c1,
+sum(c2) as sum_c2, sum(distinct c2) as sum_distinct_c2 from aqumv_t6 where c1 > 90;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select count(c1) as count_c1, count(distinct c1) as count_distinct_c1,
+sum(c2) as sum_c2, sum(distinct c2) as sum_distinct_c2 from aqumv_t6 where c1 > 90;
+select count(c1) as count_c1, count(distinct c1) as count_distinct_c1,
+sum(c2) as sum_c2, sum(distinct c2) as sum_distinct_c2 from aqumv_t6 where c1 > 90;
+
+-- Group DISTINCT
+create incremental materialized view aqumv_mvt6_1 as
+  select c3 as mc3, c4 as mc4, c1 as mc1, c2 as mc2
+  from aqumv_t6 where c1 > 97;
+analyze aqumv_mvt6_1;
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c2, c3, sum(c4) from aqumv_t6 where c1 > 97 group by distinct rollup(c1, c2), rollup(c1, c3);
+select c1, c2, c3, sum(c4) from aqumv_t6 where c1 > 97 group by distinct rollup(c1, c2), rollup(c1, c3);
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c2, c3, sum(c4) from aqumv_t6 where c1 > 97 group by distinct rollup(c1, c2), rollup(c1, c3);
+select c1, c2, c3, sum(c4) from aqumv_t6 where c1 > 97 group by distinct rollup(c1, c2), rollup(c1, c3);
+
+\pset null ''
+abort;
+
+
 reset optimizer;
 reset enable_answer_query_using_materialized_views;
 drop table aqumv_t1 cascade;
