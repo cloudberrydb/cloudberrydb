@@ -3,6 +3,7 @@
 #include "comm/cbdb_api.h"
 
 #include "storage/pax_defined.h"
+#include "storage/pax_itemptr.h"
 
 namespace pax {
 
@@ -16,8 +17,6 @@ namespace pax {
 
 #define PAX_MAX_TUPLES_PER_FILE_DEFAULT (VEC_BATCH_LENGTH * 80)
 #define PAX_MAX_TUPLES_PER_FILE_MIN (VEC_BATCH_LENGTH * 8)
-// should always align with CTID
-#define PAX_MAX_TUPLES_PER_FILE_MAX ((1 << 24) - 1)
 
 #define PAX_MAX_SIZE_PER_FILE_DEFAULT (64 * 1024 * 1024)
 #define PAX_MAX_SIZE_PER_FILE_MIN (8 * 1024 * 1024)
@@ -91,7 +90,7 @@ void DefineGUCs() {
       "pax_max_tuples_per_file",
       "the default value for the limit on the number of tuples in a file", NULL,
       &pax::pax_max_tuples_per_file, PAX_MAX_TUPLES_PER_FILE_DEFAULT,
-      PAX_MAX_TUPLES_PER_FILE_MIN, PAX_MAX_TUPLES_PER_FILE_MAX, PGC_USERSET, 0,
+      PAX_MAX_TUPLES_PER_FILE_MIN, PAX_MAX_NUM_TUPLES_PER_FILE, PGC_USERSET, 0,
       CheckTuplePerFile, NULL, NULL);
 
   DefineCustomIntVariable(
