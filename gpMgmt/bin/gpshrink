@@ -436,7 +436,7 @@ class gpshrinkStatus():
 
     def _sync_status_file(self):
         """Syncs the gpshrink status file with the coordinator mirror"""
-        cpCmd = Scp('gpshrink copying status file to coordinator mirror',
+        cpCmd = Rsync('gpshrink copying status file to coordinator mirror',
                     srcFile=self._status_filename,
                     dstFile=self._status_standby_filename,
                     dstHost=self._coordinator_mirror.getSegmentHostName())
@@ -503,7 +503,7 @@ class gpshrinkStatus():
         """ Sync the segment configuration backup file to standby """
         if self._coordinator_mirror:
             self.logger.debug("Sync segment configuration backup file")
-            cpCmd = Scp('gpshrink copying segment configuration backup file to coordinator mirror',
+            cpCmd = Rsync('gpshrink copying segment configuration backup file to coordinator mirror',
                         srcFile=self._gp_segment_configuration_backup,
                         dstFile=self._segment_configuration_standby_filename,
                         dstHost=self._coordinator_mirror.getSegmentHostName())
