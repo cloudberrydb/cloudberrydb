@@ -119,7 +119,6 @@ answer_query_using_materialized_views(PlannerInfo *root,
 						  (parse->cteList != NIL) ||
 						  (parse->setOperations != NULL) ||
 						  parse->hasWindowFuncs ||
-						  parse->hasDistinctOn ||
 						  parse->hasModifyingCTE ||
 						  (parse->parentStmtType == PARENTSTMTTYPE_REFRESH_MATVIEW) ||
 						  (parse->parentStmtType == PARENTSTMTTYPE_CTAS) ||
@@ -328,6 +327,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * could be computed from viewQuery.
 		 */
 		viewQuery->hasAggs = parse->hasAggs;
+		viewQuery->hasDistinctOn = parse->hasDistinctOn;
 		/*
 		 * For HAVING quals have aggregations, we have already processed them in
 		 * Aggrefs during aqumv_process_targetlist().
