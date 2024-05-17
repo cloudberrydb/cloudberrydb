@@ -228,7 +228,7 @@ Below are not supported now:
       Window Functions
       CTE
       Distinct (on view_query)
-      Distinct On
+      Distinct On (on view_query)
       UNION/INTERSECT/EXCEPT
       FOR UPDATE, FOR NO KEY UPDATE, FOR SHARE, FOR KEY SHARE
       Scatter By

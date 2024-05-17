@@ -514,6 +514,16 @@ explain(costs off, verbose)
 select c1, c2, c3, sum(c4) from aqumv_t6 where c1 > 97 group by distinct rollup(c1, c2), rollup(c1, c3);
 select c1, c2, c3, sum(c4) from aqumv_t6 where c1 > 97 group by distinct rollup(c1, c2), rollup(c1, c3);
 
+-- DISTINCT ON
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select distinct on(c1 - 1) c1, c2 from aqumv_t6 where c1 > 90 order by c1 - 1, c2 nulls first;
+select distinct on(c1 - 1) c1, c2 from aqumv_t6 where c1 > 90 order by c1 - 1, c2 nulls first;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select distinct on(c1 - 1) c1, c2 from aqumv_t6 where c1 > 90 order by c1 - 1, c2 nulls first;
+select distinct on(c1 - 1) c1, c2 from aqumv_t6 where c1 > 90 order by c1 - 1, c2 nulls first;
+
 \pset null ''
 abort;
 
