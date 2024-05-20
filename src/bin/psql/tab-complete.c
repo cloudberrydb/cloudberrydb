@@ -761,6 +761,10 @@ static const SchemaQuery Query_for_list_of_collations = {
 "SELECT pg_catalog.quote_ident(spcname) FROM pg_catalog.pg_tablespace "\
 " WHERE substring(pg_catalog.quote_ident(spcname),1,%d)='%s'"
 
+#define Query_for_list_of_tags \
+"SELECT pg_catalog.quote_ident(tagname) FROM pg_catalog.pg_tag " \
+" WHERE substring(pg_catalog.quote_ident(tagname),1,%d)='%s'"
+
 #define Query_for_list_of_encodings \
 " SELECT DISTINCT pg_catalog.pg_encoding_to_char(conforencoding) "\
 "   FROM pg_catalog.pg_conversion "\
@@ -1150,6 +1154,7 @@ static const pgsql_thing_t words_after_create[] = {
 	{"SYSTEM", NULL, NULL, NULL, THING_NO_CREATE | THING_NO_DROP},
 	{"TABLE", NULL, NULL, &Query_for_list_of_tables},
 	{"TABLESPACE", Query_for_list_of_tablespaces},
+	{"TAG", Query_for_list_of_tags},
 	{"TASK", Query_for_list_of_tasks},
 	{"TEMP", NULL, NULL, NULL, THING_NO_DROP | THING_NO_ALTER}, /* for CREATE TEMP TABLE
 																 * ... */
@@ -1708,6 +1713,19 @@ psql_completion(const char *text, int start, int end)
 			COMPLETE_WITH("OWNER TO", "RENAME TO", "SET SCHEMA");
 		else
 			COMPLETE_WITH_FUNCTION_ARG(prev2_wd);
+	}
+	/* ALTER TAG <name > (...) */
+	else if (Matches("ALTER", "TAG"))
+	{
+		COMPLETE_WITH("IF EXISTS");
+	}
+	else if (Matches("ALTER", "TAG", "IF EXISTS", MatchAny))
+	{
+		COMPLETE_WITH("OWNER TO", "RENAME TO", "UNSET ALLOWED_VALUES", "ADD ALLOWED_VLAUES", "DROP ALLOWED_VLAUES");
+	}
+	else if (Matches("ALTER", "TAG", MatchAny))
+	{
+		COMPLETE_WITH("OWNER TO", "RENAME TO", "UNSET ALLOWED_VALUES", "ADD ALLOWED_VLAUES", "DROP ALLOWED_VLAUES");
 	}
 	/* ALTER FUNCTION,PROCEDURE,ROUTINE <name> (...) */
 	else if (Matches("ALTER", "FUNCTION|PROCEDURE|ROUTINE", MatchAny, MatchAny))
@@ -2457,7 +2475,7 @@ psql_completion(const char *text, int start, int end)
 					  "COLUMN", "AGGREGATE", "FUNCTION", "STORAGE SERVER",
 					  "PROCEDURE", "PROFILE", "ROUTINE",
 					  "OPERATOR", "TRIGGER", "CONSTRAINT", "DOMAIN",
-					  "LARGE OBJECT", "TABLESPACE", "TEXT SEARCH", "ROLE");
+					  "LARGE OBJECT", "TABLESPACE", "TAG", "TEXT SEARCH", "ROLE");
 	else if (Matches("COMMENT", "ON", "ACCESS", "METHOD"))
 		COMPLETE_WITH_QUERY(Query_for_list_of_access_methods);
 	else if (Matches("COMMENT", "ON", "FOREIGN"))
@@ -2865,6 +2883,14 @@ psql_completion(const char *text, int start, int end)
 	/* Complete CREATE TABLESPACE name OWNER name with "LOCATION" */
 	else if (Matches("CREATE", "TABLESPACE", MatchAny, "OWNER", MatchAny))
 		COMPLETE_WITH("LOCATION");
+
+/* CREATE TAG */
+	else if (Matches("CREATE", "TAG"))
+		COMPLETE_WITH("IF NOT EXISTS");
+	else if (Matches("CREATE", "TAG", MatchAny))
+		COMPLETE_WITH("ALLOWED_VALUES");
+	else if (Matches("CREATE", "TAG", "IF NOT EXISTS", MatchAny))
+		COMPLETE_WITH("ALLOWED_VALUES");
 
 /* CREATE TEXT SEARCH */
 	else if (Matches("CREATE", "TEXT", "SEARCH"))

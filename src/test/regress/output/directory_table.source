@@ -1379,35 +1379,35 @@ SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
 ALTER TABLE dir_table1 ADD COLUMN a int;    -- fail
 ERROR:  "dir_table1" is not a table, composite type, or foreign table
 ALTER DIRECTORY TABLE dir_table1 ADD COLUMN a int;  -- fail
-ERROR:  syntax error at or near "DIRECTORY"
+ERROR:  syntax error at or near "ADD"
 LINE 1: ALTER DIRECTORY TABLE dir_table1 ADD COLUMN a int;
-              ^
+                                         ^
 ALTER TABLE dir_table2 DROP COLUMN relative_path;   -- fail
 ERROR:  "dir_table2" is not a table, composite type, or foreign table
 ALTER DIRECTORY TABLE dir_table2 DROP COLUMN relative_path; -- fail
-ERROR:  syntax error at or near "DIRECTORY"
+ERROR:  syntax error at or near "DROP"
 LINE 1: ALTER DIRECTORY TABLE dir_table2 DROP COLUMN relative_path;
-              ^
+                                         ^
 ALTER TABLE dir_table1 RENAME TO dir_table_new; -- fail
 ERROR:  Rename directory table is not allowed.
 ALTER DIRECTORY TABLE dir_table1 RENAME TO dir_table_new;   -- fail
-ERROR:  syntax error at or near "DIRECTORY"
+ERROR:  syntax error at or near "RENAME"
 LINE 1: ALTER DIRECTORY TABLE dir_table1 RENAME TO dir_table_new;
-              ^
+                                         ^
 ALTER TABLE dir_table2 ADD CONSTRAINT dirtable_constraint UNIQUE (tag); -- fail
 ERROR:  "dir_table2" is not a table or foreign table
 ALTER DIRECTORY TABLE dir_table2 ADD CONSTRAINT dirtable_constraint UNIQUE (tag);   -- fail
-ERROR:  syntax error at or near "DIRECTORY"
+ERROR:  syntax error at or near "ADD"
 LINE 1: ALTER DIRECTORY TABLE dir_table2 ADD CONSTRAINT dirtable_con...
-              ^
+                                         ^
 ALTER TABLE dir_table1 DROP CONSTRAINT DROP CONSTRAINT test_pkey;   -- fail
 ERROR:  syntax error at or near "CONSTRAINT"
 LINE 1: ALTER TABLE dir_table1 DROP CONSTRAINT DROP CONSTRAINT test_...
                                                     ^
 ALTER DIRECTORY TABLE dir_table1 DROP CONSTRAINT DROP CONSTRAINT test_pkey; -- fail
-ERROR:  syntax error at or near "DIRECTORY"
+ERROR:  syntax error at or near "DROP"
 LINE 1: ALTER DIRECTORY TABLE dir_table1 DROP CONSTRAINT DROP CONSTR...
-              ^
+                                         ^
 -- Test remove_table
 SELECT remove_file('dir_table1', 'nation5');    -- fail
  remove_file 

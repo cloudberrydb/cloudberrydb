@@ -61,6 +61,8 @@
 #include "catalog/pg_statistic_ext.h"
 #include "catalog/pg_subscription.h"
 #include "catalog/pg_tablespace.h"
+#include "catalog/pg_tag.h"
+#include "catalog/pg_tag_description.h"
 #include "catalog/pg_task.h"
 #include "catalog/pg_transform.h"
 #include "catalog/pg_trigger.h"
@@ -80,6 +82,7 @@
 #include "commands/resgroupcmds.h"
 #include "commands/storagecmds.h"
 #include "commands/tablespace.h"
+#include "commands/tag.h"
 #include "commands/trigger.h"
 #include "foreign/foreign.h"
 #include "funcapi.h"
@@ -701,6 +704,21 @@ static const ObjectPropertyType ObjectProperty[] =
 		Anum_pg_extprotocol_ptcacl,
 		OBJECT_EXTPROTOCOL,
 		true
+	},
+	
+	{
+		"tag",
+		TagRelationId,
+		TagOidIndexId,
+		TAGOID,
+		TAGNAME,
+		Anum_pg_tag_oid,
+		Anum_pg_tag_tagname,
+		InvalidAttrNumber,
+		Anum_pg_tag_tagowner,
+		InvalidAttrNumber,
+		OBJECT_TAG,
+		true
 	}
 };
 
@@ -942,6 +960,10 @@ static const struct object_type_map
 	/* OCLASS_STORAGE_USER_MAPPING */
 	{
 		"storage user mapping", OBJECT_STORAGE_USER_MAPPING
+	},
+	/* OCLASS_TAG */
+	{
+		"tag", OBJECT_TAG
 	}
 };
 
@@ -1104,6 +1126,7 @@ get_object_address(ObjectType objtype, Node *object,
 			case OBJECT_DATABASE:
 			case OBJECT_EXTENSION:
 			case OBJECT_TABLESPACE:
+			case OBJECT_TAG:
 			case OBJECT_ROLE:
 			case OBJECT_SCHEMA:
 			case OBJECT_LANGUAGE:
@@ -1381,6 +1404,11 @@ get_object_address_unqualified(ObjectType objtype,
 		case OBJECT_TABLESPACE:
 			address.classId = TableSpaceRelationId;
 			address.objectId = get_tablespace_oid(name, missing_ok);
+			address.objectSubId = 0;
+			break;
+		case OBJECT_TAG:
+			address.classId = TagRelationId;
+			address.objectId = get_tag_oid(name, missing_ok);
 			address.objectSubId = 0;
 			break;
 		case OBJECT_ROLE:
@@ -2425,6 +2453,7 @@ pg_get_object_address(PG_FUNCTION_ARGS)
 		case OBJECT_SCHEMA:
 		case OBJECT_SUBSCRIPTION:
 		case OBJECT_TABLESPACE:
+		case OBJECT_TAG:
 		case OBJECT_EXTPROTOCOL:
 		case OBJECT_RESGROUP:
 		case OBJECT_RESQUEUE:
@@ -2685,6 +2714,11 @@ check_object_ownership(Oid roleid, ObjectType objtype, ObjectAddress address,
 			if (!pg_tablespace_ownercheck(address.objectId, roleid))
 				aclcheck_error(ACLCHECK_NOT_OWNER, objtype,
 							   strVal((Value *) object));
+			break;
+		case OBJECT_TAG:
+			if (!pg_tag_ownercheck(address.objectId, roleid))
+				aclcheck_error(ACLCHECK_NOT_OWNER, objtype,
+				   			   strVal((Value *) object));
 			break;
 		case OBJECT_TSDICTIONARY:
 			if (!pg_ts_dict_ownercheck(address.objectId, roleid))
@@ -4197,6 +4231,55 @@ getObjectDescription(const ObjectAddress *object, bool missing_ok)
 				break;
 			}
 
+		case OCLASS_TAG:
+			{
+				char	*tagname = TagGetNameByOid(object->objectId, missing_ok);
+
+				if (tagname)
+					appendStringInfo(&buffer, _("tag %s"), tagname);
+				break;
+			}
+		
+		case OCLASS_TAG_DESCRIPTION:
+			{
+				Relation	tag_desc_rel;
+				ScanKeyData	skey;
+				SysScanDesc tag_desc_scan;
+				HeapTuple	tag_tuple;
+				HeapTuple	tag_desc_tuple;
+				Form_pg_tag	form_tag;
+				Form_pg_tag_description	form_tag_desc;
+				char		*tagname;
+				
+				ScanKeyInit(&skey, Anum_pg_tag_description_oid,
+							BTEqualStrategyNumber, F_OIDEQ,
+							ObjectIdGetDatum(object->objectId));
+
+				tag_desc_rel = table_open(TagDescriptionRelationId, AccessShareLock);
+				tag_desc_scan = systable_beginscan(tag_desc_rel, TagDescriptionOidIndexId, true,
+												   NULL, 1, &skey);
+
+				tag_desc_tuple = systable_getnext(tag_desc_scan);
+				if (!HeapTupleIsValid(tag_desc_tuple))
+					elog(ERROR, "lookup failed for tag description %u", object->objectId);
+
+				form_tag_desc = (Form_pg_tag_description) GETSTRUCT(tag_desc_tuple);
+				
+				tag_tuple = SearchSysCache1(TAGOID, ObjectIdGetDatum(form_tag_desc->tagid));
+				if (!HeapTupleIsValid(tag_tuple))
+					elog(ERROR, "cache lookup failed for tag %u", form_tag_desc->tagid);
+
+				form_tag = (Form_pg_tag) GETSTRUCT(tag_tuple);
+				tagname = pstrdup(form_tag->tagname.data);
+				
+				appendStringInfo(&buffer, _("tag description with tag %s"), tagname);
+
+				ReleaseSysCache(tag_tuple);
+				systable_endscan(tag_desc_scan);
+				table_close(tag_desc_rel, AccessShareLock);
+				break;
+			}
+
 		default:
 			{
 				struct CustomObjectClass *coc;
@@ -4794,6 +4877,14 @@ getObjectTypeDescription(const ObjectAddress *object, bool missing_ok)
 
 		case OCLASS_STORAGE_USER_MAPPING:
 			appendStringInfoString(&buffer, "storage user mapping");
+			break;
+
+		case OCLASS_TAG:
+			appendStringInfoString(&buffer, "tag");
+			break;
+
+		case OCLASS_TAG_DESCRIPTION:
+			appendStringInfoString(&buffer, "tag description");
 			break;
 
 		default:
@@ -6206,6 +6297,61 @@ getObjectIdentityParts(const ObjectAddress *object,
 
 		case OCLASS_MATVIEW_AUX:
 			break;
+
+		case OCLASS_TAG:
+			{
+				char *tagname;
+				
+				tagname = TagGetNameByOid(object->objectId, missing_ok);
+				if (!tagname)
+					break;
+				if (objname)
+					*objname = list_make1(tagname);
+				appendStringInfoString(&buffer,
+									   quote_identifier(tagname));
+				break;
+			}
+
+		case OCLASS_TAG_DESCRIPTION:
+			{
+				Relation	tag_desc_rel;
+				ScanKeyData	skey;
+				SysScanDesc tag_desc_scan;
+				HeapTuple	tag_tuple;
+				HeapTuple	tag_desc_tuple;
+				Form_pg_tag	form_tag;
+				Form_pg_tag_description	form_tag_desc;
+				char		*tagname;
+
+				ScanKeyInit(&skey, Anum_pg_tag_description_oid,
+							BTEqualStrategyNumber, F_OIDEQ,
+							ObjectIdGetDatum(object->objectId));
+
+				tag_desc_rel = table_open(TagDescriptionRelationId, AccessShareLock);
+				tag_desc_scan = systable_beginscan(tag_desc_rel, TagDescriptionOidIndexId, true,
+												   NULL, 1, &skey);
+
+				tag_desc_tuple = systable_getnext(tag_desc_scan);
+				if (!HeapTupleIsValid(tag_desc_tuple))
+					elog(ERROR, "lookup failed for tag description %u", object->objectId);
+
+				form_tag_desc = (Form_pg_tag_description) GETSTRUCT(tag_desc_tuple);
+
+				tag_tuple = SearchSysCache1(TAGOID, ObjectIdGetDatum(form_tag_desc->tagid));
+				if (!HeapTupleIsValid(tag_tuple))
+					elog(ERROR, "cache lookup failed for tag %u", form_tag_desc->tagid);
+
+				form_tag = (Form_pg_tag) GETSTRUCT(tag_tuple);
+				tagname = pstrdup(form_tag->tagname.data);
+
+				appendStringInfo(&buffer, _("tag description with tag %s"),
+					 						quote_identifier(tagname));
+
+				ReleaseSysCache(tag_tuple);
+				systable_endscan(tag_desc_scan);
+				table_close(tag_desc_rel, AccessShareLock);
+				break;
+			}
 
 		default:
 		{

@@ -744,6 +744,7 @@ _readCreateStmt_common(CreateStmt *local_node)
 
 	READ_NODE_FIELD(part_idx_oids);
 	READ_NODE_FIELD(part_idx_names);
+	READ_NODE_FIELD(tags);
 
 	/*
 	 * Some extra checks to make sure we didn't get lost
@@ -1132,6 +1133,7 @@ _readCreateTableSpaceStmt(void)
 	READ_STRING_FIELD(location);
 	READ_NODE_FIELD(options);
 	READ_STRING_FIELD(filehandler);
+	READ_NODE_FIELD(tags);
 
 	READ_DONE();
 }
@@ -1170,6 +1172,8 @@ _readAlterTableSpaceOptionsStmt(void)
 	READ_STRING_FIELD(tablespacename);
 	READ_NODE_FIELD(options);
 	READ_BOOL_FIELD(isReset);
+	READ_NODE_FIELD(tags);
+	READ_BOOL_FIELD(unsettag);
 
 	READ_DONE();
 }
@@ -1726,6 +1730,18 @@ _readCreateDirectoryTableStmt(void)
 	READ_DONE();
 }
 
+static AlterDirectoryTableStmt *
+_readAlterDirectoryTableStmt(void)
+{
+	READ_LOCALS(AlterDirectoryTableStmt);
+	
+	READ_NODE_FIELD(relation);
+	READ_NODE_FIELD(tags);
+	READ_BOOL_FIELD(unsettag);
+	
+	READ_DONE();
+}
+
 static EphemeralNamedRelationInfo *
 _readEphemeralNamedRelationInfo(void)
 {
@@ -1754,6 +1770,19 @@ _readEphemeralNamedRelationInfo(void)
 
 	READ_ENUM_FIELD(enrtype, EphemeralNameRelationType);
 	READ_FLOAT_FIELD(enrtuples);
+
+	READ_DONE();
+}
+
+static void *
+_readAlterDatabaseStmt(void)
+{
+	READ_LOCALS(AlterDatabaseStmt);
+	
+	READ_STRING_FIELD(dbname);
+	READ_NODE_FIELD(options);
+	READ_NODE_FIELD(tags);
+	READ_BOOL_FIELD(unsettag);
 
 	READ_DONE();
 }
@@ -2548,6 +2577,18 @@ readNodeBinary(void)
 			case T_CreateSchemaStmt:
 				return_value = _readCreateSchemaStmt();
 				break;
+			case T_AlterSchemaStmt:
+				return_value = _readAlterSchemaStmt();
+				break;
+			case T_CreateTagStmt:
+				return_value = _readCreateTagStmt();
+				break;
+			case T_AlterTagStmt:
+				return_value = _readAlterTagStmt();
+				break;
+			case T_DropTagStmt:
+				return_value = _readDropTagStmt();
+				break;
 			case T_CreatePLangStmt:
 				return_value = _readCreatePLangStmt();
 				break;
@@ -2773,8 +2814,14 @@ readNodeBinary(void)
 			case T_EphemeralNamedRelationInfo:
 				return_value = _readEphemeralNamedRelationInfo();
 				break;
+			case T_AlterDatabaseStmt:
+				return_value = _readAlterDatabaseStmt();
+				break;
 			case T_CreateDirectoryTableStmt:
 				return_value = _readCreateDirectoryTableStmt();
+				break;
+			case T_AlterDirectoryTableStmt:
+				return_value = _readAlterDirectoryTableStmt();
 				break;
 			default:
 				return_value = NULL; /* keep the compiler silent */

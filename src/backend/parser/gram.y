@@ -280,7 +280,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 
 %type <node>	stmt toplevel_stmt schema_stmt routine_body_stmt
 		AlterEventTrigStmt AlterCollationStmt
-		AlterDatabaseStmt AlterDatabaseSetStmt AlterDomainStmt AlterEnumStmt
+		AlterDatabaseStmt AlterDatabaseSetStmt AlterDirectoryTableStmt AlterDomainStmt AlterEnumStmt
 		AlterFdwStmt AlterForeignServerStmt AlterGroupStmt
 		AlterObjectDependsStmt AlterObjectSchemaStmt AlterOwnerStmt
 		AlterOperatorStmt AlterTypeStmt AlterSeqStmt AlterStorageServerStmt AlterSystemStmt AlterTableStmt
@@ -321,10 +321,10 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 		RetrieveStmt CreateTaskStmt AlterTaskStmt DropTaskStmt
 
 /* GPDB-specific commands */
-%type <node>	AlterProfileStmt AlterQueueStmt AlterResourceGroupStmt
+%type <node>	AlterProfileStmt AlterQueueStmt AlterResourceGroupStmt AlterSchemaStmt AlterTagStmt
 		CreateExternalStmt
-		CreateProfileStmt CreateQueueStmt CreateResourceGroupStmt
-		DropProfileStmt DropQueueStmt DropResourceGroupStmt
+		CreateProfileStmt CreateQueueStmt CreateResourceGroupStmt CreateTagStmt
+		DropProfileStmt DropQueueStmt DropResourceGroupStmt DropTagStmt
 		ExtTypedesc OptSingleRowErrorHandling ExtSingleRowErrorHandling
 
 %type <node>    deny_login_role deny_interval deny_point deny_day_specifier
@@ -377,6 +377,8 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 
 %type <list>	OptRoleList AlterOptRoleList
 %type <list>    OptProfileList
+%type <list>	OptTagValuesList OptTagOptList TagOptList
+%type <defelt>  TagOptElem
 %type <defelt>	CreateOptRoleElem AlterOptRoleElem
 %type <defelt>	AlterOnlyOptRoleElem
 %type <defelt>  OptProfileElem
@@ -840,7 +842,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 
 /* GPDB-added keywords, in alphabetical order */
 %token <keyword>
-	ACCOUNT ACTIVE
+	ACCOUNT ACTIVE ALLOWED_VALUES
 
 	CONTAINS COORDINATOR CPUSET CPU_HARD_QUOTA_LIMIT CPU_SOFT_PRIORITY
 
@@ -884,6 +886,8 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 	THRESHOLD
 
 	UNLOCK_P
+	
+	UNSET_P
 
 	VALIDATION
 
@@ -1189,6 +1193,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 			%nonassoc SYSTEM_P
 			%nonassoc STRICT_P
 			%nonassoc TABLESPACE
+			%nonassoc TAG
 			%nonassoc TASK
 			%nonassoc TEMP
 			%nonassoc TEMPLATE
@@ -1384,6 +1389,7 @@ stmt:
 			| AlterDatabaseStmt
 			| AlterDatabaseSetStmt
 			| AlterDefaultPrivilegesStmt
+			| AlterDirectoryTableStmt
 			| AlterDomainStmt
 			| AlterEnumStmt
 			| AlterExtensionStmt
@@ -1402,10 +1408,12 @@ stmt:
 			| AlterProfileStmt
 			| AlterQueueStmt
 			| AlterResourceGroupStmt
+			| AlterSchemaStmt
 			| AlterSeqStmt
 			| AlterStorageServerStmt
 			| AlterSystemStmt
 			| AlterTableStmt
+			| AlterTagStmt
 			| AlterTblSpcStmt
 			| AlterCompositeTypeStmt
 			| AlterPublicationStmt
@@ -1458,6 +1466,7 @@ stmt:
 			| CreateStorageServerStmt
 			| CreateStorageUserMappingStmt
 			| CreateTableSpaceStmt
+			| CreateTagStmt
 			| CreateTaskStmt
 			| CreateTransformStmt
 			| CreateTrigStmt
@@ -1482,6 +1491,7 @@ stmt:
 			| DropStmt
 			| DropSubscriptionStmt
 			| DropTableSpaceStmt
+			| DropTagStmt
 			| DropTaskStmt
 			| DropTransformStmt
 			| DropRoleStmt
@@ -2019,12 +2029,13 @@ keyvalue_pair:
  *****************************************************************************/
 
 CreateUserStmt:
-			CREATE USER RoleId opt_with OptRoleList
+			CREATE USER RoleId opt_with OptRoleList OptTagOptList
 				{
 					CreateRoleStmt *n = makeNode(CreateRoleStmt);
 					n->stmt_type = ROLESTMT_USER;
 					n->role = $3;
 					n->options = $5;
+					n->tags = $6;
 					$$ = (Node *)n;
 				}
 		;
@@ -2053,6 +2064,21 @@ AlterRoleStmt:
 					n->options = $5;
 					$$ = (Node *)n;
 				 }
+			| ALTER USER RoleSpec TAG '(' TagOptList ')'
+				{
+					AlterRoleStmt *n = makeNode(AlterRoleStmt);
+					n->role = $3;
+					n->tags = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER USER RoleSpec UNSET_P TAG '(' name_list ')'
+				{
+					AlterRoleStmt *n = makeNode(AlterRoleStmt);
+					n->role = $3;
+					n->tags = $7;
+					n->unsettag = true;
+					$$ = (Node *)n;
+				}
 		;
 
 opt_in_database:
@@ -2342,7 +2368,39 @@ CreateSchemaStmt:
 					n->if_not_exists = true;
 					$$ = (Node *)n;
 				}
+            | CREATE SCHEMA ColId WITH TAG '(' TagOptList ')'
+                {
+                    CreateSchemaStmt *n = makeNode(CreateSchemaStmt);
+                    n->schemaname = $3;
+                    n->if_not_exists = false;
+                    n->tags = $7;
+                    $$ = (Node *)n;
+                }
 		;
+
+/*****************************************************************************
+ *
+ * Alter a schema to add a tag
+ *
+ *****************************************************************************/
+ 
+AlterSchemaStmt:
+            ALTER SCHEMA name TAG '(' TagOptList ')'
+                {
+                    AlterSchemaStmt *n = makeNode(AlterSchemaStmt);
+                    n->schemaname = $3;
+                    n->tags = $6;
+                    $$ = (Node *)n;
+                }
+            | ALTER SCHEMA name UNSET_P TAG '(' name_list ')'
+                {
+                    AlterSchemaStmt *n = makeNode(AlterSchemaStmt);
+                    n->schemaname = $3;
+                    n->tags = $7;
+                    n->unsettag = true;
+                    $$ = (Node *)n;
+                }
+        ;
 
 OptSchemaName:
 			ColId									{ $$ = $1; }
@@ -2373,6 +2431,136 @@ schema_stmt:
 			| ViewStmt
 		;
 
+
+/*****************************************************************************
+ *
+ * Create a new Postgres DBMS Tag
+ *
+ *****************************************************************************/
+
+CreateTagStmt:
+			CREATE TAG name
+				{
+					CreateTagStmt *n = makeNode(CreateTagStmt);
+					n->tag_name = $3;
+					n->missing_ok = false;
+					n->allowed_values = NIL;
+					$$ = (Node *)n;
+				}
+			| CREATE TAG IF_P NOT EXISTS name
+				{
+					CreateTagStmt *n = makeNode(CreateTagStmt);
+					n->tag_name = $6;
+					n->missing_ok = true;
+					n->allowed_values = NIL;
+					$$ = (Node *)n;
+				}
+			| CREATE TAG name ALLOWED_VALUES OptTagValuesList
+				{
+					CreateTagStmt *n = makeNode(CreateTagStmt);
+					n->tag_name = $3;
+					n->missing_ok = false;
+					n->allowed_values = $5;
+					$$ = (Node *)n;
+				}
+			| CREATE TAG IF_P NOT EXISTS name ALLOWED_VALUES OptTagValuesList
+				{
+					CreateTagStmt *n = makeNode(CreateTagStmt);
+					n->tag_name = $6;
+					n->missing_ok = true;
+					n->allowed_values = $8;
+					$$ = (Node *)n;
+				}
+		;
+
+
+/*****************************************************************************
+ *
+ * Alter a postgresql DBMS Tag
+ *
+ *****************************************************************************/
+
+AlterTagStmt:
+			ALTER TAG name add_drop ALLOWED_VALUES OptTagValuesList
+				{
+					AlterTagStmt *n = makeNode(AlterTagStmt);
+					n->missing_ok = false;
+					n->tag_name = $3;
+					n->action = $4;
+					n->tag_values = $6;
+					n->unset = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TAG IF_P EXISTS name add_drop ALLOWED_VALUES OptTagValuesList
+				{
+					AlterTagStmt *n = makeNode(AlterTagStmt);
+					n->missing_ok = true;
+					n->tag_name = $5;
+					n->action = $6;
+					n->tag_values = $8;
+					n->unset = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TAG name UNSET_P ALLOWED_VALUES
+				{
+					AlterTagStmt *n = makeNode(AlterTagStmt);
+					n->tag_name = $3;
+					n->unset = true;
+					$$ = (Node *)n;
+				}
+		;
+
+
+/*****************************************************************************
+ *
+ * Drop a postgresql DBMS Tag
+ *
+ * XXX Ideally this would have CASCADE/RESTRICT options, but a profile
+ * might be attached by users in multiple databases, using CASCADE will drop
+ * users meanwhile which is unreasonable.  So we always behave as RESTRICT.
+ *****************************************************************************/
+
+DropTagStmt:
+			DROP TAG name_list
+				{
+					DropTagStmt *n = makeNode(DropTagStmt);
+					n->tags = $3;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| DROP TAG IF_P EXISTS name_list
+				{
+					DropTagStmt *n = makeNode(DropTagStmt);
+					n->tags = $5;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+		;
+
+/*
+ * List of allowed values for Tag.
+ */
+OptTagValuesList:
+			OptTagValuesList ',' Sconst         { $$ = lappend($1, makeString($3)); }
+			| Sconst                            { $$ = list_make1(makeString($1)); }
+		;
+
+OptTagOptList:
+		TAG '(' TagOptList ')'                          { $$ = $3; }
+		| /*EMPTY*/                                     { $$ = NIL; }
+	;
+
+TagOptList:
+		TagOptElem                                      { $$ = list_make1($1); }
+		| TagOptList ',' TagOptElem                     { $$ = lappend($1, $3); }
+	;
+
+TagOptElem:
+		ColLabel '=' Sconst
+		{
+            $$ = makeDefElem($1, (Node *) makeString($3), @1);
+        }
+    ;
 
 /*****************************************************************************
  *
@@ -3657,6 +3845,21 @@ alter_table_cmd:
 					n->def = (Node *)$1;
 					$$ = (Node *) n;
 				}
+			| TAG '(' TagOptList ')'
+				{
+					AlterTableCmd *n = makeNode(AlterTableCmd);
+					n->subtype = AT_SetTags;
+					n->tags = $3;
+					$$ = (Node *) n;
+				}
+			| UNSET_P TAG '(' name_list ')'
+				{
+					AlterTableCmd *n = makeNode(AlterTableCmd);
+					n->subtype = AT_UnsetTags;
+					n->tags = $4;
+					n->unsettag = true;
+					$$ = (Node *) n;
+				}
 		;
 
 alter_column_default:
@@ -4783,7 +4986,7 @@ copy_generic_opt_arg_list_item:
 CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 			OptInherit OptFirstPartitionSpec table_access_method_clause OptWith
 			OnCommitOption OptTableSpace
-			OptDistributedBy OptSecondPartitionSpec
+			OptDistributedBy OptSecondPartitionSpec OptTagOptList
 				{
 					CreateStmt *n = makeNode(CreateStmt);
 					$4->relpersistence = $2;
@@ -4804,6 +5007,7 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 					n->tablespacename = $13;
 					n->if_not_exists = false;
 					n->distributedBy = (DistributedBy *) $14;
+					n->tags = $16;
 					n->relKind = RELKIND_RELATION;
 
 					n->accessMethod = greenplumLegacyAOoptions(n->accessMethod, &n->options);
@@ -4813,7 +5017,7 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 		| CREATE OptTemp TABLE IF_P NOT EXISTS qualified_name '('
 			OptTableElementList ')' OptInherit OptFirstPartitionSpec table_access_method_clause
 			OptWith OnCommitOption OptTableSpace
-			OptDistributedBy OptSecondPartitionSpec
+			OptDistributedBy OptSecondPartitionSpec OptTagOptList
 				{
 					CreateStmt *n = makeNode(CreateStmt);
 					$7->relpersistence = $2;
@@ -4834,6 +5038,7 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 					n->tablespacename = $16;
 					n->if_not_exists = true;
 					n->distributedBy = (DistributedBy *) $17;
+					n->tags = $19;
 					n->relKind = RELKIND_RELATION;
 
 					n->accessMethod = greenplumLegacyAOoptions(n->accessMethod, &n->options);
@@ -4843,7 +5048,7 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 		| CREATE OptTemp TABLE qualified_name OF any_name
 			OptTypedTableElementList OptFirstPartitionSpec table_access_method_clause
 			OptWith OnCommitOption OptTableSpace
-			OptDistributedBy OptSecondPartitionSpec
+			OptDistributedBy OptSecondPartitionSpec OptTagOptList
 				{
 					CreateStmt *n = makeNode(CreateStmt);
 					$4->relpersistence = $2;
@@ -4865,6 +5070,7 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 					n->tablespacename = $12;
 					n->if_not_exists = false;
 					n->distributedBy = (DistributedBy *) $13;
+					n->tags = $15;
 					n->relKind = RELKIND_RELATION;
 
 					n->accessMethod = greenplumLegacyAOoptions(n->accessMethod, &n->options);
@@ -4874,7 +5080,7 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 		| CREATE OptTemp TABLE IF_P NOT EXISTS qualified_name OF any_name
 			OptTypedTableElementList OptFirstPartitionSpec table_access_method_clause
 			OptWith OnCommitOption OptTableSpace
-			OptDistributedBy OptSecondPartitionSpec
+			OptDistributedBy OptSecondPartitionSpec OptTagOptList
 				{
 					CreateStmt *n = makeNode(CreateStmt);
 					$7->relpersistence = $2;
@@ -4896,6 +5102,7 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 					n->tablespacename = $15;
 					n->if_not_exists = true;
 					n->distributedBy = (DistributedBy *) $16;
+					n->tags = $18;
 					n->relKind = RELKIND_RELATION;
 
 					n->accessMethod = greenplumLegacyAOoptions(n->accessMethod, &n->options);
@@ -4905,7 +5112,7 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 		| CREATE OptTemp TABLE qualified_name PARTITION OF qualified_name
 			OptTypedTableElementList PartitionBoundSpec OptFirstPartitionSpec
 			table_access_method_clause OptWith OnCommitOption OptTableSpace
-			OptSecondPartitionSpec
+			OptSecondPartitionSpec OptTagOptList
 				{
 					CreateStmt *n = makeNode(CreateStmt);
 					$4->relpersistence = $2;
@@ -4927,6 +5134,7 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 					n->tablespacename = $14;
 					n->if_not_exists = false;
 					n->distributedBy = NULL;
+					n->tags = $16;
 					n->relKind = RELKIND_RELATION;
 
 					n->accessMethod = greenplumLegacyAOoptions(n->accessMethod, &n->options);
@@ -4936,7 +5144,7 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 		| CREATE OptTemp TABLE IF_P NOT EXISTS qualified_name PARTITION OF
 			qualified_name OptTypedTableElementList PartitionBoundSpec OptFirstPartitionSpec
 			table_access_method_clause OptWith OnCommitOption OptTableSpace
-			OptSecondPartitionSpec
+			OptSecondPartitionSpec OptTagOptList
 				{
 					CreateStmt *n = makeNode(CreateStmt);
 					$7->relpersistence = $2;
@@ -4958,6 +5166,7 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 					n->tablespacename = $17;
 					n->if_not_exists = true;
 					n->distributedBy = NULL;
+					n->tags = $19;
 					n->relKind = RELKIND_RELATION;
 
 					n->accessMethod = greenplumLegacyAOoptions(n->accessMethod, &n->options);
@@ -6503,7 +6712,7 @@ opt_with_data:
  *****************************************************************************/
 	
 CreateExternalStmt:	CREATE OptWritable EXTERNAL OptWeb OptTemp TABLE qualified_name '(' OptExtTableElementList ')' 
-					ExtTypedesc FORMAT Sconst format_opt ext_options_opt ext_opt_encoding_list ExtSingleRowErrorHandling OptDistributedBy
+					ExtTypedesc FORMAT Sconst format_opt ext_options_opt ext_opt_encoding_list ExtSingleRowErrorHandling OptDistributedBy OptTagOptList
 						{
 							CreateExternalStmt *n = makeNode(CreateExternalStmt);
 							n->iswritable = $2;
@@ -6518,6 +6727,7 @@ CreateExternalStmt:	CREATE OptWritable EXTERNAL OptWeb OptTemp TABLE qualified_n
 							n->encoding = $16;
 							n->sreh = $17;
 							n->distributedBy = (DistributedBy *) $18;
+							n->tags = $19;
 							
 							/* various syntax checks for EXECUTE external table */
 							if(((ExtTableTypeDesc *) n->exttypedesc)->exttabletype == EXTTBL_TYPE_EXECUTE)
@@ -6974,7 +7184,7 @@ RefreshMatViewStmt:
  *****************************************************************************/
 
 CreateSeqStmt:
-			CREATE OptTemp SEQUENCE qualified_name OptSeqOptList
+			CREATE OptTemp SEQUENCE qualified_name OptSeqOptList OptTagOptList
 				{
 					CreateSeqStmt *n = makeNode(CreateSeqStmt);
 					$4->relpersistence = $2;
@@ -6982,9 +7192,10 @@ CreateSeqStmt:
 					n->options = $5;
 					n->ownerId = InvalidOid;
 					n->if_not_exists = false;
+					n->tags = $6;
 					$$ = (Node *)n;
 				}
-			| CREATE OptTemp SEQUENCE IF_P NOT EXISTS qualified_name OptSeqOptList
+			| CREATE OptTemp SEQUENCE IF_P NOT EXISTS qualified_name OptSeqOptList OptTagOptList
 				{
 					CreateSeqStmt *n = makeNode(CreateSeqStmt);
 					$7->relpersistence = $2;
@@ -6992,6 +7203,7 @@ CreateSeqStmt:
 					n->options = $8;
 					n->ownerId = InvalidOid;
 					n->if_not_exists = true;
+					n->tags = $9;
 					$$ = (Node *)n;
 				}
 		;
@@ -7185,7 +7397,7 @@ opt_procedural:
  *
  *****************************************************************************/
 
-CreateTableSpaceStmt: CREATE TABLESPACE name OptTableSpaceOwner LOCATION Sconst opt_reloptions OptServer OptFileHandler
+CreateTableSpaceStmt: CREATE TABLESPACE name OptTableSpaceOwner LOCATION Sconst opt_reloptions OptServer OptFileHandler OptTagOptList
 				{
 					CreateTableSpaceStmt *n = makeNode(CreateTableSpaceStmt);
 					List	*fileHandler_list;
@@ -7216,6 +7428,7 @@ CreateTableSpaceStmt: CREATE TABLESPACE name OptTableSpaceOwner LOCATION Sconst 
                                          			errmsg("invalid list syntax for \"handler\""),
                                          			parser_errposition(@9)));
 					}
+					n->tags = $10;
 
 					$$ = (Node *) n;
 				}
@@ -7902,7 +8115,7 @@ DropStorageServerStmt:
 CreateForeignTableStmt:
 		CREATE FOREIGN TABLE qualified_name
 			'(' OptTableElementList ')'
-			OptInherit SERVER name create_generic_options OptDistributedBy
+			OptInherit SERVER name create_generic_options OptDistributedBy OptTagOptList
 				{
 					CreateForeignTableStmt *n = makeNode(CreateForeignTableStmt);
 					$4->relpersistence = RELPERSISTENCE_PERMANENT;
@@ -7919,6 +8132,7 @@ CreateForeignTableStmt:
 					n->servername = $10;
 					n->options = $11;
 					n->distributedBy = (DistributedBy *) $12;
+					n->base.tags = $13;
 					if (strcmp(n->servername, GP_EXTTABLE_SERVER_NAME) != 0 && n->distributedBy)
 					{
 						ereport(ERROR,
@@ -7929,7 +8143,7 @@ CreateForeignTableStmt:
 				}
 		| CREATE FOREIGN TABLE IF_P NOT EXISTS qualified_name
 			'(' OptTableElementList ')'
-			OptInherit SERVER name create_generic_options
+			OptInherit SERVER name create_generic_options OptTagOptList
 				{
 					CreateForeignTableStmt *n = makeNode(CreateForeignTableStmt);
 					$7->relpersistence = RELPERSISTENCE_PERMANENT;
@@ -7945,11 +8159,12 @@ CreateForeignTableStmt:
 					/* FDW-specific data */
 					n->servername = $13;
 					n->options = $14;
+					n->base.tags = $15;
 					$$ = (Node *) n;
 				}
 		| CREATE FOREIGN TABLE qualified_name
 			PARTITION OF qualified_name OptTypedTableElementList PartitionBoundSpec
-			SERVER name create_generic_options
+			SERVER name create_generic_options OptTagOptList
 				{
 					CreateForeignTableStmt *n = makeNode(CreateForeignTableStmt);
 					$4->relpersistence = RELPERSISTENCE_PERMANENT;
@@ -7966,11 +8181,12 @@ CreateForeignTableStmt:
 					/* FDW-specific data */
 					n->servername = $11;
 					n->options = $12;
+					n->base.tags = $13;
 					$$ = (Node *) n;
 				}
 		| CREATE FOREIGN TABLE IF_P NOT EXISTS qualified_name
 			PARTITION OF qualified_name OptTypedTableElementList PartitionBoundSpec
-			SERVER name create_generic_options
+			SERVER name create_generic_options OptTagOptList
 				{
 					CreateForeignTableStmt *n = makeNode(CreateForeignTableStmt);
 					$7->relpersistence = RELPERSISTENCE_PERMANENT;
@@ -7987,6 +8203,7 @@ CreateForeignTableStmt:
 					/* FDW-specific data */
 					n->servername = $14;
 					n->options = $15;
+					n->base.tags = $16;
 					$$ = (Node *) n;
 				}
 		;
@@ -8197,7 +8414,7 @@ AlterStorageUserMappingStmt:
 
 CreateDirectoryTableStmt:
             CREATE DIRECTORY TABLE qualified_name
-            table_access_method_clause OptTableSpace OptDistributedBy
+            table_access_method_clause OptTableSpace OptDistributedBy OptTagOptList
                 {
                     CreateDirectoryTableStmt *n = makeNode(CreateDirectoryTableStmt);
                     $4->relpersistence = RELPERSISTENCE_PERMANENT;
@@ -8217,12 +8434,13 @@ CreateDirectoryTableStmt:
                                      errmsg("Create directory table is not allowed to set distributed by."),
                                      parser_errposition(@7)));
                     n->base.relKind = RELKIND_DIRECTORY_TABLE;
+                    n->base.tags = $8;
                     n->tablespacename = $6;
 
                     $$ = (Node *) n;
                 }
             | CREATE DIRECTORY TABLE IF_P NOT EXISTS qualified_name
-            table_access_method_clause OptTableSpace OptDistributedBy
+            table_access_method_clause OptTableSpace OptDistributedBy OptTagOptList
                 {
                     CreateDirectoryTableStmt *n = makeNode(CreateDirectoryTableStmt);
                     $7->relpersistence = RELPERSISTENCE_PERMANENT;
@@ -8242,11 +8460,41 @@ CreateDirectoryTableStmt:
                                      errmsg("Create directory table is not allowed to set distributed by."),
                                      parser_errposition(@10)));
                     n->base.relKind = RELKIND_DIRECTORY_TABLE;
+                    n->base.tags = $11;
                     n->tablespacename = $9;
 
                     $$ = (Node *) n;
                 }
             ;
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *             ALTER DIRECTORY TABLE relname TAG (tagname = tagvalue, ...)
+ *             ALTER DIRECTORY TABLE relname UNSET TAG (tagname_list)
+ *
+ *****************************************************************************/
+ 
+AlterDirectoryTableStmt:
+			ALTER DIRECTORY TABLE qualified_name TAG '(' TagOptList ')'
+				{
+					AlterDirectoryTableStmt *n = makeNode(AlterDirectoryTableStmt);
+					n->relation = $4;
+					n->tags = $7;
+					
+					$$ = (Node *)n;
+				}
+			| ALTER DIRECTORY TABLE qualified_name UNSET_P TAG '(' name_list ')'
+				{
+					AlterDirectoryTableStmt *n = makeNode(AlterDirectoryTableStmt);
+					n->relation = $4;
+					n->tags = $8;
+					n->unsettag = true;
+					
+					$$ = (Node *)n;
+				}
+			;
+			
 
 /*****************************************************************************
  *
@@ -9626,6 +9874,14 @@ CommentStmt:
 					n->comment = $10;
 					$$ = (Node *) n;
 				}
+			| COMMENT ON TAG name IS comment_text
+				{
+					CommentStmt *n = makeNode(CommentStmt);
+					n->objtype = OBJECT_TAG;
+					n->object = (Node *) makeString($4);
+					n->comment = $6;
+					$$ = (Node *) n;
+				}
 		;
 
 comment_text:
@@ -10381,7 +10637,7 @@ defacl_privilege_target:
 
 IndexStmt:	CREATE opt_unique INDEX opt_concurrently opt_index_name
 			ON relation_expr access_method_clause '(' index_params ')'
-			opt_include opt_reloptions OptTableSpace where_clause
+			opt_include opt_reloptions OptTableSpace where_clause OptTagOptList
 				{
 					IndexStmt *n = makeNode(IndexStmt);
 					n->unique = $2;
@@ -10407,12 +10663,13 @@ IndexStmt:	CREATE opt_unique INDEX opt_concurrently opt_index_name
 					n->transformed = false;
 					n->if_not_exists = false;
 					n->reset_default_tblspc = false;
+					n->tags = $16;
 
 					$$ = (Node *)n;
 				}
 			| CREATE opt_unique INDEX opt_concurrently IF_P NOT EXISTS name
 			ON relation_expr access_method_clause '(' index_params ')'
-			opt_include opt_reloptions OptTableSpace where_clause
+			opt_include opt_reloptions OptTableSpace where_clause OptTagOptList
 				{
 					IndexStmt *n = makeNode(IndexStmt);
 					n->unique = $2;
@@ -10438,6 +10695,7 @@ IndexStmt:	CREATE opt_unique INDEX opt_concurrently opt_index_name
 					n->transformed = false;
 					n->if_not_exists = true;
 					n->reset_default_tblspc = false;
+					n->tags = $19;
 
 					$$ = (Node *)n;
 				}
@@ -11582,6 +11840,21 @@ AlterTblSpcStmt:
 					n->isReset = true;
 					$$ = (Node *)n;
 				}
+			| ALTER TABLESPACE name TAG '(' TagOptList ')'
+				{
+					AlterTableSpaceOptionsStmt *n = makeNode(AlterTableSpaceOptionsStmt);
+					n->tablespacename = $3;
+					n->tags = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER TABLESPACE name UNSET_P TAG '(' name_list ')'
+				{
+					AlterTableSpaceOptionsStmt *n = makeNode(AlterTableSpaceOptionsStmt);
+					n->tablespacename = $3;
+					n->tags = $7;
+					n->unsettag = true;
+					$$ = (Node *)n;
+				}
 		;
 
 /*****************************************************************************
@@ -12139,6 +12412,24 @@ RenameStmt: ALTER AGGREGATE aggregate_with_argtypes RENAME TO name
                     n->missing_ok = false;
                     $$ = (Node *)n;
                 }
+			| ALTER TAG name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_TAG;
+					n->subname = $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TAG IF_P EXISTS name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_TAG;
+					n->subname = $5;
+					n->newname = $8;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
 		;
 
 opt_column: COLUMN
@@ -12737,6 +13028,14 @@ AlterOwnerStmt: ALTER AGGREGATE aggregate_with_argtypes OWNER TO RoleSpec
 					n->newowner = $6;
 					$$ = (Node *)n;
 				}
+            | ALTER TAG name OWNER TO RoleSpec
+                {
+                    AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+                    n->objectType = OBJECT_TAG;
+                    n->object = (Node *) makeString($3);
+                    n->newowner = $6;
+                    $$ = (Node *)n;
+                }
 		;
 
 
@@ -12790,11 +13089,12 @@ publication_for_tables:
  *
  *****************************************************************************/
 
-CreateWarehouseStmt: CREATE WAREHOUSE name OptWarehouseOptList
+CreateWarehouseStmt: CREATE WAREHOUSE name OptWarehouseOptList OptTagOptList
 						{
 							CreateWarehouseStmt *n = makeNode(CreateWarehouseStmt);
 							n->whname = $3;
 							n->options = $4;
+							n->tags = $5;
 							$$ = (Node *) n;
 						}
 				;
@@ -13286,43 +13586,46 @@ opt_transaction_chain:
  *
  *****************************************************************************/
 
-ViewStmt: CREATE OptTemp VIEW qualified_name opt_column_list opt_reloptions
+ViewStmt: CREATE OptTemp VIEW qualified_name opt_column_list opt_reloptions OptTagOptList
 				AS SelectStmt opt_check_option
 				{
 					ViewStmt *n = makeNode(ViewStmt);
 					n->view = $4;
 					n->view->relpersistence = $2;
 					n->aliases = $5;
-					n->query = $8;
+					n->query = $9;
 					n->replace = false;
 					n->options = $6;
-					n->withCheckOption = $9;
+					n->withCheckOption = $10;
+					n->tags = $7;
 					$$ = (Node *) n;
 				}
-		| CREATE OR REPLACE OptTemp VIEW qualified_name opt_column_list opt_reloptions
+		| CREATE OR REPLACE OptTemp VIEW qualified_name opt_column_list opt_reloptions OptTagOptList
 				AS SelectStmt opt_check_option
 				{
 					ViewStmt *n = makeNode(ViewStmt);
 					n->view = $6;
 					n->view->relpersistence = $4;
 					n->aliases = $7;
-					n->query = $10;
+					n->query = $11;
 					n->replace = true;
 					n->options = $8;
-					n->withCheckOption = $11;
+					n->withCheckOption = $12;
+					n->tags = $9;
 					$$ = (Node *) n;
 				}
-		| CREATE OptTemp RECURSIVE VIEW qualified_name '(' columnList ')' opt_reloptions
+		| CREATE OptTemp RECURSIVE VIEW qualified_name '(' columnList ')' opt_reloptions OptTagOptList
 				AS SelectStmt opt_check_option
 				{
 					ViewStmt *n = makeNode(ViewStmt);
 					n->view = $5;
 					n->view->relpersistence = $2;
 					n->aliases = $7;
-					n->query = makeRecursiveViewSelect(n->view->relname, n->aliases, $11);
+					n->query = makeRecursiveViewSelect(n->view->relname, n->aliases, $12);
 					n->replace = false;
 					n->options = $9;
-					n->withCheckOption = $12;
+					n->withCheckOption = $13;
+					n->tags = $10;
 					if (n->withCheckOption != NO_CHECK_OPTION)
 						ereport(ERROR,
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
@@ -13330,17 +13633,18 @@ ViewStmt: CREATE OptTemp VIEW qualified_name opt_column_list opt_reloptions
 								 parser_errposition(@12)));
 					$$ = (Node *) n;
 				}
-		| CREATE OR REPLACE OptTemp RECURSIVE VIEW qualified_name '(' columnList ')' opt_reloptions
+		| CREATE OR REPLACE OptTemp RECURSIVE VIEW qualified_name '(' columnList ')' opt_reloptions OptTagOptList
 				AS SelectStmt opt_check_option
 				{
 					ViewStmt *n = makeNode(ViewStmt);
 					n->view = $7;
 					n->view->relpersistence = $4;
 					n->aliases = $9;
-					n->query = makeRecursiveViewSelect(n->view->relname, n->aliases, $13);
+					n->query = makeRecursiveViewSelect(n->view->relname, n->aliases, $14);
 					n->replace = true;
 					n->options = $11;
-					n->withCheckOption = $14;
+					n->withCheckOption = $15;
+					n->tags = $12;
 					if (n->withCheckOption != NO_CHECK_OPTION)
 						ereport(ERROR,
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
@@ -13380,11 +13684,12 @@ LoadStmt:	LOAD file_name
  *****************************************************************************/
 
 CreatedbStmt:
-			CREATE DATABASE name opt_with createdb_opt_list
+			CREATE DATABASE name opt_with createdb_opt_list OptTagOptList
 				{
 					CreatedbStmt *n = makeNode(CreatedbStmt);
 					n->dbname = $3;
 					n->options = $5;
+					n->tags = $6;
 					$$ = (Node *)n;
 				}
 		;
@@ -13473,6 +13778,21 @@ AlterDatabaseStmt:
 														(Node *)makeString($6), @6));
 					$$ = (Node *)n;
 				 }
+			| ALTER DATABASE name TAG '(' TagOptList ')'
+				{
+					AlterDatabaseStmt *n = makeNode(AlterDatabaseStmt);
+					n->dbname = $3;
+					n->tags = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER DATABASE name UNSET_P TAG '(' name_list ')'
+				{
+					AlterDatabaseStmt *n = makeNode(AlterDatabaseStmt);
+					n->dbname = $3;
+					n->tags = $7;
+					n->unsettag = true;
+					$$ = (Node *)n;
+				}
 		;
 
 AlterDatabaseSetStmt:
@@ -18961,6 +19281,7 @@ unreserved_keyword:
 			| ADMIN
 			| AFTER
 			| AGGREGATE
+			| ALLOWED_VALUES
 			| ALSO
 			| ALTER
 			| ALWAYS
@@ -19293,6 +19614,7 @@ unreserved_keyword:
 			| UNLISTEN
 			| UNLOCK_P
 			| UNLOGGED
+			| UNSET_P
 			| UNTIL
 			| UPDATE
 			| VACUUM
@@ -19848,6 +20170,7 @@ bare_label_keyword:
 			| AFTER
 			| AGGREGATE
 			| ALL
+			| ALLOWED_VALUES
 			| ALSO
 			| ALTER
 			| ALWAYS
@@ -20288,6 +20611,7 @@ bare_label_keyword:
 			| UNLISTEN
 			| UNLOCK_P
 			| UNLOGGED
+			| UNSET_P
 			| UNTIL
 			| UPDATE
 			| USER

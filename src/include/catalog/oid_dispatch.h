@@ -83,6 +83,10 @@ extern Oid GetNewOidForRelation(Relation relation, Oid indexId, AttrNumber oidco
 								char *relname, Oid relnamespace);
 extern Oid GetNewOidForResQueue(Relation relation, Oid indexId, AttrNumber oidcolumn,
 								char *rsqname);
+extern Oid GetNewOidForTag(Relation relation, Oid indexId, AttrNumber oidcolumn,
+						   char *tagname);
+extern Oid GetNewOidForTagDescription(Relation relation, Oid indexId, AttrNumber oidcolumn,
+						   char *objectname, Oid tagId);
 extern Oid GetNewOidForRewrite(Relation relation, Oid indexId, AttrNumber oidcolumn,
 							   Oid ev_class, char *rulename);
 extern Oid GetNewOidForStatisticExt(Relation relation, Oid indexId, AttrNumber oidcolumn,

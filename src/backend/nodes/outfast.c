@@ -806,6 +806,8 @@ _outAlterTableSpaceOptionsStmt(StringInfo str, AlterTableSpaceOptionsStmt *node)
 	WRITE_STRING_FIELD(tablespacename);
 	WRITE_NODE_FIELD(options);
 	WRITE_BOOL_FIELD(isReset);
+	WRITE_NODE_FIELD(tags);
+	WRITE_BOOL_FIELD(unsettag);
 }
 
 static void
@@ -1624,6 +1626,19 @@ _outNode(StringInfo str, void *obj)
 			case T_CreateSchemaStmt:
 				_outCreateSchemaStmt(str, obj);
 				break;
+			case T_AlterSchemaStmt:
+				_outAlterSchemaStmt(str, obj);
+				break;
+
+			case T_CreateTagStmt:
+				_outCreateTagStmt(str, obj);
+				break;
+			case T_AlterTagStmt:
+				_outAlterTagStmt(str, obj);
+				break;
+			case T_DropTagStmt:
+				_outDropTagStmt(str, obj);
+				break;
 			case T_CreatePLangStmt:
 				_outCreatePLangStmt(str, obj);
 				break;
@@ -1863,8 +1878,14 @@ _outNode(StringInfo str, void *obj)
 			case T_CreateDirectoryTableStmt:
 				_outCreateDirectoryTableStmt(str, obj);
 				break;
+			case T_AlterDirectoryTableStmt:
+				_outAlterDirectoryTableStmt(str, obj);
+				break;
 			case T_EphemeralNamedRelationInfo:
 				_outEphemeralNamedRelationInfo(str, obj);
+				break;
+			case T_AlterDatabaseStmt:
+				_outAlterDatabaseStmt(str, obj);
 				break;
 			default:
 				elog(ERROR, "could not serialize unrecognized node type: %d",

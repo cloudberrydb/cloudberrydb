@@ -34,6 +34,7 @@
 #include "commands/comment.h"
 #include "commands/dbcommands.h"
 #include "commands/seclabel.h"
+#include "commands/tag.h"
 #include "commands/user.h"
 #include "libpq/crypt.h"
 #include "miscadmin.h"
@@ -856,6 +857,16 @@ CreateRole(ParseState *pstate, CreateRoleStmt *stmt)
 					 errmsg("cannot create superuser with DENY rules")));
 		AddRoleDenials(stmt->role, roleid, addintervals);
 	}
+
+	/*
+	 * Create tag description.
+	 */
+	if (stmt->tags)
+		AddTagDescriptions(stmt->tags,
+						   InvalidOid,
+						   AuthIdRelationId,
+						   roleid,
+						   stmt->role);
 
 	/*
 	 * Close pg_authid, but keep lock till commit.
@@ -1781,6 +1792,27 @@ AlterRole(AlterRoleStmt *stmt)
 	ReleaseSysCache(tuple);
 	heap_freetuple(new_tuple);
 
+	if (stmt->tags)
+	{
+		if (!stmt->unsettag)
+		{
+			AlterTagDescriptions(stmt->tags,
+								 InvalidOid,
+								 AuthIdRelationId,
+								 roleid,
+								 rolename);
+		}
+
+		if (stmt->unsettag)
+		{
+			UnsetTagDescriptions(stmt->tags,
+								 InvalidOid,
+								 AuthIdRelationId,
+								 roleid,
+								 rolename);
+		}
+	}
+
 	/*
 	 * Advance command counter so we can see new record; else tests in
 	 * AddRoleMems may fail.
@@ -1866,7 +1898,7 @@ AlterRole(AlterRoleStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
-									NIL,
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 
@@ -2138,6 +2170,13 @@ DropRole(DropRoleStmt *stmt)
 		 */
 		DeleteSharedComments(roleid, AuthIdRelationId);
 		DeleteSharedSecurityLabel(roleid, AuthIdRelationId);
+		
+		/*
+		 * Delete any tag description and associated dependencies.
+		 */
+		DeleteTagDescriptions(InvalidOid,
+							  AuthIdRelationId,
+							  roleid);
 
 		/* MPP-6929: metadata tracking */
 		if (Gp_role == GP_ROLE_DISPATCH)

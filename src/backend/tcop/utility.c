@@ -59,6 +59,7 @@
 #include "commands/subscriptioncmds.h"
 #include "commands/tablecmds.h"
 #include "commands/tablespace.h"
+#include "commands/tag.h"
 #include "commands/taskcmds.h"
 #include "commands/trigger.h"
 #include "commands/typecmds.h"
@@ -173,6 +174,7 @@ ClassifyUtilityCommandAsReadOnly(Node *parsetree)
 		case T_AlterPublicationStmt:
 		case T_AlterRoleSetStmt:
 		case T_AlterRoleStmt:
+		case T_AlterSchemaStmt:
 		case T_AlterSeqStmt:
 		case T_AlterStatsStmt:
 		case T_AlterSubscriptionStmt:
@@ -244,16 +246,20 @@ ClassifyUtilityCommandAsReadOnly(Node *parsetree)
 		case T_AlterProfileStmt:
 		case T_AlterQueueStmt:
 		case T_AlterResourceGroupStmt:
+		case T_AlterTagStmt:
 		case T_CreateDirectoryTableStmt:
+		case T_AlterDirectoryTableStmt:
 		case T_CreateProfileStmt:
 		case T_CreateQueueStmt:
 		case T_CreateResourceGroupStmt:
 		case T_CreateTaskStmt:
+		case T_CreateTagStmt:
 		case T_AlterTaskStmt:
 		case T_DropTaskStmt:
 		case T_DropProfileStmt:
 		case T_DropQueueStmt:
 		case T_DropResourceGroupStmt:
+		case T_DropTagStmt:
 		case T_DropWarehouseStmt:
 		case T_CreateExternalStmt:
 		case T_RetrieveStmt:
@@ -1010,10 +1016,23 @@ standard_ProcessUtility(PlannedStmt *pstmt,
 			}
 			break;
 
+		case T_CreateTagStmt:
+			CreateTag((CreateTagStmt *) parsetree);
+			break;
+
+		case T_AlterTagStmt:
+			AlterTag((AlterTagStmt *) parsetree);
+			break;
+
+		case T_DropTagStmt:
+			DropTag((DropTagStmt *) parsetree);
+			break;
+
 		case T_ExplainStmt:
 			ExplainQuery(pstate, (ExplainStmt *) parsetree, params, dest);
 			break;
 
+			
 		case T_AlterSystemStmt:
 			PreventInTransactionBlock(isTopLevel, "ALTER SYSTEM");
 			AlterSystemSetConfigFile((AlterSystemStmt *) parsetree);
@@ -1365,6 +1384,15 @@ ProcessUtilitySlow(ParseState *pstate,
 				commandCollected = true;
 				break;
 
+			case T_AlterSchemaStmt:
+				AlterSchemaCommand((AlterSchemaStmt *) parsetree);
+				/*
+				 * EventTriggerCollectSimpleCommand called by
+				 * CreateSchemaCommand
+				 */
+				commandCollected = true;
+				break;
+
 			case T_CreateStmt:
 			case T_CreateForeignTableStmt:
 			case T_CreateDirectoryTableStmt:
@@ -1697,6 +1725,54 @@ ProcessUtilitySlow(ParseState *pstate,
 
 				/* ALTER TABLE stashes commands internally */
 				commandCollected = true;
+				break;
+
+			case T_AlterDirectoryTableStmt:
+				{
+					AlterDirectoryTableStmt *stmt = (AlterDirectoryTableStmt *) parsetree;
+					Oid		relid;
+
+					/*
+					 * Get relid of the directory table.
+					 */
+					relid = RangeVarGetRelidExtended(stmt->relation,
+													 ShareUpdateExclusiveLock,
+													 0,
+													 NULL,
+													 NULL);
+
+					if (stmt->tags)
+					{
+						if (!stmt->unsettag)
+						{
+							AlterTagDescriptions(stmt->tags,
+												 MyDatabaseId,
+												 RelationRelationId,
+												 relid,
+												 stmt->relation->relname);
+						}
+
+						if (stmt->unsettag)
+						{
+							UnsetTagDescriptions(stmt->tags,
+												 MyDatabaseId,
+												 RelationRelationId,
+												 relid,
+												 stmt->relation->relname);
+						}
+						
+					}
+
+					if (Gp_role == GP_ROLE_DISPATCH)
+					{
+						CdbDispatchUtilityStatement((Node *) stmt,
+													DF_CANCEL_ON_ERROR |
+													DF_WITH_SNAPSHOT |
+													DF_NEED_TWO_PHASE,
+													GetAssignedOidsForDispatch(),
+													NULL);
+					}
+				}
 				break;
 
 			case T_AlterDomainStmt:
@@ -2859,6 +2935,9 @@ AlterObjectTypeCommandTag(ObjectType objtype)
 		case OBJECT_TABLESPACE:
 			tag = CMDTAG_ALTER_TABLESPACE;
 			break;
+		case OBJECT_TAG:
+			tag = CMDTAG_ALTER_TAG;
+			break;
 		case OBJECT_TRIGGER:
 			tag = CMDTAG_ALTER_TRIGGER;
 			break;
@@ -3037,6 +3116,10 @@ CreateCommandTag(Node *parsetree)
 			tag = CMDTAG_CREATE_SCHEMA;
 			break;
 
+		case T_AlterSchemaStmt:
+			tag = CMDTAG_ALTER_SCHEMA;
+			break;
+
 		case T_CreateStmt:
 			tag = CMDTAG_CREATE_TABLE;
 			break;
@@ -3055,6 +3138,18 @@ CreateCommandTag(Node *parsetree)
 
 		case T_AlterTableSpaceOptionsStmt:
 			tag = CMDTAG_ALTER_TABLESPACE;
+			break;
+
+		case T_CreateTagStmt:
+			tag = CMDTAG_CREATE_TAG;
+			break;
+
+		case T_AlterTagStmt:
+			tag = CMDTAG_ALTER_TAG;
+			break;
+
+		case T_DropTagStmt:
+			tag = CMDTAG_DROP_TAG;
 			break;
 
 		case T_CreateExtensionStmt:
@@ -3133,6 +3228,10 @@ CreateCommandTag(Node *parsetree)
 			tag = CMDTAG_CREATE_DIRECTORY_TABLE;
 			break;
 
+		case T_AlterDirectoryTableStmt:
+			tag = CMDTAG_ALTER_DIRECTORY_TABLE;
+			break;
+
 		case T_DropStmt:
 			switch (((DropStmt *) parsetree)->removeType)
 			{
@@ -3168,6 +3267,9 @@ CreateCommandTag(Node *parsetree)
 					break;
 				case OBJECT_TABLESPACE:
 					tag = CMDTAG_DROP_TABLESPACE;
+					break;
+				case OBJECT_TAG:
+					tag = CMDTAG_DROP_TAG;
 					break;
 				case OBJECT_EXTPROTOCOL:
 					tag = CMDTAG_DROP_PROTOCOL;
@@ -3956,6 +4058,7 @@ GetCommandLogLevel(Node *parsetree)
 			break;
 
 		case T_CreateSchemaStmt:
+		case T_AlterSchemaStmt:
 			lev = LOGSTMT_DDL;
 			break;
 
@@ -3995,6 +4098,7 @@ GetCommandLogLevel(Node *parsetree)
 		case T_DropStorageUserMappingStmt:
 		case T_ImportForeignSchemaStmt:
 		case T_CreateDirectoryTableStmt:
+		case T_AlterDirectoryTableStmt:
 			lev = LOGSTMT_DDL;
 			break;
 

@@ -2902,6 +2902,7 @@ _outCreateStmtInfo(StringInfo str, const CreateStmt *node)
 
 	WRITE_NODE_FIELD(part_idx_oids);
 	WRITE_NODE_FIELD(part_idx_names);
+	WRITE_NODE_FIELD(tags);
 
 	/*
 	 * Some extra checks to make sure we didn't get lost
@@ -2975,6 +2976,7 @@ _outIndexStmt(StringInfo str, const IndexStmt *node)
 	WRITE_BOOL_FIELD(reset_default_tblspc);
 	WRITE_ENUM_FIELD(concurrentlyPhase, IndexConcurrentlyPhase);
 	WRITE_OID_FIELD(indexRelationOid);
+	WRITE_NODE_FIELD(tags);
 }
 
 static void
@@ -3286,6 +3288,7 @@ _outQuery(StringInfo str, const Query *node)
 			case T_DropProfileStmt:
 
 			case T_CreateSchemaStmt:
+			case T_AlterSchemaStmt:
 			case T_CreatePLangStmt:
 			case T_AlterOwnerStmt:
 			case T_AlterObjectSchemaStmt:
@@ -4030,6 +4033,16 @@ _outCreateDirectoryTableStmt(StringInfo str, const CreateDirectoryTableStmt *nod
 
 	_outCreateStmtInfo(str, (const CreateStmt *) node);
 	WRITE_STRING_FIELD(tablespacename);
+}
+
+static void
+_outAlterDirectoryTableStmt(StringInfo str, const AlterDirectoryTableStmt *node)
+{
+	WRITE_NODE_TYPE("ALTERDIRECTORYTABLESTMT");
+	
+	WRITE_NODE_FIELD(relation);
+	WRITE_NODE_FIELD(tags);
+	WRITE_BOOL_FIELD(unsettag);
 }
 
 #include "outfuncs_common.c"
@@ -5032,6 +5045,19 @@ outNode(StringInfo str, const void *obj)
 			case T_CreateSchemaStmt:
 				_outCreateSchemaStmt(str, obj);
 				break;
+			case T_AlterSchemaStmt:
+				_outAlterSchemaStmt(str, obj);
+				break;
+
+			case T_CreateTagStmt:
+				_outCreateTagStmt(str, obj);
+				break;
+			case T_AlterTagStmt:
+				_outAlterTagStmt(str, obj);
+				break;
+			case T_DropTagStmt:
+				_outDropTagStmt(str, obj);
+				break;
 			case T_CreatePLangStmt:
 				_outCreatePLangStmt(str, obj);
 				break;
@@ -5167,8 +5193,14 @@ outNode(StringInfo str, const void *obj)
 			case T_EphemeralNamedRelationInfo:
 				_outEphemeralNamedRelationInfo(str, obj);
 				break;
+			case T_AlterDatabaseStmt:
+				_outAlterDatabaseStmt(str, obj);
+				break;
 			case T_CreateDirectoryTableStmt:
 				_outCreateDirectoryTableStmt(str, obj);
+				break;
+			case T_AlterDirectoryTableStmt:
+				_outAlterDirectoryTableStmt(str, obj);
 				break;
 			default:
 

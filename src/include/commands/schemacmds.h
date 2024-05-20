@@ -21,6 +21,7 @@
 extern Oid	CreateSchemaCommand(CreateSchemaStmt *parsetree,
 								const char *queryString,
 								int stmt_location, int stmt_len);
+extern void AlterSchemaCommand(AlterSchemaStmt *stmt);
 
 extern void RemoveSchemaById(Oid schemaOid);
 

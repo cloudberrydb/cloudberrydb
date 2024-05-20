@@ -119,6 +119,8 @@
 #include "catalog/pg_statistic_ext.h"
 #include "catalog/pg_subscription.h"
 #include "catalog/pg_tablespace.h"
+#include "catalog/pg_tag.h"
+#include "catalog/pg_tag_description.h"
 #include "catalog/pg_transform.h"
 #include "catalog/pg_trigger.h"
 #include "catalog/pg_ts_config.h"
@@ -954,6 +956,39 @@ GetNewOidForResQueue(Relation relation, Oid indexId, AttrNumber oidcolumn,
 	memset(&key, 0, sizeof(OidAssignment));
 	key.type = T_OidAssignment;
 	key.objname = rsqname;
+	return GetNewOrPreassignedOid(relation, indexId, oidcolumn, &key);
+}
+
+Oid
+GetNewOidForTag(Relation relation, Oid indexId, AttrNumber oidcolumn,
+				char *tagname)
+{
+	OidAssignment key;
+	
+	Assert(RelationGetRelid(relation) == TagRelationId);
+	Assert(indexId == TagOidIndexId);
+	Assert(oidcolumn == Anum_pg_tag_oid);
+	
+	memset(&key, 0, sizeof(OidAssignment));
+	key.type = T_OidAssignment;
+	key.objname = tagname;
+	return GetNewOrPreassignedOid(relation, indexId, oidcolumn, &key);
+}
+
+Oid
+GetNewOidForTagDescription(Relation relation, Oid indexId, AttrNumber oidcolumn,
+						   char *objectname, Oid tagId)
+{
+	OidAssignment key;
+	
+	Assert(RelationGetRelid(relation) == TagDescriptionRelationId);
+	Assert(indexId == TagDescriptionOidIndexId);
+	Assert(oidcolumn == Anum_pg_tag_description_oid);
+	
+	memset(&key, 0, sizeof(OidAssignment));
+	key.type = T_OidAssignment;
+	key.objname = objectname;
+	key.keyOid1 = tagId;
 	return GetNewOrPreassignedOid(relation, indexId, oidcolumn, &key);
 }
 

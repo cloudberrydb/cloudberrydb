@@ -81,6 +81,7 @@
 #include "commands/seclabel.h"
 #include "commands/tablecmds.h"
 #include "commands/tablespace.h"
+#include "commands/tag.h"
 #include "common/file_perm.h"
 #include "miscadmin.h"
 #include "parser/parse_func.h"
@@ -461,6 +462,16 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 
 	heap_freetuple(tuple);
 
+	/*
+	 * Create tag description.
+	 */
+	if (stmt->tags)
+		AddTagDescriptions(stmt->tags,
+						   InvalidOid,
+						   TableSpaceRelationId,
+						   tablespaceoid,
+						   stmt->tablespacename);
+
 	/* Record dependency on owner */
 	recordDependencyOnOwner(TableSpaceRelationId, tablespaceoid, ownerId);
 
@@ -714,6 +725,13 @@ DropTableSpace(DropTableSpaceStmt *stmt)
 	CatalogTupleDelete(rel, &tuple->t_self);
 
 	table_endscan(scandesc);
+
+	/*
+	 * Delete any tag description and associated dependencies.
+	 */
+	DeleteTagDescriptions(InvalidOid,
+					      TableSpaceRelationId,
+					      tablespaceoid);
 
 	/*
 	 * Remove any comments or security labels on this tablespace.
@@ -1511,6 +1529,27 @@ AlterTableSpaceOptions(AlterTableSpaceOptionsStmt *stmt)
 	/* Conclude heap scan. */
 	table_endscan(scandesc);
 	table_close(rel, NoLock);
+
+	if (stmt->tags)
+	{
+		if (!stmt->unsettag)
+		{
+			AlterTagDescriptions(stmt->tags,
+								 InvalidOid,
+								 TableSpaceRelationId,
+								 tablespaceoid,
+								 stmt->tablespacename);
+		}
+
+		if (stmt->unsettag)
+		{
+			UnsetTagDescriptions(stmt->tags,
+								 InvalidOid,
+								 TableSpaceRelationId,
+								 tablespaceoid,
+								 stmt->tablespacename);
+		}
+	}
 
 	if (Gp_role == GP_ROLE_DISPATCH && ENABLE_DISPATCH())
 	{

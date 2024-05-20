@@ -47,6 +47,7 @@ static void dumpProfiles(PGconn *conn);
 static void dumpPasswordHistory(PGconn *conn);
 static void dropTablespaces(PGconn *conn);
 static void dumpTablespaces(PGconn *conn);
+static void dumpTags(PGconn *conn);
 static void dropDBs(PGconn *conn);
 static void dumpUserConfig(PGconn *conn, const char *username);
 static void dumpDatabases(PGconn *conn);
@@ -663,6 +664,9 @@ main(int argc, char *argv[])
 
 			/* Dump role profile */
 			dumpProfiles(conn);
+
+			/* Dump tags */
+			dumpTags(conn);
 
 			/* Dump roles (users) */
 			dumpRoles(conn);
@@ -1876,6 +1880,65 @@ dumpTablespaces(PGconn *conn)
 	fprintf(OPF, "\n\n");
 }
 
+/*
+ * Dump tags.
+ */
+static void
+dumpTags(PGconn *conn)
+{
+	PGresult *res;
+	int 	i;
+
+	if (server_version < 140000)
+		return;
+
+	res = executeQuery(conn, "SELECT oid, tagname, "
+					   "pg_catalog.pg_get_userbyid(tagowner) AS tagowner, "
+					   "array_to_string(allowed_values, ', '), "
+					   "pg_catalog.shobj_description(oid, 'pg_tag') "
+					   "FROM pg_catalog.pg_tag "
+					   "ORDER BY 1");
+
+	if (PQntuples(res) > 0)
+		fprintf(OPF, "--\n-- Tags\n--\n\n");
+
+	for (i = 0; i < PQntuples(res); i++)
+	{
+		PQExpBuffer buf = createPQExpBuffer();
+		Oid			tagid = atooid(PQgetvalue(res, i, 0));
+		char 	   *tagname = PQgetvalue(res, i, 1);
+		char	   *tagowner = PQgetvalue(res, i, 2);
+		char	   *allowed_values = PQgetvalue(res, i, 3);
+		char	   *tagcomment = PQgetvalue(res, i, 4);
+
+		appendPQExpBuffer(buf, "CREATE TAG %s", tagname);
+		
+		if (allowed_values && allowed_values[0] != '\0')
+			appendPQExpBuffer(buf, " ALLOWED_VALUES %s;\n ", allowed_values);
+		
+		appendPQExpBuffer(buf, "ALTER TAG %s OWNER TO %s;\n",
+						  tagname, tagowner);
+
+		if (!no_comments && tagcomment && tagcomment[0] != '\0')
+		{
+			appendPQExpBuffer(buf, "COMMENT ON TAG %s IS ", tagname);
+			appendStringLiteralConn(buf, tagcomment, conn);
+			appendPQExpBufferStr(buf, ";\n");
+		}
+
+		if (!no_security_labels && server_version >= 140000)
+			buildShSecLabels(conn, "pg_tag", tagid,
+							 "TAG", tagname,
+							 buf);
+		
+		fprintf(OPF, "%s", buf->data);
+		
+		destroyPQExpBuffer(buf);
+	}
+	
+	PQclear(res);
+	fprintf(OPF, "\n\n");
+}
 
 /*
  * Dump commands to drop each database.
