@@ -58,6 +58,8 @@
 #include "catalog/pg_statistic_ext.h"
 #include "catalog/pg_subscription.h"
 #include "catalog/pg_tablespace.h"
+#include "catalog/pg_tag.h"
+#include "catalog/pg_tag_description.h"
 #include "catalog/pg_task.h"
 #include "catalog/pg_transform.h"
 #include "catalog/pg_trigger.h"
@@ -78,6 +80,7 @@
 #include "commands/schemacmds.h"
 #include "commands/seclabel.h"
 #include "commands/sequence.h"
+#include "commands/tag.h"
 #include "commands/taskcmds.h"
 #include "commands/trigger.h"
 #include "commands/typecmds.h"
@@ -209,6 +212,8 @@ static const Oid object_classes[] = {
 	DirectoryTableRelationId,	/* OCLASS_DIRECTORY_TABLE */
 	StorageServerRelationId,	/* OCLASS_STORAGE_SERVER */
 	StorageUserMappingRelationId,	/* OCLASS_STORAGE_USER_MAPPING */
+	TagRelationId,				/* OCLASS_TAG */
+	TagDescriptionRelationId,	/* OCLASS_TAG_DESCRIPTION */
 	ExtprotocolRelationId,		/* OCLASS_EXTPROTOCOL */
 	GpMatviewAuxId,				/* OCLASS_MATVIEW_AUX */
 	TaskRelationId,				/* OCLASS_TASK */
@@ -1474,6 +1479,13 @@ doDeletion(const ObjectAddress *object, int flags)
 
 					Assert(object->objectSubId == 0);
 					index_drop(object->objectId, concurrent, concurrent_lock_mode);
+					
+					/*
+					 * Delete tag description.
+					 */
+					DeleteTagDescriptions(MyDatabaseId,
+										  object->classId,
+										  object->objectId);
 				}
 				else
 				{
@@ -1481,7 +1493,17 @@ doDeletion(const ObjectAddress *object, int flags)
 						RemoveAttributeById(object->objectId,
 											object->objectSubId);
 					else
+					{
 						heap_drop_with_catalog(object->objectId);
+						
+						/*
+						 * Delete tag description.
+						 */
+						DeleteTagDescriptions(MyDatabaseId,
+											  object->classId,
+											  object->objectId);
+					}
+						
 				}
 
 				/*
@@ -1551,6 +1573,12 @@ doDeletion(const ObjectAddress *object, int flags)
 
 		case OCLASS_SCHEMA:
 			RemoveSchemaById(object->objectId);
+			/*
+			 * Delete tag description.
+			 */
+			DeleteTagDescriptions(MyDatabaseId,
+								  object->classId,
+								  object->objectId);
 			break;
 		case OCLASS_TASK:
 			RemoveTaskById(object->objectId);
@@ -1593,6 +1621,8 @@ doDeletion(const ObjectAddress *object, int flags)
 		case OCLASS_PASSWORDHISTORY:
 		case OCLASS_STORAGE_SERVER:
 		case OCLASS_STORAGE_USER_MAPPING:
+		case OCLASS_TAG:
+		case OCLASS_TAG_DESCRIPTION:
 			elog(ERROR, "global objects cannot be deleted by doDeletion");
 			break;
 
@@ -2995,6 +3025,12 @@ getObjectClass(const ObjectAddress *object)
 
 		case StorageUserMappingRelationId:
 			return OCLASS_STORAGE_USER_MAPPING;
+
+		case TagRelationId:
+			return OCLASS_TAG;
+
+		case TagDescriptionRelationId:
+			return OCLASS_TAG_DESCRIPTION;
 
 		default:
 		{

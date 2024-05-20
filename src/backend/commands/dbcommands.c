@@ -54,6 +54,7 @@
 #include "commands/defrem.h"
 #include "commands/seclabel.h"
 #include "commands/tablespace.h"
+#include "commands/tag.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
 #include "pgstat.h"
@@ -620,6 +621,20 @@ createdb(ParseState *pstate, const CreatedbStmt *stmt)
 							new_record, new_record_nulls);
 
 	CatalogTupleInsert(pg_database_rel, tuple);
+	
+	CommandCounterIncrement();
+
+	/*
+	 * Create tag description.
+	 */
+	if (stmt->tags)
+	{
+		AddTagDescriptions(stmt->tags,
+					 	   InvalidOid,
+					 	   DatabaseRelationId,
+					 	   dboid,
+					 	   dbname);
+	}
 
 	if (shouldDispatch)
 	{
@@ -1067,6 +1082,13 @@ dropdb(const char *dbname, bool missing_ok, bool force)
 	 */
 	DeleteSharedComments(db_id, DatabaseRelationId);
 	DeleteSharedSecurityLabel(db_id, DatabaseRelationId);
+	
+	/*
+	 * Delete any tag description and associated dependencies.
+	 */
+	DeleteTagDescriptions(InvalidOid,
+						  DatabaseRelationId,
+						  db_id);
 
 	/*
 	 * Remove settings associated with this database
@@ -1808,7 +1830,7 @@ AlterDatabase(ParseState *pstate, AlterDatabaseStmt *stmt, bool isTopLevel)
 	newtuple = heap_modify_tuple(tuple, RelationGetDescr(rel), new_record,
 								 new_record_nulls, new_record_repl);
 	CatalogTupleUpdate(rel, &tuple->t_self, newtuple);
-
+	
 	InvokeObjectPostAlterHook(DatabaseRelationId, dboid, 0);
 
 	systable_endscan(scan);
@@ -1822,6 +1844,37 @@ AlterDatabase(ParseState *pstate, AlterDatabaseStmt *stmt, bool isTopLevel)
 
 	/* Close pg_database, but keep lock till commit */
 	table_close(rel, NoLock);
+
+	if (stmt->tags)
+	{
+		if (!stmt->unsettag)
+		{
+			AlterTagDescriptions(stmt->tags,
+								 InvalidOid,
+								 DatabaseRelationId,
+								 dboid,
+								 stmt->dbname);
+		}
+
+		if (stmt->unsettag)
+		{
+			UnsetTagDescriptions(stmt->tags,
+								 InvalidOid,
+								 DatabaseRelationId,
+								 dboid,
+								 stmt->dbname);
+		}
+
+		if (Gp_role == GP_ROLE_DISPATCH)
+		{
+			CdbDispatchUtilityStatement((Node *) stmt,
+										DF_CANCEL_ON_ERROR|
+										DF_WITH_SNAPSHOT|
+										DF_NEED_TWO_PHASE,
+										GetAssignedOidsForDispatch(),
+										NULL);
+		}
+	}
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{

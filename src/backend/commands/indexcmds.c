@@ -45,6 +45,7 @@
 #include "commands/progress.h"
 #include "commands/tablecmds.h"
 #include "commands/tablespace.h"
+#include "commands/tag.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
@@ -1569,6 +1570,18 @@ DefineIndex(Oid relationId,
 			pgstat_progress_end_command();
 
 		return address;
+	}
+
+	/*
+	 * Create tag description.
+	 */
+	if (stmt->tags)
+	{
+		AddTagDescriptions(stmt->tags,
+						   MyDatabaseId,
+						   address.classId,
+						   address.objectId,
+						   stmt->idxname);
 	}
 
 	/*

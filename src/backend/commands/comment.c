@@ -133,6 +133,7 @@ CommentObject(CommentStmt *stmt)
 		case OBJECT_RESQUEUE:
 		case OBJECT_RESGROUP:
 		case OBJECT_PROFILE:
+		case OBJECT_TAG:
 			CreateSharedComments(address.objectId, address.classId, stmt->comment);
 			break;
 		default:

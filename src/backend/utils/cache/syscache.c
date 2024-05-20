@@ -71,6 +71,8 @@
 #include "catalog/pg_subscription.h"
 #include "catalog/pg_subscription_rel.h"
 #include "catalog/pg_tablespace.h"
+#include "catalog/pg_tag.h"
+#include "catalog/pg_tag_description.h"
 #include "catalog/pg_transform.h"
 #include "catalog/pg_ts_config.h"
 #include "catalog/pg_ts_config_map.h"
@@ -954,6 +956,39 @@ static const struct cachedesc cacheinfo[] = {
 			0,
 		},
 		4
+	},
+	{TagRelationId,				/* TAGNAME */
+		TagNameIndexId,
+		1,
+		{
+			Anum_pg_tag_tagname,
+			0,
+			0,
+			0,
+		},
+		16
+	},
+	{TagRelationId,				/* TAGOID */
+		TagOidIndexId,
+		1,
+		{
+			Anum_pg_tag_oid,
+			0,
+			0,
+			0,
+		},
+		16
+	},
+	{TagDescriptionRelationId,	/* TAGDESCRIPTION */
+		TagDescriptionIndexId,
+		4,
+		{
+			Anum_pg_tag_description_tddatabaseid,
+			Anum_pg_tag_description_tdclassid,
+			Anum_pg_tag_description_tdobjid,
+			Anum_pg_tag_description_tagid,
+		},
+		16
 	},
 	{TransformRelationId,		/* TRFOID */
 		TransformOidIndexId,

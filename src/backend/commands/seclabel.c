@@ -85,6 +85,7 @@ SecLabelSupportsObjectType(ObjectType objtype)
 		case OBJECT_RULE:
 		case OBJECT_STATISTIC_EXT:
 		case OBJECT_TABCONSTRAINT:
+		case OBJECT_TAG:
 		case OBJECT_TRANSFORM:
 		case OBJECT_TRIGGER:
 		case OBJECT_TSCONFIGURATION:

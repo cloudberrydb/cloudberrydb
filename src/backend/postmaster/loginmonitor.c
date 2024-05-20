@@ -572,7 +572,8 @@ LoginMonitorWorkerMain(int argc, char *argv[]) {
 		SetConfigOption("synchronous_commit", "local",
 				PGC_SUSET, PGC_S_OVERRIDE);
 
-	if (LoginMonitorShmem->curr_user_name[0] != '\0') {
+	if (LoginMonitorShmem->curr_user_name[0] != '\0')
+	{
 		InitPostgres(DB_FOR_COMMON_ACCESS, InvalidOid, NULL, InvalidOid, NULL, false);
 		SetProcessingMode(NormalProcessing);
 		set_ps_display(LoginMonitorShmem->curr_user_name);

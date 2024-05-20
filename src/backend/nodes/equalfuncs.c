@@ -1219,6 +1219,8 @@ _equalAlterTableCmd(const AlterTableCmd *a, const AlterTableCmd *b)
 	COMPARE_NODE_FIELD(def);
 	COMPARE_SCALAR_FIELD(behavior);
 	COMPARE_SCALAR_FIELD(missing_ok);
+	COMPARE_NODE_FIELD(tags);
+	COMPARE_SCALAR_FIELD(unsettag);
 
 	return true;
 }
@@ -1389,6 +1391,7 @@ _equalCreateStmt(const CreateStmt *a, const CreateStmt *b)
 	COMPARE_SCALAR_FIELD(buildAoBlkdir);
 	COMPARE_NODE_FIELD(attr_encodings);
 	COMPARE_SCALAR_FIELD(isCtas);
+	COMPARE_NODE_FIELD(tags);
 
 	return true;
 }
@@ -1439,6 +1442,7 @@ _equalCreateExternalStmt(const CreateExternalStmt *a, const CreateExternalStmt *
 	COMPARE_NODE_FIELD(extOptions);
 	COMPARE_NODE_FIELD(encoding);
 	COMPARE_NODE_FIELD(distributedBy);
+	COMPARE_NODE_FIELD(tags);
 
 	return true;
 }
@@ -1560,6 +1564,7 @@ _equalIndexStmt(const IndexStmt *a, const IndexStmt *b)
 	COMPARE_SCALAR_FIELD(reset_default_tblspc);
 	COMPARE_SCALAR_FIELD(concurrentlyPhase);
 	COMPARE_SCALAR_FIELD(indexRelationOid);
+	COMPARE_NODE_FIELD(tags);
 
 	return true;
 }
@@ -1800,6 +1805,7 @@ _equalViewStmt(const ViewStmt *a, const ViewStmt *b)
 	COMPARE_SCALAR_FIELD(replace);
 	COMPARE_NODE_FIELD(options);
 	COMPARE_SCALAR_FIELD(withCheckOption);
+	COMPARE_NODE_FIELD(tags);
 
 	return true;
 }
@@ -1874,6 +1880,7 @@ _equalCreatedbStmt(const CreatedbStmt *a, const CreatedbStmt *b)
 {
 	COMPARE_STRING_FIELD(dbname);
 	COMPARE_NODE_FIELD(options);
+	COMPARE_NODE_FIELD(tags);
 	return true;
 }
 
@@ -1882,6 +1889,8 @@ _equalAlterDatabaseStmt(const AlterDatabaseStmt *a, const AlterDatabaseStmt *b)
 {
 	COMPARE_STRING_FIELD(dbname);
 	COMPARE_NODE_FIELD(options);
+	COMPARE_NODE_FIELD(tags);
+	COMPARE_SCALAR_FIELD(unsettag);
 
 	return true;
 }
@@ -1983,6 +1992,7 @@ _equalCreateSeqStmt(const CreateSeqStmt *a, const CreateSeqStmt *b)
 	COMPARE_SCALAR_FIELD(ownerId);
 	COMPARE_SCALAR_FIELD(for_identity);
 	COMPARE_SCALAR_FIELD(if_not_exists);
+	COMPARE_NODE_FIELD(tags);
 
 	return true;
 }
@@ -2033,6 +2043,7 @@ _equalCreateTableSpaceStmt(const CreateTableSpaceStmt *a, const CreateTableSpace
 	COMPARE_STRING_FIELD(location);
 	COMPARE_NODE_FIELD(options);
 	COMPARE_STRING_FIELD(filehandler);
+	COMPARE_NODE_FIELD(tags);
 
 	return true;
 }
@@ -2053,6 +2064,8 @@ _equalAlterTableSpaceOptionsStmt(const AlterTableSpaceOptionsStmt *a,
 	COMPARE_STRING_FIELD(tablespacename);
 	COMPARE_NODE_FIELD(options);
 	COMPARE_SCALAR_FIELD(isReset);
+	COMPARE_NODE_FIELD(tags);
+	COMPARE_SCALAR_FIELD(unsettag);
 
 	return true;
 }
@@ -2346,6 +2359,7 @@ _equalCreateRoleStmt(const CreateRoleStmt *a, const CreateRoleStmt *b)
 	COMPARE_SCALAR_FIELD(stmt_type);
 	COMPARE_STRING_FIELD(role);
 	COMPARE_NODE_FIELD(options);
+	COMPARE_NODE_FIELD(tags);
 
 	return true;
 }
@@ -2383,6 +2397,8 @@ _equalAlterRoleStmt(const AlterRoleStmt *a, const AlterRoleStmt *b)
 	COMPARE_NODE_FIELD(role);
 	COMPARE_NODE_FIELD(options);
 	COMPARE_SCALAR_FIELD(action);
+	COMPARE_NODE_FIELD(tags);
+	COMPARE_SCALAR_FIELD(unsettag);
 
 	return true;
 }
@@ -2480,7 +2496,49 @@ _equalCreateSchemaStmt(const CreateSchemaStmt *a, const CreateSchemaStmt *b)
 	COMPARE_SCALAR_FIELD(if_not_exists);
 	COMPARE_SCALAR_FIELD(istemp);
 	COMPARE_SCALAR_FIELD(pop_search_path);
+	COMPARE_NODE_FIELD(tags);
 
+	return true;
+}
+
+static bool
+_equalAlterSchemaStmt(const AlterSchemaStmt *a, const AlterSchemaStmt *b)
+{
+	COMPARE_STRING_FIELD(schemaname);
+	COMPARE_NODE_FIELD(tags);
+	COMPARE_SCALAR_FIELD(unsettag);
+
+	return true;
+}
+
+static bool
+_equalCreateTagStmt(const CreateTagStmt *a, const CreateTagStmt *b)
+{
+	COMPARE_STRING_FIELD(tag_name);
+	COMPARE_SCALAR_FIELD(missing_ok);
+	COMPARE_NODE_FIELD(allowed_values);
+	
+	return true;
+}
+
+static bool
+_equalAlterTagStmt(const AlterTagStmt *a, const AlterTagStmt *b)
+{
+	COMPARE_STRING_FIELD(tag_name);
+	COMPARE_SCALAR_FIELD(action);
+	COMPARE_NODE_FIELD(tag_values);
+	COMPARE_SCALAR_FIELD(missing_ok);
+	COMPARE_SCALAR_FIELD(unset);
+	
+	return true;
+}
+
+static bool
+_equalDropTagStmt(const DropTagStmt *a, const DropTagStmt *b)
+{
+	COMPARE_NODE_FIELD(tags);
+	COMPARE_SCALAR_FIELD(missing_ok);
+	
 	return true;
 }
 
@@ -3406,6 +3464,16 @@ _equalCreateDirectoryTableStmt(const CreateDirectoryTableStmt *a, const CreateDi
 	return true;
 }
 
+static bool
+_equalAlterDirectoryTableStmt(const AlterDirectoryTableStmt *a, const AlterDirectoryTableStmt *b)
+{
+	COMPARE_NODE_FIELD(relation);
+	COMPARE_NODE_FIELD(tags);
+	COMPARE_SCALAR_FIELD(unsettag);
+	
+	return true;
+}
+
 /*
  * Stuff from pg_list.h
  */
@@ -4096,6 +4164,18 @@ equal(const void *a, const void *b)
 		case T_CreateSchemaStmt:
 			retval = _equalCreateSchemaStmt(a, b);
 			break;
+		case T_AlterSchemaStmt:
+			retval = _equalAlterSchemaStmt(a, b);
+			break;
+		case T_CreateTagStmt:
+			retval = _equalCreateTagStmt(a, b);
+			break;
+		case T_AlterTagStmt:
+			retval = _equalAlterTagStmt(a, b);
+			break;
+		case T_DropTagStmt:
+			retval = _equalDropTagStmt(a, b);
+			break;
 		case T_CreateConversionStmt:
 			retval = _equalCreateConversionStmt(a, b);
 			break;
@@ -4341,6 +4421,10 @@ equal(const void *a, const void *b)
 			break;
 		case T_CreateDirectoryTableStmt:
 			retval = _equalCreateDirectoryTableStmt(a, b);
+			break;
+
+		case T_AlterDirectoryTableStmt:
+			retval = _equalAlterDirectoryTableStmt(a, b);
 			break;
 
 		default:

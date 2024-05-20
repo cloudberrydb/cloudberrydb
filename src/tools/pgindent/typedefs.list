@@ -66,6 +66,7 @@ AlterCollationStmt
 AlterDatabaseSetStmt
 AlterDatabaseStmt
 AlterDefaultPrivilegesStmt
+AlterDirectoryTableStmt
 AlterDomainStmt
 AlterEnumStmt
 AlterEventTrigStmt
@@ -84,6 +85,7 @@ AlterProfileStmt
 AlterPublicationStmt
 AlterRoleSetStmt
 AlterRoleStmt
+AlterSchemaStmt
 AlterSeqStmt
 AlterStatsStmt
 AlterStorageServer
@@ -91,6 +93,7 @@ AlterStorageUserMappingStmt
 AlterSubscriptionStmt
 AlterSubscriptionType
 AlterSystemStmt
+AlterTagStmt
 AlterTSConfigType
 AlterTSConfigurationStmt
 AlterTSDictionaryStmt
@@ -462,6 +465,7 @@ CoverPos
 CreateAmStmt
 CreateCastStmt
 CreateConversionStmt
+CreateDirectoryTableStmt
 CreateDomainStmt
 CreateEnumStmt
 CreateEventTrigStmt
@@ -491,6 +495,7 @@ CreateStorageUserMappingStmt
 CreateSubscriptionStmt
 CreateTableAsStmt
 CreateTableSpaceStmt
+CreateTagStmt
 CreateTransformStmt
 CreateTrigStmt
 CreateUserMappingStmt
@@ -580,6 +585,7 @@ DropStorageServer
 DropStorageUserMappingStmt
 DropSubscriptionStmt
 DropTableSpaceStmt
+DropTagStmt
 DropUserMappingStmt
 DropdbStmt
 DumpComponents
