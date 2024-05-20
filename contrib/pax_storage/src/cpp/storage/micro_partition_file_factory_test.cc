@@ -24,7 +24,6 @@ namespace pax::tests {
 
 class MicroPartitionFileFactoryTest : public ::testing::Test {
  public:
-  const char *pax_format = MICRO_PARTITION_TYPE_PAX;
   void SetUp() override {
     Singleton<LocalFileSystem>::GetInstance()->Delete(file_name_);
 
@@ -62,7 +61,7 @@ TEST_F(MicroPartitionFileFactoryTest, CreateMicroPartitionWriter) {
   writer_options.encoding_opts = types_encoding;
 
   auto writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(
-      pax_format, file_ptr, writer_options);
+      writer_options, file_ptr);
 
   writer->WriteTuple(tuple_slot);
   writer->Close();
@@ -92,7 +91,7 @@ TEST_F(MicroPartitionFileFactoryTest, CreateMicroPartitionReader) {
   writer_options.encoding_opts = types_encoding;
 
   auto writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(
-      pax_format, file_ptr, writer_options);
+      writer_options, file_ptr);
   TupleTableSlot *tuple_slot_empty = CreateTestTupleTableSlot(false);
 
   writer->WriteTuple(tuple_slot);
@@ -102,11 +101,10 @@ TEST_F(MicroPartitionFileFactoryTest, CreateMicroPartitionReader) {
 
   MicroPartitionReader::ReaderOptions reader_options;
 
-  int flags = 0;
-  flags |= pax::ReaderFlags::FLAGS_DEFAULT;
+  int32 flags = FLAGS_EMPTY;
 
   auto reader = MicroPartitionFileFactory::CreateMicroPartitionReader(
-      pax_format, file_ptr, reader_options, flags);
+      reader_options, flags, file_ptr);
   reader->ReadTuple(tuple_slot_empty);
   EXPECT_TRUE(VerifyTestTupleTableSlot(tuple_slot_empty));
 
@@ -139,7 +137,7 @@ TEST_F(MicroPartitionFileFactoryTest, OrcReadWithVisibilitymap) {
   writer_options.encoding_opts = types_encoding;
 
   auto writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(
-      pax_format, file_ptr, writer_options);
+      writer_options, file_ptr);
 
   int tuple_count = 1000;
   for (int i = 0; i < tuple_count; i++) {
@@ -160,12 +158,11 @@ TEST_F(MicroPartitionFileFactoryTest, OrcReadWithVisibilitymap) {
 
   reader_options.visibility_bitmap = visimap;
 
-  int flags = 0;
-  flags |= pax::ReaderFlags::FLAGS_DEFAULT;
+  int32 flags = FLAGS_EMPTY;
 
   TupleTableSlot *tuple_slot_empty = CreateTestTupleTableSlot();
   auto reader = MicroPartitionFileFactory::CreateMicroPartitionReader(
-      pax_format, file_ptr, reader_options, flags);
+      reader_options, flags, file_ptr);
 
   int read_tuple_count = 0;
   while (reader->ReadTuple(tuple_slot_empty)) {
@@ -207,7 +204,7 @@ TEST_F(MicroPartitionFileFactoryTest, VecReadWithVisibilitymap) {
   writer_options.encoding_opts = types_encoding;
 
   auto writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(
-      pax_format, file_ptr, writer_options);
+      writer_options, file_ptr);
 
   int tuple_count = 1000;
   for (int i = 0; i < tuple_count; i++) {
@@ -236,16 +233,16 @@ TEST_F(MicroPartitionFileFactoryTest, VecReadWithVisibilitymap) {
   }
 
   reader_options.visibility_bitmap = visimap;
-  reader_options.desc = tuple_slot->tts_tupleDescriptor;
+  reader_options.tuple_desc = tuple_slot->tts_tupleDescriptor;
 
-  int flags = 0;
-  flags |= pax::ReaderFlags::FLAGS_VECTOR;
+  int32 flags = FLAGS_EMPTY;
+  READER_FLAG_SET_VECTOR_PATH(flags);
 
   TupleTableSlot *read_tuple_slot =
       CreateVecEmptyTupleSlot(tuple_slot->tts_tupleDescriptor);
 
   auto reader = MicroPartitionFileFactory::CreateMicroPartitionReader(
-      pax_format, file_ptr, reader_options, flags);
+      reader_options, flags, file_ptr);
 
   auto ret = reader->ReadTuple(read_tuple_slot);
   ASSERT_TRUE(ret);

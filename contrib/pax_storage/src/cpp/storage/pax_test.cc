@@ -154,14 +154,11 @@ TEST_F(PaxWriterTest, WriteReadTuple) {
       std::unique_ptr<IteratorBase<MicroPartitionMetadata>>(
           new MockReaderInterator(meta_info_list));
 
+  TupleTableSlot *rslot = CreateTestTupleTableSlot(false);
   TableReader *reader;
   TableReader::ReaderOptions reader_options{};
-  reader_options.build_bitmap = false;
-  reader_options.rel_oid = 0;
   reader = new TableReader(std::move(meta_info_iterator), reader_options);
   reader->Open();
-
-  TupleTableSlot *rslot = CreateTestTupleTableSlot(false);
 
   reader->ReadTuple(rslot);
   EXPECT_TRUE(VerifyTestTupleTableSlot(rslot));
@@ -204,8 +201,7 @@ TEST_F(PaxWriterTest, TestOper) {
   pax_max_tuples_per_group = split_size / 8;
 
   std::vector<int> minmax_columns;
-  for (int i = 0; i < relation->rd_att->natts; i++)
-    minmax_columns.push_back(i);
+  for (int i = 0; i < relation->rd_att->natts; i++) minmax_columns.push_back(i);
 
   auto stats = new MicroPartitionStats();
   stats->SetMinMaxColumnIndex(std::move(minmax_columns));
@@ -267,7 +263,8 @@ TEST_F(PaxWriterTest, TestOper) {
       auto max = *reinterpret_cast<const int32 *>(
           stats->DataStats(2).maximum().data());
 
-      EXPECT_EQ(pax_max_tuples_per_group * i + file_min_max_offset, static_cast<size_t>(min));
+      EXPECT_EQ(pax_max_tuples_per_group * i + file_min_max_offset,
+                static_cast<size_t>(min));
       EXPECT_EQ(pax_max_tuples_per_group * (i + 1) + file_min_max_offset - 1,
                 static_cast<size_t>(max));
     }
@@ -347,9 +344,7 @@ TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
           new MockReaderInterator(meta_info_list));
 
   TableReader *reader;
-  TableReader::ReaderOptions reader_options{.build_bitmap = false,
-                                            .rel_oid = 0};
-  reader_options.build_bitmap = false;
+  TableReader::ReaderOptions reader_options;
   reader = new TableReader(std::move(meta_info_iterator), reader_options);
   reader->Open();
 
@@ -500,8 +495,6 @@ TEST_F(PaxWriterTest, TestCacheColumns) {
 
   TableReader *reader;
   TableReader::ReaderOptions reader_options{};
-  reader_options.build_bitmap = false;
-  reader_options.rel_oid = 0;
   reader_options.filter = filter;
   reader_options.pax_cache = pax_cache;
 
@@ -668,8 +661,6 @@ TEST_F(PaxWriterTest, ParitionWriteReadTuple) {
 
   TableReader *reader;
   TableReader::ReaderOptions reader_options{};
-  reader_options.build_bitmap = false;
-  reader_options.rel_oid = 0;
   reader = new TableReader(std::move(meta_info_iterator), reader_options);
   reader->Open();
 

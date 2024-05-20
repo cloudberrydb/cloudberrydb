@@ -164,12 +164,9 @@ class MicroPartitionReader {
     PaxCache *pax_cache = nullptr;
 #endif  // ENABLE_PLASMA
 
-    TupleDesc desc = nullptr;
-
-    // flags is used to control the behavior of the reader
-    // refer to the definition of ReaderFlags.
-    uint32 flags = 0;
-    bool is_vec_scan = false;
+#ifdef VEC_BUILD
+    TupleDesc tuple_desc = nullptr;
+#endif
 
     // should only reference
     std::shared_ptr<Bitmap8> visibility_bitmap = nullptr;

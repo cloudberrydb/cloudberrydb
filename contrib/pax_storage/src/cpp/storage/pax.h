@@ -77,19 +77,16 @@ class TableWriter {
 class TableReader final {
  public:
   struct ReaderOptions {
-    bool build_bitmap = false;
-    Oid rel_oid = 0;
-
     DataBuffer<char> *reused_buffer = nullptr;
 
     // Will not used in TableReader
     // But pass into micro partition reader
     PaxFilter *filter = nullptr;
+
 #ifdef VEC_BUILD
     bool is_vec = false;
-    // delete by PaxVecReader; maybe std::shared_ptr is better
-    // VecAdapter *adapter = nullptr;
-    std::shared_ptr<VecAdapter> adapter = nullptr;
+    TupleDesc tuple_desc = nullptr;
+    bool vec_build_ctid = false;
 #endif
 
 #ifdef ENABLE_PLASMA

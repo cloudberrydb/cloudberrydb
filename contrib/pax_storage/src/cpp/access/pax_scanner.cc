@@ -26,7 +26,8 @@
 
 namespace paxc {
 
-static inline bool TestVisimap(Relation rel, const char *visimap_name, int offset) {
+static inline bool TestVisimap(Relation rel, const char *visimap_name,
+                               int offset) {
   CBDB_TRY();
   { return pax::TestVisimap(rel, visimap_name, offset); }
   CBDB_CATCH_DEFAULT();
@@ -67,7 +68,8 @@ bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot,
 
 namespace pax {
 
-static inline bool CheckExists(Relation rel, ItemPointer tid, Snapshot snapshot, bool *all_dead) {
+static inline bool CheckExists(Relation rel, ItemPointer tid, Snapshot snapshot,
+                               bool *all_dead) {
   CBDB_WRAP_START;
   { return paxc::IndexUniqueCheck(rel, tid, snapshot, all_dead); }
   CBDB_WRAP_END;
@@ -100,7 +102,7 @@ bool PaxIndexScanDesc::FetchTuple(ItemPointer tid, Snapshot snapshot,
 
   ExecClearTuple(slot);
   if (CheckExists(GetRelation(), tid, snapshot, all_dead) &&
-			reader_->GetTuple(slot, pax::GetTupleOffset(*tid))) {
+      reader_->GetTuple(slot, pax::GetTupleOffset(*tid))) {
     SetBlockNumber(&slot->tts_tid, block);
     ExecStoreVirtualTuple(slot);
 
@@ -208,17 +210,9 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
 
 #ifdef VEC_BUILD
   if (flags & SO_TYPE_VECTOR) {
-    auto max_batch_size = VecAdapter::GetMaxBatchSizeFromStr(
-        cbdb::GetGUCConfigOptionByName(VECTOR_MAX_BATCH_SIZE_GUC_NAME, NULL,
-                                       true),
-        VEC_BATCH_LENGTH);
-    // The max of record batch size must align with 8
-    // Because the begin bits of the null bitmap in pax must be aligned 8
-    CBDB_CHECK(max_batch_size > 0 && (max_batch_size % MEMORY_ALIGN_SIZE == 0),
-               cbdb::CException::kExTypeInvalid);
     reader_options.is_vec = true;
-    reader_options.adapter = std::make_shared<VecAdapter>(
-        cbdb::RelationGetTupleDesc(relation), max_batch_size, build_bitmap);
+    reader_options.tuple_desc = cbdb::RelationGetTupleDesc(relation);
+    reader_options.vec_build_ctid = build_bitmap;
   }
 #endif  // VEC_BUILD
 
@@ -250,9 +244,7 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
   old_ctx = MemoryContextSwitchTo(desc->memory_context_);
 
   // build reader
-  reader_options.build_bitmap = build_bitmap;
   reader_options.reused_buffer = desc->reused_buffer_;
-  reader_options.rel_oid = desc->rs_base_.rs_rd->rd_id;
   reader_options.filter = filter;
 
   auto iter = MicroPartitionInfoIterator::New(relation, snapshot);

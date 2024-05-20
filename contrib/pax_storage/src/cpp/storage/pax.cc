@@ -11,7 +11,6 @@
 #include "storage/columns/pax_encoding.h"
 #include "storage/micro_partition_file_factory.h"
 #include "storage/micro_partition_metadata.h"
-#include "storage/micro_partition_row_filter_reader.h"
 #include "storage/micro_partition_stats.h"
 
 #ifdef VEC_BUILD
@@ -214,7 +213,7 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
       options.file_name, fs::kReadWriteMode);
 
   auto mp_writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(
-      MICRO_PARTITION_TYPE_PAX, file, std::move(options));
+      std::move(options), file);
 
   mp_writer->SetWriteSummaryCallback(summary_callback_);
   mp_writer->SetStatsCollector(mp_stats);
@@ -331,6 +330,7 @@ bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
                            size_t offset) {
   Assert(direction == ForwardScanDirection);
 
+  ReaderFlags reader_flags = FLAGS_EMPTY;
   size_t row_index = current_block_row_index_;
   size_t max_row_index = current_block_metadata_.GetTupleCount() - 1;
   size_t remaining_offset = offset;
@@ -375,8 +375,6 @@ bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
     PAX_DELETE(reader_);
   }
 
-  reader_ = PAX_NEW<OrcReader>(Singleton<LocalFileSystem>::GetInstance()->Open(
-      current_block_metadata_.GetFileName(), fs::kReadMode));
   MicroPartitionReader::ReaderOptions options;
   options.block_id = current_block_metadata_.GetMicroPartitionId();
   options.filter = reader_options_.filter;
@@ -386,6 +384,7 @@ bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
 #endif
 
   // load visibility map
+  // TODO(jiaqizho): PAX should not do read/pread in table layer
   std::string visibility_bitmap_file =
       current_block_metadata_.GetVisibilityBitmapFile();
   if (!visibility_bitmap_file.empty()) {
@@ -398,7 +397,11 @@ bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
     file->Close();
   }
 
-  reader_->Open(options);
+  reader_ = MicroPartitionFileFactory::CreateMicroPartitionReader(
+      std::move(options), reader_flags,
+      Singleton<LocalFileSystem>::GetInstance()->Open(
+          current_block_metadata_.GetFileName(), fs::kReadMode));
+
   // row_index start from 0, so row_index = offset -1
   current_block_row_index_ = remaining_offset - 1;
   SetBlockNumber(&slot->tts_tid,
@@ -413,11 +416,14 @@ void TableReader::OpenFile() {
   auto it = iterator_->Next();
   current_block_metadata_ = it;
   MicroPartitionReader::ReaderOptions options;
+  int32 reader_flags = FLAGS_EMPTY;
+
   micro_partition_id_ = options.block_id = it.GetMicroPartitionId();
   current_block_number_ = std::stol(options.block_id);
 
   options.filter = reader_options_.filter;
   options.reused_buffer = reader_options_.reused_buffer;
+
 #ifdef ENABLE_PLASMA
   options.pax_cache = reader_options_.pax_cache;
 #endif
@@ -435,23 +441,20 @@ void TableReader::OpenFile() {
     options.visibility_bitmap = bm;
     file->Close();
   }
-
-  reader_ = PAX_NEW<OrcReader>(Singleton<LocalFileSystem>::GetInstance()->Open(
-      it.GetFileName(), fs::kReadMode));
-
 #ifdef VEC_BUILD
+  options.tuple_desc = reader_options_.tuple_desc;
   if (reader_options_.is_vec) {
-    Assert(reader_options_.adapter);
-    reader_ = PAX_NEW<PaxVecReader>(reader_, reader_options_.adapter,
-                                    reader_options_.filter);
-  } else
-#endif  // VEC_BUILD
-    if (reader_options_.filter && reader_options_.filter->HasRowScanFilter()) {
-      reader_ = MicroPartitionRowFilterReader::New(
-          reader_, reader_options_.filter, options.visibility_bitmap);
-    }
+    Assert(options.tuple_desc);
+    READER_FLAG_SET_VECTOR_PATH(reader_flags);
+  }
 
-  reader_->Open(options);
+  if (reader_options_.vec_build_ctid)
+    READER_FLAG_SET_SCAN_WITH_CTID(reader_flags);
+#endif
+  reader_ = MicroPartitionFileFactory::CreateMicroPartitionReader(
+      std::move(options), reader_flags,
+      Singleton<LocalFileSystem>::GetInstance()->Open(it.GetFileName(),
+                                                      fs::kReadMode));
 }
 
 TableDeleter::TableDeleter(
@@ -610,8 +613,6 @@ void TableDeleter::OpenWriter() {
 
 void TableDeleter::OpenReader() {
   TableReader::ReaderOptions reader_options{};
-  reader_options.build_bitmap = false;
-  reader_options.rel_oid = rel_->rd_id;
   reader_ = PAX_NEW<TableReader>(std::move(iterator_), reader_options);
   reader_->Open();
 }

@@ -162,7 +162,8 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
   if (is_fixed) {
     column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000, VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000,
+                                        VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
@@ -240,9 +241,11 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
       char *buffer = (char *)child_array->buffers[1];
       for (size_t i = 0; i < visiable_tuple1_count; i++) {
         if (with_visimap) {
-          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), static_cast<int32>(i * 2 + 1));
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                    static_cast<int32>(i * 2 + 1));
         } else {
-          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), static_cast<int32>(i));
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                    static_cast<int32>(i));
         }
       }
 
@@ -256,13 +259,15 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
         for (size_t i = 0; i < visiable_tuple1_count; i++) {
           ASSERT_EQ(*((int32 *)(offset_buffer + i * sizeof(int32))),
                     static_cast<int32>(i * sizeof(int32)));
-          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), static_cast<int32>(i * 2 + 1));
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                    static_cast<int32>(i * 2 + 1));
         }
       } else {
         for (size_t i = 0; i < visiable_tuple1_count; i++) {
           ASSERT_EQ(*((int32 *)(offset_buffer + i * sizeof(int32))),
                     static_cast<int32>(i * sizeof(int32)));
-          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), static_cast<int32>(i));
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                    static_cast<int32>(i));
         }
       }
 
@@ -379,7 +384,8 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
   if (is_fixed) {
     column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000, VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000,
+                                        VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
@@ -469,7 +475,8 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
                   static_cast<int32>(i - verify_null_counts));
       }
 
-      ASSERT_EQ(verify_null_counts, static_cast<size_t>(child_array->null_count));
+      ASSERT_EQ(verify_null_counts,
+                static_cast<size_t>(child_array->null_count));
     } else {
       ASSERT_NE(child_array->buffers[0], nullptr);
       ASSERT_NE(child_array->buffers[1], nullptr);
@@ -494,7 +501,8 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
         if (i % 6 == 0) {
           verify_null_counts++;
           ASSERT_EQ(*((int32 *)(offset_buffer + i * sizeof(int32))),
-                    static_cast<int32>(last_offset == 0 ? 0 : last_offset + sizeof(int32)));
+                    static_cast<int32>(
+                        last_offset == 0 ? 0 : last_offset + sizeof(int32)));
           continue;
         }
         ASSERT_EQ(*((int32 *)(offset_buffer + i * sizeof(int32))),
@@ -504,15 +512,18 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
 
       ASSERT_EQ(*((int32 *)(offset_buffer + VEC_BATCH_LENGTH * sizeof(int32))),
                 static_cast<int32>(last_offset + sizeof(int32)));
-      ASSERT_EQ(verify_null_counts, static_cast<size_t>(child_array->null_count));
+      ASSERT_EQ(verify_null_counts,
+                static_cast<size_t>(child_array->null_count));
 
       // verify data
       char *buffer = (char *)child_array->buffers[2];
       for (size_t i = 0; i < VEC_BATCH_LENGTH - verify_null_counts; i++) {
-        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), static_cast<int32>(i));
+        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                  static_cast<int32>(i));
       }
 
-      ASSERT_EQ(verify_null_counts, static_cast<size_t>(child_array->null_count));
+      ASSERT_EQ(verify_null_counts,
+                static_cast<size_t>(child_array->null_count));
     }
 
     ASSERT_EQ(child_array->dictionary, nullptr);
@@ -565,13 +576,15 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
       size_t start = column->GetRangeNonNullRows(0, VEC_BATCH_LENGTH);
       for (size_t i = 0; i < range_size; i++) {
         if (arrow::bit_util::GetBit(null_bits_array, i)) {
-          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), static_cast<int32>(start++));
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                    static_cast<int32>(start++));
         } else {
           verify_null_counts++;
         }
       }
 
-      ASSERT_EQ(verify_null_counts, static_cast<size_t>(child_array->null_count));
+      ASSERT_EQ(verify_null_counts,
+                static_cast<size_t>(child_array->null_count));
     } else {
       ASSERT_NE(child_array->buffers[0], nullptr);
       ASSERT_NE(child_array->buffers[1], nullptr);
@@ -587,13 +600,15 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
         }
       }
 
-      ASSERT_EQ(verify_null_counts, static_cast<size_t>(child_array->null_count));
+      ASSERT_EQ(verify_null_counts,
+                static_cast<size_t>(child_array->null_count));
 
       // verify data
       char *buffer = (char *)child_array->buffers[2];
       size_t start = column->GetRangeNonNullRows(0, VEC_BATCH_LENGTH);
       for (size_t i = 0; i < (range_size - child_array->null_count); i++) {
-        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), static_cast<int32>(start++));
+        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                  static_cast<int32>(start++));
       }
 
       // verify offset with data
@@ -613,7 +628,8 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
           verify_null_counts++;
         }
       }
-      ASSERT_EQ(verify_null_counts, static_cast<size_t>(child_array->null_count));
+      ASSERT_EQ(verify_null_counts,
+                static_cast<size_t>(child_array->null_count));
     }
 
     ASSERT_EQ(child_array->dictionary, nullptr);
@@ -639,7 +655,8 @@ TEST_P(PaxVecTest, PaxColumnToVecNoFull) {
   if (is_fixed) {
     column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000, VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000,
+                                        VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < 1000; i++) {
@@ -700,7 +717,8 @@ TEST_P(PaxVecTest, PaxColumnToVecNoFull) {
 
       char *buffer = (char *)child_array->buffers[1];
       for (size_t i = 0; i < 1000; i++) {
-        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), static_cast<int32>(i));
+        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                  static_cast<int32>(i));
       }
     } else {
       ASSERT_NE(child_array->buffers[1], nullptr);
@@ -711,7 +729,8 @@ TEST_P(PaxVecTest, PaxColumnToVecNoFull) {
       for (size_t i = 0; i < 1000; i++) {
         ASSERT_EQ(*((int32 *)(offset_buffer + i * sizeof(int32))),
                   static_cast<int32>(i * sizeof(int32)));
-        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), static_cast<int32>(i));
+        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                  static_cast<int32>(i));
       }
 
       ASSERT_EQ(*((int32 *)(offset_buffer + 1000 * sizeof(int32))),
@@ -742,7 +761,8 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
   if (is_fixed) {
     column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000, VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000,
+                                        VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < 1000; i++) {
@@ -815,14 +835,16 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
       size_t start = 0;
       for (int64 i = 0; i < child_array->length; i++) {
         if (arrow::bit_util::GetBit(null_bits_array, i)) {
-          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), static_cast<int32>(start++));
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                    static_cast<int32>(start++));
         } else {
           verify_null_counts++;
         }
       }
 
       ASSERT_EQ(start, 1000UL);
-      ASSERT_EQ(verify_null_counts, static_cast<size_t>(child_array->null_count));
+      ASSERT_EQ(verify_null_counts,
+                static_cast<size_t>(child_array->null_count));
     } else {
       ASSERT_NE(child_array->buffers[0], nullptr);
       ASSERT_NE(child_array->buffers[1], nullptr);
@@ -838,14 +860,16 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
         }
       }
 
-      ASSERT_EQ(verify_null_counts, static_cast<size_t>(child_array->null_count));
+      ASSERT_EQ(verify_null_counts,
+                static_cast<size_t>(child_array->null_count));
 
       // verify data
       char *buffer = (char *)child_array->buffers[2];
       size_t start = 0;
       for (int64 i = 0; i < (child_array->length - child_array->null_count);
            i++) {
-        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), static_cast<int32>(start++));
+        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                  static_cast<int32>(start++));
       }
       ASSERT_EQ(start, 1000UL);
 
@@ -867,7 +891,8 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
         }
       }
       ASSERT_EQ(start, 1000UL);
-      ASSERT_EQ(verify_null_counts, static_cast<size_t>(child_array->null_count));
+      ASSERT_EQ(verify_null_counts,
+                static_cast<size_t>(child_array->null_count));
     }
 
     ASSERT_EQ(child_array->dictionary, nullptr);
@@ -1042,7 +1067,8 @@ TEST_P(PaxVecTest, DecimalTest) {
 
     char *buffer = (char *)child_array->buffers[1];
     for (size_t i = 0; i < VEC_BATCH_LENGTH; i++) {
-      ASSERT_EQ(*((int64 *)(buffer + (i * sizeof(int64) * 2))), static_cast<int64>(i));
+      ASSERT_EQ(*((int64 *)(buffer + (i * sizeof(int64) * 2))),
+                static_cast<int64>(i));
     }
 
     ASSERT_EQ(child_array->dictionary, nullptr);
@@ -1074,7 +1100,8 @@ TEST_P(PaxVecTest, PaxColumnWithNullAndVisimapToVec) {
   if (is_fixed) {
     column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000, VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000,
+                                        VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
@@ -1145,7 +1172,8 @@ TEST_P(PaxVecTest, PaxColumnWithNullAndVisimapToVec) {
       ASSERT_EQ(child_array->null_count,
                 VEC_BATCH_LENGTH / 5 - VEC_BATCH_LENGTH / 10);
     } else {
-      ASSERT_EQ(static_cast<size_t>(child_array->null_count), visiable_tuple1_count / 5 + 1);
+      ASSERT_EQ(static_cast<size_t>(child_array->null_count),
+                visiable_tuple1_count / 5 + 1);
     }
     ASSERT_EQ(child_array->offset, 0);
     ASSERT_EQ(child_array->n_buffers, is_fixed ? 2 : 3);
@@ -1232,7 +1260,8 @@ TEST_P(PaxVecTest, PaxColumnBuildCtidToVec) {
   if (is_fixed) {
     column = PAX_NEW<PaxCommColumn<int32>>(VEC_BATCH_LENGTH + 1000);
   } else {
-    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000, VEC_BATCH_LENGTH + 1000);
+    column = PAX_NEW<PaxNonFixedColumn>(VEC_BATCH_LENGTH + 1000,
+                                        VEC_BATCH_LENGTH + 1000);
   }
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
@@ -1295,7 +1324,8 @@ TEST_P(PaxVecTest, PaxColumnBuildCtidToVec) {
     ASSERT_EQ(arrow_array->private_data, nullptr);
 
     ArrowArray *ctid_child_array = arrow_array->children[1];
-    ASSERT_EQ(static_cast<size_t>(ctid_child_array->length), visiable_tuple1_count);
+    ASSERT_EQ(static_cast<size_t>(ctid_child_array->length),
+              visiable_tuple1_count);
     ASSERT_EQ(ctid_child_array->null_count, 0);
     ASSERT_EQ(ctid_child_array->offset, 0);
     ASSERT_EQ(ctid_child_array->n_buffers, 3);
@@ -1392,8 +1422,6 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
   PAX_DELETE(writer);
 
   tuple_slot = CreateTupleSlot(is_fixed);
-  auto adapter = std::make_shared<VecAdapter>(tuple_slot->tts_tupleDescriptor,
-                                              VEC_BATCH_LENGTH);
 
   std::vector<MicroPartitionMetadata> meta_info_list;
   MicroPartitionMetadata meta_info;
@@ -1408,10 +1436,8 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
 
   TableReader *reader;
   TableReader::ReaderOptions reader_options{};
-  reader_options.build_bitmap = false;
-  reader_options.rel_oid = 0;
   reader_options.is_vec = true;
-  reader_options.adapter = adapter;
+  reader_options.tuple_desc = tuple_slot->tts_tupleDescriptor;
 
   reader = PAX_NEW<TableReader>(std::move(meta_info_iterator), reader_options);
   reader->Open();
@@ -1432,8 +1458,8 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
 }
 
 INSTANTIATE_TEST_SUITE_P(PaxVecTestCombine, PaxVecTest,
-                        testing::Combine(testing::Values(true, false),
-                                         testing::Values(true, false)));
+                         testing::Combine(testing::Values(true, false),
+                                          testing::Values(true, false)));
 
 #endif  // VEC_BUILD
 

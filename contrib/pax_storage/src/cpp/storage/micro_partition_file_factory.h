@@ -7,28 +7,28 @@
 
 namespace pax {
 
-#define MICRO_PARTITION_TYPE_PAX "PAX"
-
 // flags is used to control the behavior of the reader
 // refer to the definition of ReaderFlags.
-typedef enum ReaderFlags {
-  FLAGS_DEFAULT = 0,
-  FLAGS_VECTOR = 1 << 12,    // use vec_adapter to read and returns the record
-                             // batch format required by the vectorized executor
-  FLAGS_HAS_CTID = 1 << 13,  // record batch format should build with ctid
-} ReaderFlags;
+enum ReaderFlags {
+  FLAGS_EMPTY = 0UL,
+  FLAGS_VECTOR_PATH =
+      1L << 0,  // use vec_adapter to read and returns the record
+                // batch format required by the vectorized executor
+  FLAGS_SCAN_WITH_CTID = 1L << 1,  // record batch format should build with ctid
+};
+
+#define READER_FLAG_SET_VECTOR_PATH(flags) (flags) |= FLAGS_VECTOR_PATH;
+
+#define READER_FLAG_SET_SCAN_WITH_CTID(flags) (flags) |= FLAGS_SCAN_WITH_CTID;
 
 class MicroPartitionFileFactory final {
  public:
-  // type must be "pax" now!
   static MicroPartitionWriter *CreateMicroPartitionWriter(
-      const std::string &type, File *file,
-      const MicroPartitionWriter::WriterOptions &options);
+      const MicroPartitionWriter::WriterOptions &options, File *file);
 
-  // type must be "pax" now!
   static MicroPartitionReader *CreateMicroPartitionReader(
-      const std::string &type, File *file,
-      const MicroPartitionReader::ReaderOptions &options, int flags);
+      const MicroPartitionReader::ReaderOptions &options, int32 flags,
+      File *file);
 };
 
 }  // namespace pax
