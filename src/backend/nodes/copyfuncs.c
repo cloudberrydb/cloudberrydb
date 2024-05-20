@@ -3923,6 +3923,8 @@ _copyAlterTableCmd(const AlterTableCmd *from)
 	COPY_NODE_FIELD(def);
 	COPY_SCALAR_FIELD(behavior);
 	COPY_SCALAR_FIELD(missing_ok);
+	COPY_NODE_FIELD(tags);
+	COPY_SCALAR_FIELD(unsettag);
 
 	return newnode;
 }
@@ -4130,6 +4132,7 @@ CopyCreateStmtFields(const CreateStmt *from, CreateStmt *newnode)
 
 	COPY_NODE_FIELD(part_idx_oids);
 	COPY_NODE_FIELD(part_idx_names);
+	COPY_NODE_FIELD(tags);
 }
 
 static CreateStmt *
@@ -4183,6 +4186,7 @@ _copyCreateExternalStmt(const CreateExternalStmt *from)
 	COPY_NODE_FIELD(extOptions);
 	COPY_NODE_FIELD(encoding);
 	COPY_NODE_FIELD(distributedBy);
+	COPY_NODE_FIELD(tags);
 
 	return newnode;
 }
@@ -4310,6 +4314,7 @@ _copyIndexStmt(const IndexStmt *from)
 	COPY_SCALAR_FIELD(reset_default_tblspc);
 	COPY_SCALAR_FIELD(concurrentlyPhase);
 	COPY_SCALAR_FIELD(indexRelationOid);
+	COPY_NODE_FIELD(tags);
 
 	return newnode;
 }
@@ -4594,6 +4599,7 @@ _copyViewStmt(const ViewStmt *from)
 	COPY_SCALAR_FIELD(replace);
 	COPY_NODE_FIELD(options);
 	COPY_SCALAR_FIELD(withCheckOption);
+	COPY_NODE_FIELD(tags);
 
 	return newnode;
 }
@@ -4682,6 +4688,7 @@ _copyCreatedbStmt(const CreatedbStmt *from)
 
 	COPY_STRING_FIELD(dbname);
 	COPY_NODE_FIELD(options);
+	COPY_NODE_FIELD(tags);
 
 	return newnode;
 }
@@ -4693,6 +4700,8 @@ _copyAlterDatabaseStmt(const AlterDatabaseStmt *from)
 
 	COPY_STRING_FIELD(dbname);
 	COPY_NODE_FIELD(options);
+	COPY_NODE_FIELD(tags);
+	COPY_SCALAR_FIELD(unsettag);
 
 	return newnode;
 }
@@ -4812,6 +4821,7 @@ _copyCreateSeqStmt(const CreateSeqStmt *from)
 	COPY_SCALAR_FIELD(ownerId);
 	COPY_SCALAR_FIELD(for_identity);
 	COPY_SCALAR_FIELD(if_not_exists);
+	COPY_NODE_FIELD(tags);
 
 	return newnode;
 }
@@ -4872,6 +4882,7 @@ _copyCreateTableSpaceStmt(const CreateTableSpaceStmt *from)
 	COPY_STRING_FIELD(location);
 	COPY_NODE_FIELD(options);
 	COPY_STRING_FIELD(filehandler);
+	COPY_NODE_FIELD(tags);
 
 	return newnode;
 }
@@ -4895,6 +4906,8 @@ _copyAlterTableSpaceOptionsStmt(const AlterTableSpaceOptionsStmt *from)
 	COPY_STRING_FIELD(tablespacename);
 	COPY_NODE_FIELD(options);
 	COPY_SCALAR_FIELD(isReset);
+	COPY_NODE_FIELD(tags);
+	COPY_SCALAR_FIELD(unsettag);
 
 	return newnode;
 }
@@ -5238,6 +5251,7 @@ _copyCreateRoleStmt(const CreateRoleStmt *from)
 	COPY_SCALAR_FIELD(stmt_type);
 	COPY_STRING_FIELD(role);
 	COPY_NODE_FIELD(options);
+	COPY_NODE_FIELD(tags);
 
 	return newnode;
 }
@@ -5283,6 +5297,8 @@ _copyAlterRoleStmt(const AlterRoleStmt *from)
 	COPY_NODE_FIELD(role);
 	COPY_NODE_FIELD(options);
 	COPY_SCALAR_FIELD(action);
+	COPY_NODE_FIELD(tags);
+	COPY_SCALAR_FIELD(unsettag);
 
 	return newnode;
 }
@@ -5398,7 +5414,57 @@ _copyCreateSchemaStmt(const CreateSchemaStmt *from)
 	COPY_SCALAR_FIELD(if_not_exists);
 	COPY_SCALAR_FIELD(istemp);
 	COPY_SCALAR_FIELD(pop_search_path);
+	COPY_NODE_FIELD(tags);
 
+	return newnode;
+}
+
+static AlterSchemaStmt *
+_copyAlterSchemaStmt(const AlterSchemaStmt *from)
+{
+	AlterSchemaStmt *newnode = makeNode(AlterSchemaStmt);
+	
+	COPY_STRING_FIELD(schemaname);
+	COPY_NODE_FIELD(tags);
+	COPY_SCALAR_FIELD(unsettag);
+	
+	return newnode;
+}
+
+static CreateTagStmt *
+_copyCreateTagStmt(const CreateTagStmt *from)
+{
+	CreateTagStmt *newnode = makeNode(CreateTagStmt);
+	
+	COPY_STRING_FIELD(tag_name);
+	COPY_SCALAR_FIELD(missing_ok);
+	COPY_NODE_FIELD(allowed_values);
+	
+	return newnode;
+}
+
+static AlterTagStmt *
+_copyAlterTagStmt(const AlterTagStmt *from)
+{
+	AlterTagStmt *newnode = makeNode(AlterTagStmt);
+	
+	COPY_STRING_FIELD(tag_name);
+	COPY_SCALAR_FIELD(action);
+	COPY_NODE_FIELD(tag_values);
+	COPY_SCALAR_FIELD(missing_ok);
+	COPY_SCALAR_FIELD(unset);
+	
+	return newnode;
+}
+
+static DropTagStmt *
+_copyDropTagStmt(const DropTagStmt *from)
+{
+	DropTagStmt *newnode = makeNode(DropTagStmt);
+	
+	COPY_NODE_FIELD(tags);
+	COPY_SCALAR_FIELD(missing_ok);
+	
 	return newnode;
 }
 
@@ -6109,6 +6175,18 @@ _copyCreateDirectoryTableStmt(const CreateDirectoryTableStmt *from)
 
 	COPY_STRING_FIELD(tablespacename);
 
+	return newnode;
+}
+
+static AlterDirectoryTableStmt *
+_copyAlterDirectoryTableStmt(const AlterDirectoryTableStmt *from)
+{
+	AlterDirectoryTableStmt *newnode = makeNode(AlterDirectoryTableStmt);
+	
+	COPY_NODE_FIELD(relation);
+	COPY_NODE_FIELD(tags);
+	COPY_SCALAR_FIELD(unsettag);
+	
 	return newnode;
 }
 
@@ -6946,6 +7024,18 @@ copyObjectImpl(const void *from)
 		case T_CreateSchemaStmt:
 			retval = _copyCreateSchemaStmt(from);
 			break;
+		case T_AlterSchemaStmt:
+			retval = _copyAlterSchemaStmt(from);
+			break;
+		case T_CreateTagStmt:
+			retval = _copyCreateTagStmt(from);
+			break;
+		case T_AlterTagStmt:
+			retval = _copyAlterTagStmt(from);
+			break;
+		case T_DropTagStmt:
+			retval = _copyDropTagStmt(from);
+			break;
 		case T_CreateConversionStmt:
 			retval = _copyCreateConversionStmt(from);
 			break;
@@ -7255,6 +7345,10 @@ copyObjectImpl(const void *from)
 
 		case T_CreateDirectoryTableStmt:
 			retval = _copyCreateDirectoryTableStmt(from);
+			break;
+
+		case T_AlterDirectoryTableStmt:
+			retval = _copyAlterDirectoryTableStmt(from);
 			break;
 
 		case T_EphemeralNamedRelationInfo:

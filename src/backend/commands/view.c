@@ -23,6 +23,7 @@
 #include "catalog/pg_depend.h"
 #include "commands/defrem.h"
 #include "commands/tablecmds.h"
+#include "commands/tag.h"
 #include "commands/view.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
@@ -586,6 +587,17 @@ DefineView(ViewStmt *stmt, const char *queryString,
 	 */
 	address = DefineVirtualRelation(view, viewParse->targetList,
 									stmt->replace, stmt->options, viewParse);
+
+	/*
+	 * Create tag description.
+	 */
+	if (stmt->tags)
+		AddTagDescriptions(stmt->tags,
+						   MyDatabaseId,
+						   address.classId,
+						   address.objectId,
+						   stmt->view->relname);
+
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{

@@ -1763,3 +1763,64 @@ CREATE VIEW gp_suboverflowed_backend(segid, pids) AS
   SELECT -1, gp_get_suboverflowed_backends()
 UNION ALL
   SELECT gp_segment_id, gp_get_suboverflowed_backends() FROM gp_dist_random('gp_id') order by 1;
+
+CREATE VIEW database_tag_descriptions AS
+    SELECT
+        tddatabaseid,
+        datname,
+        tagname,
+        tagvalue
+    FROM pg_tag_description AS td,
+         pg_database AS d,
+         pg_tag AS t
+    WHERE td.tagid = t.oid and td.tdobjid = d.oid;
+
+CREATE VIEW user_tag_descriptions AS
+    SELECT
+        tddatabaseid,
+        rolname,
+        tagname,
+        tagvalue
+    FROM pg_tag_description AS td,
+         pg_authid AS a,
+         pg_tag AS t
+    WHERE td.tagid = t.oid and td.tdobjid = a.oid;
+
+CREATE VIEW tablespace_tag_descriptions AS
+    SELECT
+        tddatabaseid,
+        spcname,
+        tagname,
+        tagvalue
+    FROM pg_tag_description AS td,
+         pg_tablespace AS ts,
+         pg_tag AS t
+    WHERE td.tagid = t.oid and td.tdobjid = ts.oid;
+
+CREATE VIEW schema_tag_descriptions AS
+    SELECT
+        datname,
+        nspname,
+        tagname,
+        tagvalue
+    FROM pg_tag_description AS td,
+         pg_namespace AS ns,
+         pg_database AS d,
+         pg_tag AS t
+    WHERE td.tagid = t.oid AND td.tdobjid = ns.oid AND td.tddatabaseid = d.oid;
+
+CREATE VIEW relation_tag_descriptions AS
+    SELECT
+        datname,
+        relname,
+        ns.nspname AS relnamespace,
+        relkind,
+        tagname,
+        tagvalue
+    FROM pg_tag_description AS td,
+         pg_class AS c,
+         pg_database AS d,
+         pg_tag AS t,
+         pg_namespace AS ns
+    WHERE td.tagid = t.oid AND td.tdobjid = c.oid
+          AND td.tddatabaseid = d.oid AND ns.oid = c.relnamespace;

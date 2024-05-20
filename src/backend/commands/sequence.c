@@ -37,6 +37,7 @@
 #include "commands/defrem.h"
 #include "commands/sequence.h"
 #include "commands/tablecmds.h"
+#include "commands/tag.h"
 #include "funcapi.h"
 #include "libpq/libpq.h"
 #include "libpq/pqformat.h"
@@ -265,6 +266,15 @@ DefineSequence(ParseState *pstate, CreateSeqStmt *seq)
 	/* now initialize the sequence's data */
 	tuple = heap_form_tuple(tupDesc, value, null);
 	fill_seq_with_data(rel, tuple);
+	
+	if (seq->tags)
+	{
+		AddTagDescriptions(seq->tags,
+					 	   MyDatabaseId,
+					 	   address.classId,
+					 	   address.objectId,
+					 	   seq->sequence->relname);
+	}
 
 	/* Dispatch to segments */
 	if (shouldDispatch)

@@ -568,6 +568,7 @@ _outCreateExternalStmt(StringInfo str, const CreateExternalStmt *node)
 	WRITE_NODE_FIELD(extOptions);
 	WRITE_NODE_FIELD(encoding);
 	WRITE_NODE_FIELD(distributedBy);
+	WRITE_NODE_FIELD(tags);
 }
 
 static void
@@ -619,6 +620,7 @@ _outViewStmt(StringInfo str, const ViewStmt *node)
 	WRITE_NODE_FIELD(query);
 	WRITE_BOOL_FIELD(replace);
 	WRITE_NODE_FIELD(options);
+	WRITE_NODE_FIELD(tags);
 }
 
 static void
@@ -712,6 +714,8 @@ _outAlterTableCmd(StringInfo str, const AlterTableCmd *node)
 
 	WRITE_INT_FIELD(backendId);
 	WRITE_NODE_FIELD(policy);
+	WRITE_NODE_FIELD(tags);
+	WRITE_BOOL_FIELD(unsettag);
 }
 
 static void
@@ -840,6 +844,7 @@ _outCreateRoleStmt(StringInfo str, const CreateRoleStmt *node)
 	WRITE_ENUM_FIELD(stmt_type, RoleStmtType);
 	WRITE_STRING_FIELD(role);
 	WRITE_NODE_FIELD(options);
+	WRITE_NODE_FIELD(tags);
 }
 
 static void
@@ -927,6 +932,8 @@ _outAlterRoleStmt(StringInfo str, const AlterRoleStmt *node)
 	WRITE_NODE_FIELD(role);
 	WRITE_NODE_FIELD(options);
 	WRITE_INT_FIELD(action);
+	WRITE_NODE_FIELD(tags);
+	WRITE_BOOL_FIELD(unsettag);
 }
 
 static	void
@@ -973,6 +980,7 @@ _outCreateSeqStmt(StringInfo str, const CreateSeqStmt *node)
 	WRITE_OID_FIELD(ownerId);
 	WRITE_BOOL_FIELD(for_identity);
 	WRITE_BOOL_FIELD(if_not_exists);
+	WRITE_NODE_FIELD(tags);
 }
 
 static void
@@ -1000,6 +1008,7 @@ _outCreatedbStmt(StringInfo str, const CreatedbStmt *node)
 	WRITE_NODE_TYPE("CREATEDBSTMT");
 	WRITE_STRING_FIELD(dbname);
 	WRITE_NODE_FIELD(options);
+	WRITE_NODE_FIELD(tags);
 }
 
 static void
@@ -1366,6 +1375,48 @@ _outCreateSchemaStmt(StringInfo str, const CreateSchemaStmt *node)
 	WRITE_NODE_FIELD(authrole);
 	WRITE_BOOL_FIELD(istemp);
 	WRITE_BOOL_FIELD(pop_search_path);
+	WRITE_NODE_FIELD(tags);
+}
+
+static void
+_outAlterSchemaStmt(StringInfo str, const AlterSchemaStmt *node)
+{
+	WRITE_NODE_TYPE("ALTERSCHEMASTMT");
+	
+	WRITE_STRING_FIELD(schemaname);
+	WRITE_NODE_FIELD(tags);
+	WRITE_BOOL_FIELD(unsettag);
+}
+
+static void
+_outCreateTagStmt(StringInfo str, const CreateTagStmt *node)
+{
+	WRITE_NODE_TYPE("CREATETAGSTMT");
+	
+	WRITE_STRING_FIELD(tag_name);
+	WRITE_BOOL_FIELD(missing_ok);
+	WRITE_NODE_FIELD(allowed_values);
+}
+
+static void
+_outAlterTagStmt(StringInfo str, const AlterTagStmt *node)
+{
+	WRITE_NODE_TYPE("ALTERTAGSTMT");
+	
+	WRITE_STRING_FIELD(tag_name);
+	WRITE_INT_FIELD(action);
+	WRITE_NODE_FIELD(tag_values);
+	WRITE_BOOL_FIELD(missing_ok);
+	WRITE_BOOL_FIELD(unset);
+}
+
+static void
+_outDropTagStmt(StringInfo str, const DropTagStmt *node)
+{
+	WRITE_NODE_TYPE("DROPTAGSTMT");
+	
+	WRITE_NODE_FIELD(tags);
+	WRITE_BOOL_FIELD(missing_ok);
 }
 
 static void
@@ -1485,6 +1536,7 @@ _outCreateTableSpaceStmt(StringInfo str, const CreateTableSpaceStmt *node)
 	WRITE_STRING_FIELD(location);
 	WRITE_NODE_FIELD(options);
 	WRITE_STRING_FIELD(filehandler);
+	WRITE_NODE_FIELD(tags);
 }
 
 static void
@@ -1713,4 +1765,14 @@ _outEphemeralNamedRelationInfo(StringInfo str, const EphemeralNamedRelationInfo 
 	WRITE_INT_FIELD(tuple->tdrefcount);
 	WRITE_ENUM_FIELD(enrtype, EphemeralNameRelationType);
 	WRITE_FLOAT_FIELD(enrtuples, "%.0f");
+}
+
+static void
+_outAlterDatabaseStmt(StringInfo str, const AlterDatabaseStmt *node)
+{
+	WRITE_NODE_TYPE("AlterDatabaseStmt");
+	WRITE_STRING_FIELD(dbname);
+	WRITE_NODE_FIELD(options);
+	WRITE_NODE_FIELD(tags);
+	WRITE_BOOL_FIELD(unsettag);
 }

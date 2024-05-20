@@ -118,6 +118,7 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 	createStmt->tablespacename = NULL;
 	createStmt->distributedBy = createExtStmt->distributedBy; /* policy was set in transform */
 	createStmt->ownerid = userid;
+	createStmt->tags = createExtStmt->tags;
 
 	switch (exttypeDesc->exttabletype)
 	{

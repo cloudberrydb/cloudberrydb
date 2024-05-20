@@ -58,6 +58,7 @@
 #include "catalog/pg_statistic_ext.h"
 #include "catalog/pg_subscription.h"
 #include "catalog/pg_tablespace.h"
+#include "catalog/pg_tag.h"
 #include "catalog/pg_transform.h"
 #include "catalog/pg_ts_config.h"
 #include "catalog/pg_ts_dict.h"
@@ -3791,6 +3792,9 @@ aclcheck_error(AclResult aclerr, ObjectType objtype,
 					case OBJECT_EXTPROTOCOL:
 						msg = gettext_noop("permission denied for external protocol %s");
 						break;
+					case OBJECT_TAG:
+						msg = gettext_noop("permission denied for tag %s");
+						break;
 						/* these currently aren't used */
 					case OBJECT_ACCESS_METHOD:
 					case OBJECT_AMOP:
@@ -3901,6 +3905,9 @@ aclcheck_error(AclResult aclerr, ObjectType objtype,
 						break;
 					case OBJECT_TABLE:
 						msg = gettext_noop("must be owner of table %s");
+						break;
+					case OBJECT_TAG:
+						msg = gettext_noop("must be owner of tag %s");
 						break;
 					case OBJECT_TYPE:
 						msg = gettext_noop("must be owner of type %s");
@@ -5641,6 +5648,33 @@ pg_opfamily_ownercheck(Oid opf_oid, Oid roleid)
 						opf_oid)));
 
 	ownerId = ((Form_pg_opfamily) GETSTRUCT(tuple))->opfowner;
+
+	ReleaseSysCache(tuple);
+
+	return has_privs_of_role(roleid, ownerId);
+}
+
+/*
+ * Ownership check for a tag (specified by OID).
+ */
+bool
+pg_tag_ownercheck(Oid tag_oid, Oid roleid)
+{
+	HeapTuple	tuple;
+	Oid			ownerId;
+
+	/* Superusers bypass all permission checking. */
+	if (superuser_arg(roleid))
+		return true;
+
+	tuple = SearchSysCache1(TAGOID, ObjectIdGetDatum(tag_oid));
+	if (!HeapTupleIsValid(tuple))
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("tag with OID %u does not exist",
+						tag_oid)));
+
+	ownerId = ((Form_pg_tag) GETSTRUCT(tuple))->tagowner;
 
 	ReleaseSysCache(tuple);
 

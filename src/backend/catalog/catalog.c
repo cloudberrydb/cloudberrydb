@@ -44,6 +44,8 @@
 #include "catalog/pg_shseclabel.h"
 #include "catalog/pg_subscription.h"
 #include "catalog/pg_tablespace.h"
+#include "catalog/pg_tag.h"
+#include "catalog/pg_tag_description.h"
 #include "catalog/pg_task.h"
 #include "catalog/pg_task_run_history.h"
 #include "catalog/pg_type.h"
@@ -445,7 +447,10 @@ IsSharedRelation(Oid relationId)
 		relationId == StorageServerRelationId ||
 
 		relationId == ProfileRelationId ||
-		relationId == PasswordHistoryRelationId)
+		relationId == PasswordHistoryRelationId ||
+		
+		relationId == TagRelationId ||
+		relationId == TagDescriptionRelationId)
 		return true;
 
 	/* These are their indexes */
@@ -499,7 +504,12 @@ IsSharedRelation(Oid relationId)
 		relationId == ProfileOidIndexId ||
 		relationId == ProfileVerifyFunctionIndexId ||
 		relationId == PasswordHistoryRolePasswordIndexId ||
-		relationId == PasswordHistoryRolePasswordsetatIndexId)
+		relationId == PasswordHistoryRolePasswordsetatIndexId ||
+		relationId == TagNameIndexId ||
+		relationId == TagOidIndexId ||
+		relationId == TagDescriptionIndexId ||
+		relationId == TagDescriptionTagidvalueIndexId ||
+		relationId == TagDescriptionOidIndexId)
 	{
 		return true;
 	}
