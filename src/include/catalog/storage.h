@@ -23,6 +23,68 @@
 /* GUC variables */
 extern int	wal_skip_threshold;
 
+/*
+ * We keep a list of all relations (represented as RelFileNode values)
+ * that have been created or deleted in the current transaction.  When
+ * a relation is created, we create the physical file immediately, but
+ * remember it so that we can delete the file again if the current
+ * transaction is aborted.  Conversely, a deletion request is NOT
+ * executed immediately, but is just entered in the list.  When and if
+ * the transaction commits, we can delete the physical file.
+ *
+ * To handle subtransactions, every entry is marked with its transaction
+ * nesting level.  At subtransaction commit, we reassign the subtransaction's
+ * entries to the parent nesting level.  At subtransaction abort, we can
+ * immediately execute the abort-time actions for all entries of the current
+ * nesting level.
+ *
+ * NOTE: the list is kept in TopMemoryContext to be sure it won't disappear
+ * unbetimes.  It'd probably be OK to keep it in TopTransactionContext,
+ * but I'm being paranoid.
+ */
+struct PendingRelDeleteAction;
+typedef struct PendingRelDelete
+{
+	struct PendingRelDeleteAction *action;	/* The action is to do pending
+											 * delete */
+	RelFileNodePendingDelete relnode;	/* relation that may need to be
+										 * deleted */
+	bool		atCommit;		/* T=delete at commit; F=delete at abort */
+	int			nestLevel;		/* xact nesting level of request */
+
+	struct PendingRelDelete *next;	/* linked-list link */
+} PendingRelDelete;
+
+/*
+ * functions used to pending delete callbacks
+ *
+ * Notice that: no xlog generate in these interface.
+ * also make sure that NO register same pending delete
+ * into smgr
+ */
+struct PendingRelDeleteAction
+{
+	/* The flag to tell action support function in current pending delete */
+	int			flags;
+
+	/* Used to destroy pending delete item */
+	void		(*destroy_pending_rel_delete) (PendingRelDelete *reldelete);
+
+	/* do delete function */
+	void		(*do_pending_rel_delete) (PendingRelDelete *reldelete);
+};
+
+/* the flags in pending delete action
+ * do NOT register XLOG/SYNC if current relation is not HEAP/AO/AOCS
+ * after CBDB support custom WAL resouce manager, then different
+ * pending delete item can define different WAL log. But for now,
+ * CBDB only support pg pending item record WAL log.
+ */
+#define PENDING_REL_DELETE_NONE_FLAG (0)
+#define PENDING_REL_DELETE_NEED_PRESERVE (1)
+#define PENDING_REL_DELETE_NEED_XLOG (1 << 1)
+#define PENDING_REL_DELETE_NEED_SYNC (1 << 2)
+
 extern SMgrRelation RelationCreateStorage(RelFileNode rnode,
 										  char relpersistence,
 										  SMgrImpl smgr_which,
@@ -37,6 +99,9 @@ extern bool RelFileNodeSkippingWAL(RelFileNode rnode);
 extern Size EstimatePendingSyncsSpace(void);
 extern void SerializePendingSyncs(Size maxSize, char *startAddress);
 extern void RestorePendingSyncs(char *startAddress);
+
+/* register a pending delete item into pending delete list */
+void		RegisterPendingDelete(struct PendingRelDelete *delete);
 
 /*
  * These functions used to be in storage/smgr/smgr.c, which explains the
