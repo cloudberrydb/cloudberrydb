@@ -132,6 +132,15 @@ DirectoryTableDropStorage(Relation rel)
 
 	UFileAddPendingDelete(rel, dirTable->spcId, filePath, true);
 
+	/*
+	 * NOTE: if the relation was created in this transaction, it will now be
+	 * present in the pending-delete list twice, once with atCommit true and
+	 * once with atCommit false.  We could instead remove the existing list
+	 * entry and delete the physical file immediately, but for now I'll keep
+	 * the logic simple.
+	 */
+	UFileUnlink(dirTable->spcId, filePath);
+
 	pfree(filePath);
 }
 
