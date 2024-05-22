@@ -49,7 +49,9 @@ std::vector<pax::porc::proto::Type_Kind> OrcWriter::BuildSchema(TupleDesc desc,
             is_vec ? pax::porc::proto::Type_Kind::Type_Kind_VECDECIMAL
                    : pax::porc::proto::Type_Kind::Type_Kind_DECIMAL);
       } else if (attr->atttypid == BPCHAROID) {
-        type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_BPCHAR);
+        type_kinds.emplace_back(
+            is_vec ? pax::porc::proto::Type_Kind::Type_Kind_VECBPCHAR
+                   : pax::porc::proto::Type_Kind::Type_Kind_BPCHAR);
       } else {
         type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_STRING);
       }
@@ -74,10 +76,13 @@ static PaxColumn *CreateDecimalColumn(bool is_vec,
 
 static PaxColumn *CreateBpCharColumn(bool is_vec,
                                      const PaxEncoder::EncodingOption &opts) {
-  CBDB_CHECK(!is_vec, cbdb::CException::ExType::kExTypeUnImplements);
-  return (PaxColumn *)
-      traits::ColumnOptCreateTraits2<PaxBpCharColumn>::create_encoding(
-          DEFAULT_CAPACITY, DEFAULT_CAPACITY, opts);
+  return is_vec
+             ? (PaxColumn *)traits::ColumnOptCreateTraits2<
+                   PaxVecBpCharColumn>::create_encoding(DEFAULT_CAPACITY,
+                                                        DEFAULT_CAPACITY, opts)
+             : (PaxColumn *)traits::ColumnOptCreateTraits2<
+                   PaxBpCharColumn>::create_encoding(DEFAULT_CAPACITY,
+                                                     DEFAULT_CAPACITY, opts);
 }
 
 static PaxColumn *CreateBitPackedColumn(
@@ -146,6 +151,7 @@ static PaxColumns *BuildColumns(
                                          std::move(encoding_option)));
         break;
       }
+      case (pax::porc::proto::Type_Kind::Type_Kind_VECBPCHAR):
       case (pax::porc::proto::Type_Kind::Type_Kind_BPCHAR): {
         columns->Append(CreateBpCharColumn(is_vec, std::move(encoding_option)));
         break;
@@ -236,10 +242,6 @@ OrcWriter::OrcWriter(
   summary_.rel_oid = writer_options.rel_oid;
   summary_.block_id = writer_options.block_id;
   summary_.file_name = writer_options.file_name;
-
-  file_footer_.set_contentlength(0);
-  file_footer_.set_numberofrows(0);
-  BuildFooterType();
 
   post_script_.set_footerlength(0);
   post_script_.set_majorversion(PAX_MAJOR_VERSION);
@@ -663,7 +665,14 @@ size_t OrcWriter::PhysicalSize() const {
   return current_written_phy_size_ + pax_columns_->PhysicalSize();
 }
 
-void OrcWriter::BuildFooterType() {
+void OrcWriter::WriteFileFooter(BufferedOutputStream *buffer_mem_stream) {
+  Assert(writer_options_.storage_format == kTypeStoragePorcNonVec ||
+         writer_options_.storage_format == kTypeStoragePorcVec);
+  file_footer_.set_contentlength(current_offset_);
+  file_footer_.set_numberofrows(total_rows_);
+  file_footer_.set_storageformat(writer_options_.storage_format);
+
+  // build types and column attributes
   auto proto_type = file_footer_.add_types();
   proto_type->set_kind(::pax::porc::proto::Type_Kind_STRUCT);
 
@@ -672,16 +681,17 @@ void OrcWriter::BuildFooterType() {
 
     auto sub_proto_type = file_footer_.add_types();
     sub_proto_type->set_kind(orc_type);
+    auto pax_column = (*pax_columns_)[i];
+    if (pax_column) {
+      auto column_attrs = pax_column->GetAttributes();
+      for (const auto &kv : column_attrs) {
+        auto attr_pair = sub_proto_type->add_attributes();
+        attr_pair->set_key(kv.first);
+        attr_pair->set_value(kv.second);
+      }
+    }
     file_footer_.mutable_types(0)->add_subtypes(i);
   }
-}
-
-void OrcWriter::WriteFileFooter(BufferedOutputStream *buffer_mem_stream) {
-  Assert(writer_options_.storage_format == kTypeStoragePorcNonVec ||
-         writer_options_.storage_format == kTypeStoragePorcVec);
-  file_footer_.set_contentlength(current_offset_);
-  file_footer_.set_numberofrows(total_rows_);
-  file_footer_.set_storageformat(writer_options_.storage_format);
 
   auto stats_data =
       dynamic_cast<OrcColumnStatsData *>(stats_collector_.GetStatsData());

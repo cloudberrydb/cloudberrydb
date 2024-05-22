@@ -6,7 +6,9 @@
 #include "storage/proto/protobuf_stream.h"
 
 namespace pax {
-namespace tools { class PaxDumpReader; }
+namespace tools {
+class PaxDumpReader;
+}
 class OrcFormatReader final {
  public:
   explicit OrcFormatReader(File *file);
@@ -31,15 +33,16 @@ class OrcFormatReader final {
  private:
   pax::porc::proto::StripeFooter ReadStripeWithProjection(
       DataBuffer<char> *data_buffer,
-      const ::pax::porc::proto::StripeInformation &stripe_info, const bool *proj_map,
-      size_t proj_len);
+      const ::pax::porc::proto::StripeInformation &stripe_info,
+      const bool *proj_map, size_t proj_len);
 
   pax::porc::proto::StripeFooter ReadStripeFooter(DataBuffer<char> *data_buffer,
-                                            size_t sf_length, size_t sf_offset,
-                                            size_t sf_data_len);
+                                                  size_t sf_length,
+                                                  size_t sf_offset,
+                                                  size_t sf_data_len);
 
   pax::porc::proto::StripeFooter ReadStripeFooter(DataBuffer<char> *data_buffer,
-                                            size_t stripe_index);
+                                                  size_t stripe_index);
 
   void BuildProtoTypes();
 
@@ -47,6 +50,7 @@ class OrcFormatReader final {
   friend class tools::PaxDumpReader;
   friend class OrcGroupStatsProvider;
   std::vector<pax::porc::proto::Type_Kind> column_types_;
+  std::vector<std::map<std::string, std::string>> column_attrs_;
   File *file_;
   DataBuffer<char> *reused_buffer_;
   size_t num_of_stripes_;

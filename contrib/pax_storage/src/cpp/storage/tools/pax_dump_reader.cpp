@@ -597,6 +597,7 @@ void PaxDumpReader::DumpAllData() {
         switch (column->GetPaxColumnTypeInMem()) {
           case kTypeBpChar:
           case kTypeDecimal:
+          case kTypeVecBpChar:
           case kTypeNonFixed:
             current_row.emplace_back(std::string(DatumGetPointer(d)));
             break;

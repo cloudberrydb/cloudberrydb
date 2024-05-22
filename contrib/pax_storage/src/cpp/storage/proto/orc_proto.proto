@@ -63,6 +63,11 @@ message StripeFooter {
   repeated pax.ColumnEncoding pax_col_encodings = 2;
 }
 
+message StringPair {
+  optional string key = 1;
+  optional string value = 2;
+}
+
 message Type {
   enum Kind {
     BOOLEAN = 0;
@@ -79,11 +84,14 @@ message Type {
     STRUCT = 11;
     BPCHAR = 12;
     VECDECIMAL = 13;
+    VECBPCHAR = 14;
   }
   // the kind of type
   optional Kind kind = 1;
   // the kind of subtypes
   repeated uint32 subtypes = 2 [packed=true];
+  // the external infomation for the column type
+  repeated StringPair attributes = 3;
 }
 
 message StripeInformation {

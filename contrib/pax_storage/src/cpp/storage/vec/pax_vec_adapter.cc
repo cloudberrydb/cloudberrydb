@@ -1055,9 +1055,7 @@ int VecAdapter::AppendVecFormat() {
         total_rows - column->GetNonNullRows();
 
     switch (column->GetPaxColumnTypeInMem()) {
-      case PaxColumnTypeInMem::kTypeBpChar: {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeUnImplements);
-      }
+      case PaxColumnTypeInMem::kTypeVecBpChar:
       case PaxColumnTypeInMem::kTypeNonFixed: {
         Assert(!vec_buffer->GetBuffer());
         Assert(!offset_buffer->GetBuffer());

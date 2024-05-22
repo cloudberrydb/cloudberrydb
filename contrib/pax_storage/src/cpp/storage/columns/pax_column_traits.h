@@ -7,6 +7,7 @@
 #include "storage/columns/pax_encoding_non_fixed_column.h"
 #include "storage/columns/pax_numeric_column.h"
 #include "storage/columns/pax_vec_bitpacked_column.h"
+#include "storage/columns/pax_vec_bpchar_column.h"
 #include "storage/columns/pax_vec_column.h"
 #include "storage/columns/pax_vec_encoding_column.h"
 #include "storage/columns/pax_vec_numeric_column.h"
@@ -156,6 +157,7 @@ TRAITS_OPT_DECL2(PaxVecNonFixedEncodingColumn);
 TRAITS_OPT_DECL_NO_TYPE(PaxShortNumericColumn);
 TRAITS_OPT_DECL2(PaxPgNumericColumn);
 TRAITS_OPT_DECL2(PaxBpCharColumn);
+TRAITS_OPT_DECL2(PaxVecBpCharColumn);
 TRAITS_OPT_DECL_NO_TYPE(PaxBitPackedColumn);
 TRAITS_OPT_DECL_NO_TYPE(PaxVecBitPackedColumn);
 

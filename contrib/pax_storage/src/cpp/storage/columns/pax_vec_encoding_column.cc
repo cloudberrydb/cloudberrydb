@@ -387,7 +387,7 @@ std::pair<char *, size_t> PaxVecNonFixedEncodingColumn::GetOffsetBuffer(
     AppendLastOffset();
   }
 
-  if (offsets_compressor_) {
+  if (offsets_compressor_ && compress_route_) {
     if (shared_offsets_data_) {
       return std::make_pair(shared_offsets_data_->Start(),
                             shared_offsets_data_->Used());

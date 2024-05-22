@@ -59,13 +59,13 @@ static std::pair<Datum, struct varlena *> GetDatumWithNonNull(
 
   std::tie(buffer, buffer_len) = column->GetBuffer(row_index);
   switch (column->GetPaxColumnTypeInMem()) {
-    case kTypeBpChar:
     case kTypeDecimal:
+    case kTypeVecBpChar:
     case kTypeNonFixed:
       CBDB_WRAP_START;
       {
         result_ref = reinterpret_cast<struct varlena *>(
-            palloc(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len + VARHDRSZ)));
+            cbdb::Palloc(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len + VARHDRSZ)));
         SET_VARSIZE(result_ref, buffer_len + VARHDRSZ);
         memcpy(VARDATA(result_ref), buffer, buffer_len);
         datum = PointerGetDatum(result_ref);
@@ -97,6 +97,7 @@ static std::pair<Datum, struct varlena *> GetDatumWithNonNull(
       datum = PointerGetDatum(buffer);
       break;
     }
+    case kTypeBpChar:
     default:
       Assert(!"should't be here, non-implemented column type in memory");
       break;

@@ -45,6 +45,14 @@ size_t PaxColumn::GetNonNullRows() const { return non_null_rows_; }
 
 void PaxColumn::SetRows(size_t total_rows) { total_rows_ = total_rows; }
 
+const std::map<std::string, std::string> &PaxColumn::GetAttributes() {
+  return attrs_map_;
+}
+
+void PaxColumn::SetAttributes(std::map<std::string, std::string> attrs) {
+  attrs_map_ = attrs;
+}
+
 size_t PaxColumn::GetRangeNonNullRows(size_t start_pos, size_t len) {
   CBDB_CHECK((start_pos + len) <= GetRows(),
              cbdb::CException::ExType::kExTypeOutOfRange);

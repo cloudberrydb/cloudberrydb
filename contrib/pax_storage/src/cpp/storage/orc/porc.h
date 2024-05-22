@@ -87,7 +87,6 @@ class OrcWriter : public MicroPartitionWriter {
     return PAX_NEW<OrcWriter>(options, column_types, file);
   }
 
-  void BuildFooterType();
   bool WriteStripe(BufferedOutputStream *buffer_mem_stream,
                    PaxColumns *pax_columns, MicroPartitionStats *stripe_stats,
                    MicroPartitionStats *file_stats);

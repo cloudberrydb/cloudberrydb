@@ -117,9 +117,11 @@ MicroPartitionReader::Group *OrcReader::ReadGroup(size_t group_index) {
     auto column = (*pax_columns)[i];
     if (column && !column->GetBuffer().first) {
       auto bm = column->GetBitmap();
-      Assert(bm);
-      for (size_t n = 0; n < column->GetRows(); n++) {
-        Assert(!bm->Test(n));
+      // Assert(bm);
+      if (bm) {
+        for (size_t n = 0; n < column->GetRows(); n++) {
+          Assert(!bm->Test(n));
+        }
       }
     }
   }

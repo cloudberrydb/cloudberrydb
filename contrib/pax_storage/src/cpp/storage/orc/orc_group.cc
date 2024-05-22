@@ -219,6 +219,7 @@ static Datum GetDatumWithNonNull(PaxColumn *column, size_t non_null_offset) {
       }
       break;
     }
+    case kTypeVecBpChar:
     default:
       Assert(!"should't be here, non-implemented column type in memory");
       break;

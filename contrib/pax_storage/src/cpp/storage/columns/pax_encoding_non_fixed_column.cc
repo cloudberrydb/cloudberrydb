@@ -172,7 +172,7 @@ std::pair<char *, size_t> PaxNonFixedEncodingColumn::GetBuffer() {
 }
 
 std::pair<char *, size_t> PaxNonFixedEncodingColumn::GetLengthBuffer() {
-  if (lengths_compressor_) {
+  if (lengths_compressor_ && compress_route_) {
     if (shared_lengths_data_) {
       return std::make_pair(shared_lengths_data_->Start(),
                             shared_lengths_data_->Used());

@@ -29,7 +29,8 @@ enum PaxColumnTypeInMem {
   kTypeDecimal = 4,
   kTypeVecDecimal = 5,
   kTypeBpChar = 6,
-  kTypeBitPacked = 7,
+  kTypeVecBpChar = 7,
+  kTypeBitPacked = 8,
 };
 
 class PaxColumn {
@@ -183,6 +184,12 @@ class PaxColumn {
 
   void SetRows(size_t total_rows);
 
+  // Get the column kv attributes
+  const std::map<std::string, std::string> &GetAttributes();
+
+  // Set the column kv attributes
+  void SetAttributes(std::map<std::string, std::string> attrs);
+
   virtual size_t GetAlignSize() const;
 
   virtual void SetAlignSize(size_t align_size);
@@ -217,6 +224,19 @@ class PaxColumn {
 
   inline void SetLengthsCompressLevel(int compress_level) {
     lengths_compress_level_ = compress_level;
+  }
+
+  inline std::pair<std::string, bool> GetAttribute(const std::string &key) {
+    auto it = attrs_map_.find(key);
+    if (it != attrs_map_.end()) {
+      return std::make_pair(it->second, true);
+    }
+    return std::make_pair(std::string(), false);
+  }
+
+  inline bool PutAttribute(std::string key, std::string value) {
+    auto ret = attrs_map_.insert(std::make_pair(key, value));
+    return ret.second;
   }
 
  private:
@@ -260,6 +280,10 @@ class PaxColumn {
   //    - `ReadTuple` with/without memcpy should get a alignment datum
   // 2. datum padding: deal it in column `Append`
   size_t type_align_size_;
+
+  // the attributes which supplementary description of the column type
+  // For example, attributes record `n` in `char(n)`
+  std::map<std::string, std::string> attrs_map_;
 
  private:
   PaxColumn(const PaxColumn &);

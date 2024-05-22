@@ -39,6 +39,7 @@ set(pax_storage_src
     storage/columns/pax_encoding.cc
     storage/columns/pax_rlev2_decoding.cc
     storage/columns/pax_rlev2_encoding.cc
+    storage/columns/pax_vec_bpchar_column.cc
     storage/columns/pax_vec_column.cc
     storage/columns/pax_vec_encoding_column.cc
     storage/columns/pax_vec_numeric_column.cc
