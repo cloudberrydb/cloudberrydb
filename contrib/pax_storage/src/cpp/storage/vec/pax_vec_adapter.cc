@@ -786,9 +786,7 @@ void VecAdapter::SetDataSource(PaxColumns *columns, int group_base_offset) {
   }
 }
 
-TupleDesc VecAdapter::GetRelationTupleDesc() const {
-  return rel_tuple_desc_;
-}
+TupleDesc VecAdapter::GetRelationTupleDesc() const { return rel_tuple_desc_; }
 
 int VecAdapter::AppendToVecBuffer() {
   PaxColumns *columns;
@@ -1079,34 +1077,11 @@ int VecAdapter::AppendVecFormat() {
             dynamic_cast<PaxVecNonFixedColumn *>(column)->GetOffsetBuffer(
                 false);
         // TODO(jiaqizho): this buffer can also be transferred
-        offset_buffer->Set(
-            BlockBuffer::Alloc<char*>(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len)),
-            TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len));
+        offset_buffer->Set(BlockBuffer::Alloc<char *>(
+                               TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len)),
+                           TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len));
         offset_buffer->Write((int *)buffer, buffer_len);
         offset_buffer->BrushAll();
-        break;
-      }
-      case PaxColumnTypeInMem::kTypeBitPacked: {
-        Assert(!vec_buffer->GetBuffer());
-        std::tie(buffer, buffer_len) = column->GetBuffer();
-
-        auto bitpacked_buffer_len =
-            TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len / 8 + 1);
-
-        auto bitpacked_buffer = (char *)cbdb::Palloc0(bitpacked_buffer_len);
-
-        Bitmap8 vec_bool_bitmap(
-            BitmapRaw<uint8>((uint8 *)(bitpacked_buffer), bitpacked_buffer_len),
-            BitmapTpl<uint8>::ReadOnlyRefBitmap);
-
-        for (uint32 i = 0; i < buffer_len; i += 1) {
-          if (*(bool *)(buffer + i)) {
-            vec_bool_bitmap.Set(i);
-          }
-        }
-        vec_buffer->SetMemTakeOver(false);
-        vec_buffer->Set(bitpacked_buffer, bitpacked_buffer_len);
-        vec_buffer->BrushAll();
         break;
       }
       case PaxColumnTypeInMem::kTypeVecDecimal: {
@@ -1126,6 +1101,7 @@ int VecAdapter::AppendVecFormat() {
         }
         break;
       }
+      case PaxColumnTypeInMem::kTypeVecBitPacked:
       case PaxColumnTypeInMem::kTypeFixed: {
         Assert(!vec_buffer->GetBuffer());
         std::tie(buffer, buffer_len) = column->GetBuffer();

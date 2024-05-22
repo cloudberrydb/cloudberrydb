@@ -59,7 +59,6 @@ static std::pair<Datum, struct varlena *> GetDatumWithNonNull(
 
   std::tie(buffer, buffer_len) = column->GetBuffer(row_index);
   switch (column->GetPaxColumnTypeInMem()) {
-    case kTypeDecimal:
     case kTypeVecBpChar:
     case kTypeNonFixed:
       CBDB_WRAP_START;
@@ -72,7 +71,7 @@ static std::pair<Datum, struct varlena *> GetDatumWithNonNull(
       }
       CBDB_WRAP_END;
       break;
-    case kTypeBitPacked:
+    case kTypeVecBitPacked:
     case kTypeFixed: {
       Assert(buffer_len > 0);
       switch (buffer_len) {
@@ -97,7 +96,9 @@ static std::pair<Datum, struct varlena *> GetDatumWithNonNull(
       datum = PointerGetDatum(buffer);
       break;
     }
+    case kTypeBitPacked:
     case kTypeBpChar:
+    case kTypeDecimal:
     default:
       Assert(!"should't be here, non-implemented column type in memory");
       break;

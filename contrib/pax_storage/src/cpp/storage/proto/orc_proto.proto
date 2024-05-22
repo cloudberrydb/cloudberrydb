@@ -85,6 +85,8 @@ message Type {
     BPCHAR = 12;
     VECDECIMAL = 13;
     VECBPCHAR = 14;
+    BITPACKED = 15;
+    VECBITPACKED = 16;
   }
   // the kind of type
   optional Kind kind = 1;

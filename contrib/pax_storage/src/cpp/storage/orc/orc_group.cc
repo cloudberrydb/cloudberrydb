@@ -194,7 +194,6 @@ static Datum GetDatumWithNonNull(PaxColumn *column, size_t non_null_offset) {
   switch (column->GetPaxColumnTypeInMem()) {
     case kTypeBpChar:
     case kTypeDecimal:
-    case kTypeVecDecimal:
     case kTypeNonFixed:
       datum = PointerGetDatum(buffer);
       break;
@@ -219,7 +218,9 @@ static Datum GetDatumWithNonNull(PaxColumn *column, size_t non_null_offset) {
       }
       break;
     }
+    case kTypeVecBitPacked:
     case kTypeVecBpChar:
+    case kTypeVecDecimal:
     default:
       Assert(!"should't be here, non-implemented column type in memory");
       break;
