@@ -595,7 +595,7 @@ SerializePendingSyncs(Size maxSize, char *startAddress)
 	/* remove deleted rnodes */
 	for (delete = pendingDeletes; delete != NULL; delete = delete->next) {
 		Assert(delete->action);
-		if (delete->atCommit && (delete->action->flags & PENDING_REL_DELETE_NEED_SYNC))
+		if (delete->atCommit || !(delete->action->flags & PENDING_REL_DELETE_NEED_SYNC))
 			(void) hash_search(tmphash, (void *) &delete->relnode,
 							   HASH_REMOVE, NULL);
 	}
@@ -723,10 +723,13 @@ smgrDoPendingSyncs(bool isCommit, bool isParallelWorker)
 		return;
 	}
 
-	/* Skip syncing nodes that smgrDoPendingDeletes() will delete. */
+	/*
+	 * Skip syncing nodes that smgrDoPendingDeletes() will delete.
+	 * Also skip the no need sync pending delete item.
+	 */
 	for (pending = pendingDeletes; pending != NULL; pending = pending->next) {
 		Assert(pending->action);
-		if (pending->atCommit && (pending->action->flags & PENDING_REL_DELETE_NEED_SYNC))
+		if (pending->atCommit || !(pending->action->flags & PENDING_REL_DELETE_NEED_SYNC))
 			(void) hash_search(pendingSyncHash, (void *) &pending->relnode,
 							   HASH_REMOVE, NULL);
 	}
