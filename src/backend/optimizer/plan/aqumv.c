@@ -209,6 +209,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 			viewQuery->hasDistinctOn ||
 			viewQuery->hasModifyingCTE ||
 			viewQuery->hasSubLinks ||
+			(limit_needed(viewQuery)) ||
 			(viewQuery->groupClause != NIL) ||
 			/* IVM doesn't support belows now, just in case. */
 			(viewQuery->rowMarks != NIL) ||
@@ -260,6 +261,14 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		subroot->agginfos = NIL;
 		subroot->aggtransinfos = NIL;
 		subroot->parse = viewQuery;
+
+		/*
+		 * AQUMV_FIXME:
+		 * We copy from root currently, but it's not true
+		 * if we support LIMIT node on view query.
+		 */
+		subroot->tuple_fraction = root->tuple_fraction;
+		subroot->limit_tuples = root->limit_tuples;
 
 		/*
 		 * AQUMV
@@ -345,6 +354,9 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		viewQuery->groupingSets = parse->groupingSets;
 		viewQuery->sortClause = parse->sortClause;
 		viewQuery->distinctClause = parse->distinctClause;
+		viewQuery->limitOption = parse->limitOption;
+		viewQuery->limitCount = parse->limitCount;
+		viewQuery->limitOffset = parse->limitOffset;
 
 		/*
 		 * AQUMV
@@ -398,7 +410,6 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * We don't use STD_FUZZ_FACTOR for cost comparisons like compare_path_costs_fuzzily here.
 		 * The STD_FUZZ_FACTOR is used to reduce paths of a rel, and keep the significantly ones.
 		 * But in AQUMV, we always have only one best path of rel at the last to compare.
-		 * TODO: limit clause and startup_cost.
 		 */
 		if (mv_final_rel->cheapest_total_path->total_cost < current_rel->cheapest_total_path->total_cost)
 		{
