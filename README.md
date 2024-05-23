@@ -50,7 +50,7 @@ Database.
 
 ### Build from source
 
-You can follow [these guides](./readmes) to build the Cloudberry Database on
+You can follow [these guides](./deploy/build) to build the Cloudberry Database on
 Linux OS(including CentOS, RHEL/Rocky Linux, and Ubuntu) and macOS.
 
 ### Try out quickly

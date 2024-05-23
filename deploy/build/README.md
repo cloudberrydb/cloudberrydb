@@ -5,8 +5,8 @@ Greenplum Database READE.md here. Thanks all the original writers.-->
 
 This guides describes how to build Cloudberry Database from source code.
 
-- For building on Linux systems, see [Compile and Install Cloudberry Database on Linux](/readmes/README.Linux.md).
-- For building on macOS system, see [Compile and Install Cloudberry Database on macOS](/readmes/README.macOS.md).
+- For building on Linux systems, see [Compile and Install Cloudberry Database on Linux](./README.Linux.md).
+- For building on macOS system, see [Compile and Install Cloudberry Database on macOS](./README.macOS.md).
 
 ## Build the database
 
@@ -98,7 +98,7 @@ make distclean
 
 PXF is an extension framework for Greenplum Database/Cloudberry
 Database to enable fast access to external Hadoop datasets. Refer to
-[PXF extension](../gpcontrib/pxf/README.md) for more information.
+[PXF extension](../../gpcontrib/pxf_fdw/README.md) for more information.
 
 Currently, CBDB is built with PXF by default (--enable-pxf is on).
 In order to build CBDB without pxf, simply invoke `./configure` with additional option `--disable-pxf`.
@@ -108,9 +108,9 @@ PXF requires curl, so `--enable-pxf` is not compatible with the `--without-libcu
 
 Cloudberry Database supports Python3 with plpython3u UDF
 
-See [how to enable Python3](../src/pl/plpython/README.md) for details.
+See [how to enable Python3](../../src/pl/plpython/README.md) for details.
 
 
 # Development with Vagrant
 
-There is a Vagrant-based [quickstart guide for developers](../src/tools/vagrant/README.md).
+There is a Vagrant-based [quickstart guide for developers](../vagrant/README.md).

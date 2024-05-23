@@ -30,10 +30,10 @@ Enter the repository and install dependencies according to your operating system
 
 The following steps work on CentOS 7. For other CentOS versions, these steps might work but are not guaranteed to work.
 
-1. Run the bash script `README.CentOS.bash` in the `readmes` directory of the `cloudberrydb/cloudberrydb` repository. To run this script, password is required. Then, some required dependencies will be automatically downloaded.
+1. Run the bash script `README.CentOS.bash` in the `deploy/build` directory of the `cloudberrydb/cloudberrydb` repository. To run this script, password is required. Then, some required dependencies will be automatically downloaded.
 
     ```bash
-    cd cloudberrydb/readmes
+    cd cloudberrydb/deploy/build
     ./README.CentOS.bash
     ```
 
@@ -81,16 +81,16 @@ The following steps work on CentOS 7. For other CentOS versions, these steps mig
 3. Install more dependencies by running the `README.Rhel-Rocky.bash` script.
 
     ```bash
-    ~/cloudberrydb/readmes/README.Rhel-Rocky.bash
+    ~/cloudberrydb/deploy/build/README.Rhel-Rocky.bash
     ```
 
 ### For Ubuntu 18.04 or later
 
-1. Install dependencies by running the `README.Ubuntu.bash` script in the `readmes` directory.
+1. Install dependencies by running the `README.Ubuntu.bash` script in the `deploy/build` directory.
 
     ```shell
     # You need to enter your password to run.
-    sudo ~/cloudberrydb/readmes/README.Ubuntu.bash
+    sudo ~/cloudberrydb/deploy/build/README.Ubuntu.bash
     ```
 
     > [!Note]

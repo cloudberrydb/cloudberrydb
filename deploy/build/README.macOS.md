@@ -9,7 +9,7 @@ According to our test, these steps work well on macOS Ventura 13.4+ with both In
 Run the following command to install the needed dependencies. You will be asked to enter the `sudo` password of your macOS system.
 
 ```bash
-source readmes/README.macOS.bash
+source deploy/build/README.macOS.bash
 ```
 
 > [!NOTE]
@@ -66,7 +66,7 @@ source $(cd ~; pwd)/install/cbdb/greenplum_path.sh
 
 # 4. Install the Python dependencies.
 
-pip3 install --user -r readmes/python-dependencies.txt
+pip3 install --user -r python-dependencies.txt
 
 # 5. Start a demo cluster.
 
