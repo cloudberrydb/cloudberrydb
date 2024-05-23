@@ -2164,6 +2164,259 @@ select distinct on(c1 - 1) c1, c2 from aqumv_t6 where c1 > 90 order by c1 - 1, c
 
 \pset null ''
 abort;
+-- Test LIMIT
+begin;
+create table aqumv_t7(c1 int, c2 int, c3 int, c4 int) distributed by (c1);
+insert into aqumv_t7 select i, i+1, i+2, i+3 from generate_series(1, 100) i;
+insert into aqumv_t7 select i, i+1, i+2, i+3 from generate_series(1, 100) i;
+analyze aqumv_t7;
+create incremental materialized view aqumv_mvt7_0 as
+  select c3 as cm3, c1 as mc1, c2 as mc2
+  from aqumv_t7 where c1 > 90;
+analyze aqumv_mvt7_0;
+-- LIMIT
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 limit 3;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Limit
+   Output: c2, c3
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: c2, c3
+         Merge Key: c2, c3
+         ->  Limit
+               Output: c2, c3
+               ->  Sort
+                     Output: c2, c3
+                     Sort Key: aqumv_t7.c2, aqumv_t7.c3
+                     ->  Seq Scan on public.aqumv_t7
+                           Output: c2, c3
+                           Filter: (aqumv_t7.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'off', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(15 rows)
+
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 limit 3;
+ c2 | c3 
+----+----
+ 92 | 93
+ 92 | 93
+ 93 | 94
+(3 rows)
+
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 limit 3;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Limit
+   Output: mc2, cm3
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: mc2, cm3
+         Merge Key: mc2, cm3
+         ->  Limit
+               Output: mc2, cm3
+               ->  Sort
+                     Output: mc2, cm3
+                     Sort Key: aqumv_mvt7_0.mc2, aqumv_mvt7_0.cm3
+                     ->  Seq Scan on public.aqumv_mvt7_0
+                           Output: mc2, cm3
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(14 rows)
+
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 limit 3;
+ c2 | c3 
+----+----
+ 92 | 93
+ 92 | 93
+ 93 | 94
+(3 rows)
+
+-- OFFSET
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 limit 3 offset 4;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Limit
+   Output: c2, c3
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: c2, c3
+         Merge Key: c2, c3
+         ->  Limit
+               Output: c2, c3
+               ->  Sort
+                     Output: c2, c3
+                     Sort Key: aqumv_t7.c2, aqumv_t7.c3
+                     ->  Seq Scan on public.aqumv_t7
+                           Output: c2, c3
+                           Filter: (aqumv_t7.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'off', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(15 rows)
+
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 limit 3 offset 4;
+ c2 | c3 
+----+----
+ 94 | 95
+ 94 | 95
+ 95 | 96
+(3 rows)
+
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 limit 3 offset 4;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Limit
+   Output: mc2, cm3
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: mc2, cm3
+         Merge Key: mc2, cm3
+         ->  Limit
+               Output: mc2, cm3
+               ->  Sort
+                     Output: mc2, cm3
+                     Sort Key: aqumv_mvt7_0.mc2, aqumv_mvt7_0.cm3
+                     ->  Seq Scan on public.aqumv_mvt7_0
+                           Output: mc2, cm3
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(14 rows)
+
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 limit 3 offset 4;
+ c2 | c3 
+----+----
+ 94 | 95
+ 94 | 95
+ 95 | 96
+(3 rows)
+
+-- FETCH
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 fetch first 3 rows only;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Limit
+   Output: c2, c3
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: c2, c3
+         Merge Key: c2, c3
+         ->  Limit
+               Output: c2, c3
+               ->  Sort
+                     Output: c2, c3
+                     Sort Key: aqumv_t7.c2, aqumv_t7.c3
+                     ->  Seq Scan on public.aqumv_t7
+                           Output: c2, c3
+                           Filter: (aqumv_t7.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'off', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(15 rows)
+
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 fetch first 3 rows only;
+ c2 | c3 
+----+----
+ 92 | 93
+ 92 | 93
+ 93 | 94
+(3 rows)
+
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 fetch first 3 rows only;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Limit
+   Output: mc2, cm3
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: mc2, cm3
+         Merge Key: mc2, cm3
+         ->  Limit
+               Output: mc2, cm3
+               ->  Sort
+                     Output: mc2, cm3
+                     Sort Key: aqumv_mvt7_0.mc2, aqumv_mvt7_0.cm3
+                     ->  Seq Scan on public.aqumv_mvt7_0
+                           Output: mc2, cm3
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(14 rows)
+
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 fetch first 3 rows only;
+ c2 | c3 
+----+----
+ 92 | 93
+ 92 | 93
+ 93 | 94
+(3 rows)
+
+-- WITH TIES
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 fetch first 3 rows with ties;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Limit
+   Output: c2, c3
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: c2, c3
+         Merge Key: c2, c3
+         ->  Limit
+               Output: c2, c3
+               ->  Sort
+                     Output: c2, c3
+                     Sort Key: aqumv_t7.c2, aqumv_t7.c3
+                     ->  Seq Scan on public.aqumv_t7
+                           Output: c2, c3
+                           Filter: (aqumv_t7.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'off', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(15 rows)
+
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 fetch first 3 rows with ties;
+ c2 | c3 
+----+----
+ 92 | 93
+ 92 | 93
+ 93 | 94
+ 93 | 94
+(4 rows)
+
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 fetch first 3 rows with ties;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Limit
+   Output: mc2, cm3
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: mc2, cm3
+         Merge Key: mc2, cm3
+         ->  Limit
+               Output: mc2, cm3
+               ->  Sort
+                     Output: mc2, cm3
+                     Sort Key: aqumv_mvt7_0.mc2, aqumv_mvt7_0.cm3
+                     ->  Seq Scan on public.aqumv_mvt7_0
+                           Output: mc2, cm3
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(14 rows)
+
+select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 fetch first 3 rows with ties;
+ c2 | c3 
+----+----
+ 92 | 93
+ 92 | 93
+ 93 | 94
+ 93 | 94
+(4 rows)
+
+abort;
 reset optimizer;
 reset enable_answer_query_using_materialized_views;
 drop table aqumv_t1 cascade;
