@@ -131,7 +131,8 @@ typedef enum vartag_external
 	VARTAG_INDIRECT = 1,
 	VARTAG_EXPANDED_RO = 2,
 	VARTAG_EXPANDED_RW = 3,
-	VARTAG_ONDISK = 20
+	VARTAG_ONDISK = 20,
+	VARTAG_CUSTOM = 21 /* external toast custom defined tag */
 } vartag_external;
 
 /* this test relies on the specific tag values above */
