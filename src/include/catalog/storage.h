@@ -74,16 +74,35 @@ struct PendingRelDeleteAction
 	void		(*do_pending_rel_delete) (PendingRelDelete *reldelete);
 };
 
-/* the flags in pending delete action
+
+/*
+ * pending delete need delay delete when drop storage happend.
+ * The pg pending delete item will insert the xlog and read the
+ * xlog in `FinishPreparedTransaction` then do the `unlink`.
+ * So after trascation prepared, all of the pending delete items
+ * will be removed. But if current pending delete item have not
+ * xlog, then should setting this flags, `do_pending_rel_delete`
+ * will be called in trascation commit.
+ */
+#define PENDING_REL_DELETE_NEED_DROP_DELAY_DELETE (1)
+
+/*
+ * The flags in pending delete action
  * do NOT register XLOG/SYNC if current relation is not HEAP/AO/AOCS
  * after CBDB support custom WAL resouce manager, then different
  * pending delete item can define different WAL log. But for now,
  * CBDB only support pg pending item record WAL log.
  */
-#define PENDING_REL_DELETE_NONE_FLAG (0)
-#define PENDING_REL_DELETE_NEED_PRESERVE (1)
-#define PENDING_REL_DELETE_NEED_XLOG (1 << 1)
-#define PENDING_REL_DELETE_NEED_SYNC (1 << 2)
+
+#define PENDING_REL_DELETE_NEED_PRESERVE (1 << 1)
+#define PENDING_REL_DELETE_NEED_XLOG (1 << 2)
+#define PENDING_REL_DELETE_NEED_SYNC (1 << 3)
+
+/*
+ * The default pending delete item won't write the xlog,
+ * also need delay do pending delete when storage is dropped.
+*/
+#define PENDING_REL_DELETE_DEFAULT_FLAG PENDING_REL_DELETE_NEED_DROP_DELAY_DELETE
 
 extern SMgrRelation RelationCreateStorage(RelFileNode rnode,
 										  char relpersistence,

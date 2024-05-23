@@ -260,7 +260,8 @@ RelationPreserveStorage(RelFileNode rnode, bool atCommit)
 	{
 		next = pending->next;
 		Assert(pending->action);
-		if (!(pending->action->flags & PENDING_REL_DELETE_NEED_PRESERVE)) {
+		if (!(pending->action->flags & PENDING_REL_DELETE_NEED_PRESERVE))
+		{
 			continue;
 		}
 
@@ -496,6 +497,7 @@ RelationCopyStorage(SMgrRelation src, SMgrRelation dst,
 							relpathbackend(src->smgr_rnode.node,
 										   src->smgr_rnode.backend,
 										   forkNum))));
+
 		/*
 		 * WAL-log the copied page. Unfortunately we don't know what kind of a
 		 * page this is, so we have to log the full page including any unused
@@ -593,7 +595,8 @@ SerializePendingSyncs(Size maxSize, char *startAddress)
 		(void) hash_search(tmphash, &sync->rnode, HASH_ENTER, NULL);
 
 	/* remove deleted rnodes */
-	for (delete = pendingDeletes; delete != NULL; delete = delete->next) {
+	for (delete = pendingDeletes; delete != NULL; delete = delete->next)
+	{
 		Assert(delete->action);
 		if (delete->atCommit || !(delete->action->flags & PENDING_REL_DELETE_NEED_SYNC))
 			(void) hash_search(tmphash, (void *) &delete->relnode,
@@ -724,10 +727,11 @@ smgrDoPendingSyncs(bool isCommit, bool isParallelWorker)
 	}
 
 	/*
-	 * Skip syncing nodes that smgrDoPendingDeletes() will delete.
-	 * Also skip the no need sync pending delete item.
+	 * Skip syncing nodes that smgrDoPendingDeletes() will delete. Also skip
+	 * the no need sync pending delete item.
 	 */
-	for (pending = pendingDeletes; pending != NULL; pending = pending->next) {
+	for (pending = pendingDeletes; pending != NULL; pending = pending->next)
+	{
 		Assert(pending->action);
 		if (pending->atCommit || !(pending->action->flags & PENDING_REL_DELETE_NEED_SYNC))
 			(void) hash_search(pendingSyncHash, (void *) &pending->relnode,
@@ -867,7 +871,8 @@ smgrGetPendingDeletes(bool forCommit, RelFileNodePendingDelete **ptr)
 	for (pending = pendingDeletes; pending != NULL; pending = pending->next)
 	{
 		Assert(pending->action);
-		if (!(pending->action->flags & PENDING_REL_DELETE_NEED_XLOG)) {
+		if (!(pending->action->flags & PENDING_REL_DELETE_NEED_XLOG))
+		{
 			/* should not reocrd xlog expect pg relation */
 			continue;
 		}
@@ -891,7 +896,8 @@ smgrGetPendingDeletes(bool forCommit, RelFileNodePendingDelete **ptr)
 	for (pending = pendingDeletes; pending != NULL; pending = pending->next)
 	{
 		Assert(pending->action);
-		if (!(pending->action->flags & PENDING_REL_DELETE_NEED_XLOG)) {
+		if (!(pending->action->flags & PENDING_REL_DELETE_NEED_XLOG))
+		{
 			continue;
 		}
 
@@ -920,16 +926,32 @@ void
 PostPrepare_smgr(void)
 {
 	PendingRelDelete *pending;
+	PendingRelDelete *prev;
 	PendingRelDelete *next;
 
+	prev = NULL;
 	for (pending = pendingDeletes; pending != NULL; pending = next)
 	{
 		next = pending->next;
-		pendingDeletes = next;
-		/* must explicitly free the list entry */
+
 		Assert(pending->action);
-		Assert(pending->action->destroy_pending_rel_delete);
-		pending->action->destroy_pending_rel_delete(pending);
+		if (pending->action->flags & PENDING_REL_DELETE_NEED_DROP_DELAY_DELETE)
+		{
+			/* delay delete entries should not be processed yet */
+			prev = pending;
+		}
+		else
+		{
+			/* unlink list entry first, so we don't retry on failure */
+			if (prev)
+				prev->next = next;
+			else
+				pendingDeletes = next;
+
+			/* do deletion if called for */
+			Assert(pending->action->destroy_pending_rel_delete);
+			pending->action->destroy_pending_rel_delete(pending);
+		}
 	}
 }
 
