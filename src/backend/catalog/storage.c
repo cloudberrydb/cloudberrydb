@@ -497,7 +497,6 @@ RelationCopyStorage(SMgrRelation src, SMgrRelation dst,
 							relpathbackend(src->smgr_rnode.node,
 										   src->smgr_rnode.backend,
 										   forkNum))));
-
 		/*
 		 * WAL-log the copied page. Unfortunately we don't know what kind of a
 		 * page this is, so we have to log the full page including any unused
@@ -675,7 +674,6 @@ smgrDoPendingDeletes(bool isCommit)
 			else
 				pendingDeletes = next;
 			/* do deletion if called for */
-
 			if (pending->atCommit == isCommit)
 			{
 				Assert(pending->action);
