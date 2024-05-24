@@ -630,12 +630,12 @@ RestorePendingSyncs(char *startAddress)
 }
 
 void
-RegisterPendingDelete(struct PendingRelDelete *delete)
+RegisterPendingDelete(struct PendingRelDelete *pending)
 {
-	Assert(delete);
-	Assert(delete->action);
-	delete->next = pendingDeletes;
-	pendingDeletes = delete;
+	Assert(pending);
+	Assert(pending->action);
+	pending->next = pendingDeletes;
+	pendingDeletes = pending;
 }
 
 /*
