@@ -25,8 +25,9 @@
 
 typedef enum SMgrImplementation
 {
+	SMGR_INVALID = -1,
 	SMGR_MD = 0,
-	SMGR_AO = 1
+	SMGR_AO = 1,
 } SMgrImpl;
 
 struct f_smgr;

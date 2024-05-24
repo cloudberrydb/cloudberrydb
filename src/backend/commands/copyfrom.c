@@ -1132,7 +1132,7 @@ CopyFromDirectoryTable(CopyFromState cstate)
 						 	 errmsg("failed to open file \"%s\": %s", orgiFileName, errorMessage)));
 
 			/* Delete uploaded file when the transaction fails */
-			UFileAddCreatePendingEntry(cstate->rel, dirTable->spcId, orgiFileName);
+			UFileAddPendingDelete(cstate->rel, dirTable->spcId, orgiFileName, false);
 
 			file_buf = TextDatumGetCString(myslot->tts_values[5]);
 			decode_file_len = strlen(file_buf);
