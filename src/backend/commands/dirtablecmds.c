@@ -392,7 +392,7 @@ remove_file_segment(PG_FUNCTION_ARGS)
 	{
 		CatalogTupleDelete(relation, &tuple->t_self);
 		fullPathName = psprintf("%s/%s", dirTable->location, relativePath);
-		UFileAddDeletePendingEntry(relation, dirTable->spcId, fullPathName);
+		UFileAddPendingDelete(relation, dirTable->spcId, fullPathName, true);
 		exist = true;
 	}
 

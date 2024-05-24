@@ -14,12 +14,7 @@
 
 #include "utils/relcache.h"
 
-extern void UFileAddCreatePendingEntry(Relation rel, Oid spcId, char *relativePath);
-extern void UFileAddDeletePendingEntry(Relation rel, Oid spcId, char *relativePath);
-
-extern void UFileDoDeletesActions(bool isCommit);
-extern void UFileAtSubCommitSmgr(void);
-extern void UFileAtSubAbortSmgr(void);
+extern void UFileAddPendingDelete(Relation rel, Oid spcId, char *relativePath, bool atCommit);
 extern void DirectoryTableDropStorage(Relation rel);
 
-#endif //STORAGE_DIRECTORY_TABLE_H
+#endif	/* STORAGE_DIRECTORY_TABLE_H */
