@@ -120,7 +120,7 @@ extern void SerializePendingSyncs(Size maxSize, char *startAddress);
 extern void RestorePendingSyncs(char *startAddress);
 
 /* register a pending delete item into pending delete list */
-void		RegisterPendingDelete(struct PendingRelDelete *delete);
+void		RegisterPendingDelete(struct PendingRelDelete *pending);
 
 /*
  * These functions used to be in storage/smgr/smgr.c, which explains the
