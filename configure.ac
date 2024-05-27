@@ -959,6 +959,16 @@ fi
 AC_MSG_RESULT([checking whether to build with preload gophermeta ... $enable_gophermeta])
 AC_SUBST(enable_gophermeta)
 
+#
+# perfmon support
+#
+PGAC_ARG_BOOL(enable, perfmon, no,
+              [enable perfmon support],
+              [AC_DEFINE(USE_PERFMON, 1,
+                         [Define to 1 to support perfmon])])
+AC_MSG_RESULT([checking whether to build with perfmon support ... $enable_perfmon])
+AC_SUBST(enable_perfmon)
+
 if [ "${prefix}" = "NONE" ];then
   export LDFLAGS+=" -L${ac_default_prefix}/lib"
   export CPPFLAGS+=" -I${ac_default_prefix}/include"
@@ -2939,6 +2949,10 @@ if test "$with_python" = yes; then
   CPPFLAGS=$ac_save_CPPFLAGS
 fi
 
+# check for apr
+if test "$enable_perfmon" = yes; then
+  AC_CHECK_HEADER(apr_getopt.h, [], [AC_MSG_ERROR([header file <apr_getopt.h> is required for perfmon])])
+fi
 #
 # Check for documentation-building tools
 #

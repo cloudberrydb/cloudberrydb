@@ -52,6 +52,9 @@ ifeq ($(enable_datalake), yes)
 	chmod +x dependencies.sh  && ./dependencies.sh datalake ${debug}
 	$(MAKE) -C contrib/datalake_proxy all
 endif
+ifeq ($(enable_perfmon), yes)
+	$(MAKE) -C contrib/perfmon all
+endif
 	$(MAKE) -C gpMgmt all
 	$(MAKE) -C gpcontrib all
 	+@echo "All of Cloudberry Database successfully made. Ready to install."
@@ -106,6 +109,9 @@ ifeq ($(enable_gophermeta), yes)
 endif
 ifeq ($(enable_datalake), yes)
 	$(MAKE) -C contrib/datalake_proxy $@
+endif
+ifeq ($(enable_perfmon), yes)
+	$(MAKE) -C contrib/perfmon $@
 endif
 	$(MAKE) -C gpMgmt $@
 	$(MAKE) -C gpcontrib $@
