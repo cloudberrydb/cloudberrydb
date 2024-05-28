@@ -534,6 +534,7 @@ pgstat_report_activity(BackendState state, const char *cmd_str)
 	TimestampTz start_timestamp;
 	TimestampTz current_timestamp;
 	int			len = 0;
+	Oid			warehouse_id = InvalidOid;
 
 	TRACE_POSTGRESQL_STATEMENT_STATUS(cmd_str);
 
@@ -605,6 +606,8 @@ pgstat_report_activity(BackendState state, const char *cmd_str)
 			pgstat_count_conn_txn_idle_time((PgStat_Counter) secs * 1000000 + usecs);
 	}
 
+	warehouse_id = GetCurrentWarehouseId();
+
 	/*
 	 * Now update the status entry
 	 */
@@ -612,6 +615,7 @@ pgstat_report_activity(BackendState state, const char *cmd_str)
 
 	beentry->st_state = state;
 	beentry->st_state_start_timestamp = current_timestamp;
+	beentry->st_warehouse_id  = warehouse_id;
 
 	/*
 	 * If a new query is started, we reset the query identifier as it'll only

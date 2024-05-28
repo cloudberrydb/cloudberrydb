@@ -577,7 +577,7 @@ pg_stat_get_progress_info(PG_FUNCTION_ARGS)
 Datum
 pg_stat_get_activity(PG_FUNCTION_ARGS)
 {
-#define PG_STAT_GET_ACTIVITY_COLS	33
+#define PG_STAT_GET_ACTIVITY_COLS	34
 	int			num_backends = pgstat_fetch_stat_numbackends();
 	int			curr_backend;
 	int			pid = PG_ARGISNULL(0) ? -1 : PG_GETARG_INT32(0);
@@ -954,6 +954,11 @@ pg_stat_get_activity(PG_FUNCTION_ARGS)
 				else
 					nulls[32] = true;
 			}
+
+			if (beentry->st_warehouse_id != InvalidOid)
+				values[33] = ObjectIdGetDatum(beentry->st_warehouse_id);
+			else
+				nulls[33] = true;
 		}
 		else
 		{
@@ -987,6 +992,7 @@ pg_stat_get_activity(PG_FUNCTION_ARGS)
 			values[30] = Int32GetDatum(beentry->st_session_id);
 			nulls[31] = true;
 			nulls[32] = true;
+			nulls[33] = true;
 		}
 
 		tuplestore_putvalues(tupstore, tupdesc, values, nulls);

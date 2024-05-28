@@ -987,6 +987,39 @@ CREATE VIEW pg_stat_activity AS
         LEFT JOIN pg_database AS D ON (S.datid = D.oid)
         LEFT JOIN pg_authid AS U ON (S.usesysid = U.oid);
 
+CREATE VIEW pg_stat_activity_extended AS
+    SELECT
+            S.warehouse_id,
+            S.datid AS datid,
+            D.datname AS datname,
+            S.pid,
+            S.sess_id,
+            S.leader_pid,
+            S.usesysid,
+            U.rolname AS usename,
+            S.application_name,
+            S.client_addr,
+            S.client_hostname,
+            S.client_port,
+            S.backend_start,
+            S.xact_start,
+            S.query_start,
+            S.state_change,
+            S.wait_event_type,
+            S.wait_event,
+            S.state,
+            S.backend_xid,
+            s.backend_xmin,
+            S.query_id,
+            S.query,
+            S.backend_type,
+
+            S.rsgid,
+            S.rsgname
+    FROM pg_stat_get_activity(NULL) AS S
+        LEFT JOIN pg_database AS D ON (S.datid = D.oid)
+        LEFT JOIN pg_authid AS U ON (S.usesysid = U.oid);
+
 CREATE VIEW pg_stat_replication AS
     SELECT
             S.pid,
