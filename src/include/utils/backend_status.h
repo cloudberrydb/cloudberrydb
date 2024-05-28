@@ -171,6 +171,7 @@ typedef struct PgBackendStatus
 
 	/* query identifier, optionally computed using post_parse_analyze_hook */
 	uint64		st_query_id;
+	Oid			st_warehouse_id;
 } PgBackendStatus;
 
 
