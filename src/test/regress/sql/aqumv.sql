@@ -2,6 +2,8 @@
 -- Tests of Answer Query Using Materialized Views.
 --
 set optimizer = off;
+create schema aqumv;
+set search_path to aqumv;
 create table aqumv_t1(c1 int, c2 int, c3 int) distributed by (c1);
 insert into aqumv_t1 select i, i+1, i+2 from generate_series(1, 1000) i;
 insert into aqumv_t1 select * from aqumv_t1;
@@ -594,3 +596,4 @@ abort;
 reset optimizer;
 reset enable_answer_query_using_materialized_views;
 drop table aqumv_t1 cascade;
+reset search_path;
