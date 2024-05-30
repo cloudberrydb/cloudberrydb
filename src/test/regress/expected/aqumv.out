@@ -1594,6 +1594,40 @@ select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having 2 > 
  Optimizer: Postgres query optimizer
 (9 rows)
 
+-- origin query have mutable functions can not use AQUMV.
+explain(costs off, verbose)
+select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having random() > 0.5;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: c1, c3, (avg(c2))
+   ->  HashAggregate
+         Output: c1, c3, avg(c2)
+         Group Key: aqumv_t4.c1, aqumv_t4.c3
+         Filter: (random() > '0.5'::double precision)
+         ->  Seq Scan on public.aqumv_t4
+               Output: c1, c2, c3
+               Filter: (aqumv_t4.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+explain(costs off, verbose)
+select c1, c3, avg(c2), random() from aqumv_t4 where c1 > 90 group by (c1, c3);
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: c1, c3, (avg(c2)), (random())
+   ->  HashAggregate
+         Output: c1, c3, avg(c2), random()
+         Group Key: aqumv_t4.c1, aqumv_t4.c3
+         ->  Seq Scan on public.aqumv_t4
+               Output: c1, c2, c3
+               Filter: (aqumv_t4.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(10 rows)
+
 abort;
 -- Test Order By of origin query.
 begin;
