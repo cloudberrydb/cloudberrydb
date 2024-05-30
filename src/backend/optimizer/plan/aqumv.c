@@ -487,6 +487,10 @@ aqumv_init_context(List *view_tlist, TupleDesc mv_tupledesc)
 		if (tle->resjunk)
 			continue;
 
+		/* Avoid expression has no Vars. */
+		if(!contain_var_clause((Node*)tle))
+			continue;
+
 		if (IsA(tle->expr, Var))
 			mv_pure_vars_index = lappend_int(mv_pure_vars_index, i);
 		else
