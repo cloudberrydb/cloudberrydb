@@ -122,6 +122,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 						  parse->hasModifyingCTE ||
 						  (parse->parentStmtType == PARENTSTMTTYPE_REFRESH_MATVIEW) ||
 						  (parse->parentStmtType == PARENTSTMTTYPE_CTAS) ||
+						  (contain_mutable_functions((Node *) parse)) ||
 						  parse->hasSubLinks;
 
 	if (can_not_use_mv)

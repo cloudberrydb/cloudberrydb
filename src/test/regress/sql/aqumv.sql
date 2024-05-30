@@ -411,6 +411,12 @@ select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having c1 >
 explain(costs off, verbose)
 select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having 2 > 1;
 
+-- origin query have mutable functions can not use AQUMV.
+explain(costs off, verbose)
+select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having random() > 0.5;
+explain(costs off, verbose)
+select c1, c3, avg(c2), random() from aqumv_t4 where c1 > 90 group by (c1, c3);
+
 abort;
 
 -- Test Order By of origin query.
