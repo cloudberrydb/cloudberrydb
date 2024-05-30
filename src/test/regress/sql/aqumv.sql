@@ -407,6 +407,10 @@ select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having avg(
 explain(costs off, verbose)
 select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having c1 > 90;
 
+-- having quals without column reference.
+explain(costs off, verbose)
+select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having 2 > 1;
+
 abort;
 
 -- Test Order By of origin query.
