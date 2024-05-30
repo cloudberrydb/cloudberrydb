@@ -9,6 +9,7 @@
 
 #include "access/pax_partition.h"
 #include "comm/gtest_wrappers.h"
+#include "comm/guc.h"
 #include "exceptions/CException.h"
 #include "pax_gtest_helper.h"
 #include "storage/local_file_system.h"
@@ -677,6 +678,194 @@ TEST_F(PaxWriterTest, ParitionWriteReadTuple) {
   delete stub;
 
   clear_disk_file();
+}
+
+TEST_F(PaxWriterTest, ParitionWriteReadTupleWithToast) {
+  std::vector<const char *> file_names = {
+      "80000", "80002", "80003", "80004", "80005", "80006", "80008", "80009",
+  };
+  std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
+  auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
+  bool callback_called = false;
+  Stub *stub;
+  stub = new Stub();
+
+  TupleTableSlot *tuple_slot = nullptr, *tuple_slot_empty = nullptr;
+  TupleDesc tuple_desc = reinterpret_cast<TupleDescData *>(
+      cbdb::Palloc0(sizeof(TupleDescData) +
+                    sizeof(FormData_pg_attribute) * TOAST_COLUMN_NUMS));
+
+  relation->rd_rel = (Form_pg_class)cbdb::Palloc0(sizeof(*relation->rd_rel));
+  relation->rd_att = tuple_desc;
+
+  char no_toast_buff[NO_TOAST_COLUMN_SIZE] = {0};
+  char compress_toast_buff[COMPRESS_TOAST_COLUMN_SIZE] = {0};
+  char external_toast_buff[EXTERNAL_TOAST_COLUMN_SIZE] = {0};
+  char external_compress_toast_buff[EXTERNAL_COMPRESS_TOAST_COLUMN_SIZE] = {0};
+
+  int origin_pax_min_size_of_compress_toast = pax_min_size_of_compress_toast;
+  int origin_pax_min_size_of_external_toast = pax_min_size_of_external_toast;
+
+  pax_min_size_of_compress_toast = 512;
+  pax_min_size_of_external_toast = 1024;
+
+  tuple_desc->natts = TOAST_COLUMN_NUMS;
+  tuple_desc->attrs[0] = {.atttypid = TEXTOID,
+                          .attlen = -1,
+                          .attbyval = false,
+                          .attalign = TYPALIGN_DOUBLE,
+                          .attstorage = TYPSTORAGE_EXTENDED,
+                          .attisdropped = false,
+                          .attcollation = DEFAULT_COLLATION_OID};
+  tuple_desc->attrs[1] = tuple_desc->attrs[0];
+  tuple_desc->attrs[2] = tuple_desc->attrs[0];
+  tuple_desc->attrs[3] = tuple_desc->attrs[0];
+  // column 4 is external but no compress
+  tuple_desc->attrs[3].attstorage = TYPSTORAGE_EXTERNAL;
+
+  tuple_slot = MakeTupleTableSlot(tuple_desc, &TTSOpsVirtual);
+
+  GenTextBuffer(no_toast_buff + VARHDRSZ, NO_TOAST_COLUMN_SIZE - VARHDRSZ);
+  GenTextBuffer(compress_toast_buff + VARHDRSZ,
+                COMPRESS_TOAST_COLUMN_SIZE - VARHDRSZ);
+  GenTextBuffer(external_toast_buff + VARHDRSZ,
+                EXTERNAL_TOAST_COLUMN_SIZE - VARHDRSZ);
+  GenTextBuffer(external_compress_toast_buff + VARHDRSZ,
+                EXTERNAL_COMPRESS_TOAST_COLUMN_SIZE - VARHDRSZ);
+
+  SET_VARSIZE(no_toast_buff, NO_TOAST_COLUMN_SIZE);
+  SET_VARSIZE(compress_toast_buff, COMPRESS_TOAST_COLUMN_SIZE);
+  SET_VARSIZE(external_toast_buff, EXTERNAL_TOAST_COLUMN_SIZE);
+  SET_VARSIZE(external_compress_toast_buff,
+              EXTERNAL_COMPRESS_TOAST_COLUMN_SIZE);
+
+  tuple_slot->tts_isnull[0] = false;
+  tuple_slot->tts_isnull[1] = false;
+  tuple_slot->tts_isnull[2] = false;
+  tuple_slot->tts_isnull[3] = false;
+
+  tuple_slot->tts_values[0] = PointerGetDatum(no_toast_buff);
+  tuple_slot->tts_values[1] = PointerGetDatum(compress_toast_buff);
+  tuple_slot->tts_values[2] = PointerGetDatum(external_compress_toast_buff);
+  tuple_slot->tts_values[3] = PointerGetDatum(external_toast_buff);
+
+  auto clear_disk_file = [file_names] {
+    for (auto file_name : file_names) {
+      std::remove(file_name);
+      auto toast_file_name = std::string(file_name) + ".toast";
+      std::remove(toast_file_name.c_str());
+    }
+  };
+
+  clear_disk_file();
+
+  TableWriter::WriteSummaryCallback callback =
+      [&callback_called](const WriteSummary & /*summary*/) {
+        callback_called = true;
+      };
+
+  for (size_t i = 0; i < COLUMN_NUMS; i++) {
+    encoding_opts.emplace_back(
+        std::make_tuple(ColumnEncoding_Kind_NO_ENCODED, 0));
+  }
+
+  stub->set(ADDR(PartitionObject, NumPartitions),
+            mock_partition_test::NumPartitions);
+  stub->set(ADDR(PartitionObject, FindPartition),
+            mock_partition_test::FindPartition);
+  stub->set(ADDR(MockParitionWriter, GetPartitionMergeInfos),
+            mock_partition_test::GetPartitionMergeInfos);
+  stub->set(ADDR(MicroPartitionStats, MergeTo),
+            mock_partition_test::MicroPartitionStatsMerge);
+
+  auto part_obj = new PartitionObject();
+  auto writer = new MockParitionWriter(relation, part_obj, callback);
+
+  EXPECT_CALL(*writer, GenFilePath(_))
+      .Times(8)  // must be 8
+      .WillRepeatedly(ReturnRoundRobin(file_names));
+
+  EXPECT_CALL(*writer, GetRelEncodingOptions())
+      .Times(AtLeast(1))
+      .WillRepeatedly(Return(encoding_opts));
+
+  writer->Open();
+
+  for (size_t i = 0; i < 400; i++) {
+    writer->WriteTuple(tuple_slot);
+  }
+
+  writer->Close();
+  ASSERT_TRUE(callback_called);
+
+  delete part_obj;
+  delete writer;
+
+  // will remain pax_parition_0.file, pax_parition_4.file,
+  // pax_parition_6.file after merge
+  ASSERT_EQ(0, access(file_names[0], 0));
+  ASSERT_NE(0, access(file_names[1], 0));
+  ASSERT_NE(0, access(file_names[2], 0));
+  ASSERT_EQ(0, access(file_names[3], 0));
+  ASSERT_NE(0, access(file_names[4], 0));
+  ASSERT_EQ(0, access(file_names[5], 0));
+  ASSERT_NE(0, access(file_names[6], 0));
+  ASSERT_NE(0, access(file_names[7], 0));
+
+  std::vector<MicroPartitionMetadata> meta_info_list;
+  MicroPartitionMetadata meta_info;
+  meta_info.SetFileName(file_names[0]);
+  meta_info.SetMicroPartitionId(file_names[0]);
+  meta_info_list.push_back(meta_info);
+
+  meta_info.SetFileName(file_names[3]);
+  meta_info.SetMicroPartitionId(file_names[3]);
+  meta_info_list.push_back(meta_info);
+
+  meta_info.SetFileName(file_names[5]);
+  meta_info.SetMicroPartitionId(file_names[5]);
+  meta_info_list.push_back(meta_info);
+
+  std::unique_ptr<IteratorBase<MicroPartitionMetadata>> meta_info_iterator =
+      std::unique_ptr<IteratorBase<MicroPartitionMetadata>>(
+          new MockReaderInterator(meta_info_list));
+
+  TableReader *reader;
+  TableReader::ReaderOptions reader_options{};
+  reader = new TableReader(std::move(meta_info_iterator), reader_options);
+  reader->Open();
+
+  tuple_slot_empty = MakeTupleTableSlot(tuple_desc, &TTSOpsVirtual);
+
+  for (int i = 0; i < 400; i++) {
+    ASSERT_TRUE(reader->ReadTuple(tuple_slot_empty));
+
+    ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[0]), 10UL + 4);
+    ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[1]), 512UL + 4);
+    ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[2]), 1024UL + 4);
+    ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[3]), 768UL + 4);
+
+    ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[0]),
+                       no_toast_buff, NO_TOAST_COLUMN_SIZE) == 0);
+    ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[1]),
+                       compress_toast_buff, COMPRESS_TOAST_COLUMN_SIZE) == 0);
+    ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[2]),
+                       external_compress_toast_buff,
+                       EXTERNAL_COMPRESS_TOAST_COLUMN_SIZE) == 0);
+    ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[3]),
+                       external_toast_buff, EXTERNAL_TOAST_COLUMN_SIZE) == 0);
+  }
+
+  DeleteTestTupleTableSlot(tuple_slot);
+  DeleteTestTupleTableSlot(tuple_slot_empty);
+  delete relation;
+  delete reader;
+  delete stub;
+
+  clear_disk_file();
+
+  pax_min_size_of_compress_toast = origin_pax_min_size_of_compress_toast;
+  pax_min_size_of_external_toast = origin_pax_min_size_of_external_toast;
 }
 
 }  // namespace pax::tests

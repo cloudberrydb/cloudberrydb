@@ -12,6 +12,7 @@
 #include "pax_gtest_helper.h"
 #include "storage/local_file_system.h"
 #include "storage/pax_filter.h"
+#include "storage/toast/pax_toast.h"
 
 namespace pax::tests {
 
@@ -416,6 +417,280 @@ TEST_F(OrcTest, GetTuple) {
   delete reader;
 }
 
+TEST_F(OrcTest, WriteReadTupleWithToast) {
+  std::string toast_file_name = std::string(file_name_) + ".toast";
+  Singleton<LocalFileSystem>::GetInstance()->Delete(toast_file_name);
+  TupleTableSlot *tuple_slot = nullptr, *tuple_slot_empty = nullptr;
+  TupleDesc tuple_desc = reinterpret_cast<TupleDescData *>(
+      cbdb::Palloc0(sizeof(TupleDescData) +
+                    sizeof(FormData_pg_attribute) * TOAST_COLUMN_NUMS));
+
+  char no_toast_buff[NO_TOAST_COLUMN_SIZE] = {0};
+  char compress_toast_buff[COMPRESS_TOAST_COLUMN_SIZE] = {0};
+  char external_toast_buff[EXTERNAL_TOAST_COLUMN_SIZE] = {0};
+  char external_compress_toast_buff[EXTERNAL_COMPRESS_TOAST_COLUMN_SIZE] = {0};
+
+  int origin_pax_min_size_of_compress_toast = pax_min_size_of_compress_toast;
+  int origin_pax_min_size_of_external_toast = pax_min_size_of_external_toast;
+
+  pax_min_size_of_compress_toast = 512;
+  pax_min_size_of_external_toast = 1024;
+
+  tuple_desc->natts = TOAST_COLUMN_NUMS;
+  tuple_desc->attrs[0] = {.atttypid = TEXTOID,
+                          .attlen = -1,
+                          .attbyval = false,
+                          .attalign = TYPALIGN_DOUBLE,
+                          .attstorage = TYPSTORAGE_EXTENDED,
+                          .attisdropped = false,
+                          .attcollation = DEFAULT_COLLATION_OID};
+  tuple_desc->attrs[1] = tuple_desc->attrs[0];
+  tuple_desc->attrs[2] = tuple_desc->attrs[0];
+  tuple_desc->attrs[3] = tuple_desc->attrs[0];
+  // column 4 is external but no compress
+  tuple_desc->attrs[3].attstorage = TYPSTORAGE_EXTERNAL;
+
+  tuple_slot = MakeTupleTableSlot(tuple_desc, &TTSOpsVirtual);
+
+  GenTextBuffer(no_toast_buff + VARHDRSZ, NO_TOAST_COLUMN_SIZE - VARHDRSZ);
+  GenTextBuffer(compress_toast_buff + VARHDRSZ,
+                COMPRESS_TOAST_COLUMN_SIZE - VARHDRSZ);
+  GenTextBuffer(external_toast_buff + VARHDRSZ,
+                EXTERNAL_TOAST_COLUMN_SIZE - VARHDRSZ);
+  GenTextBuffer(external_compress_toast_buff + VARHDRSZ,
+                EXTERNAL_COMPRESS_TOAST_COLUMN_SIZE - VARHDRSZ);
+
+  SET_VARSIZE(no_toast_buff, NO_TOAST_COLUMN_SIZE);
+  SET_VARSIZE(compress_toast_buff, COMPRESS_TOAST_COLUMN_SIZE);
+  SET_VARSIZE(external_toast_buff, EXTERNAL_TOAST_COLUMN_SIZE);
+  SET_VARSIZE(external_compress_toast_buff,
+              EXTERNAL_COMPRESS_TOAST_COLUMN_SIZE);
+
+  tuple_slot->tts_isnull[0] = false;
+  tuple_slot->tts_isnull[1] = false;
+  tuple_slot->tts_isnull[2] = false;
+  tuple_slot->tts_isnull[3] = false;
+
+  auto local_fs = Singleton<LocalFileSystem>::GetInstance();
+  ASSERT_NE(nullptr, local_fs);
+
+  auto file_ptr = local_fs->Open(file_name_, fs::kWriteMode);
+  EXPECT_NE(nullptr, file_ptr);
+
+  auto toast_file_ptr = local_fs->Open(toast_file_name, fs::kWriteMode);
+  EXPECT_NE(nullptr, file_ptr);
+
+  MicroPartitionWriter::WriterOptions writer_options;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.group_limit = 20;
+
+  std::vector<pax::porc::proto::Type_Kind> types;
+  types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_STRING);
+  types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_STRING);
+  types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_STRING);
+  types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_STRING);
+  std::vector<pax::porc::proto::Type_Kind> types_for_read = types;
+
+  auto writer = OrcWriter::CreateWriter(writer_options, std::move(types),
+                                        file_ptr, toast_file_ptr);
+  for (int i = 0; i < 106; i++) {
+    switch (i % 3) {
+      case 0: {
+        tuple_slot->tts_values[0] = PointerGetDatum(no_toast_buff);
+        tuple_slot->tts_values[1] = PointerGetDatum(compress_toast_buff);
+        tuple_slot->tts_values[2] =
+            PointerGetDatum(external_compress_toast_buff);
+        break;
+      }
+      case 1: {
+        tuple_slot->tts_values[0] = PointerGetDatum(compress_toast_buff);
+        tuple_slot->tts_values[1] =
+            PointerGetDatum(external_compress_toast_buff);
+        tuple_slot->tts_values[2] = PointerGetDatum(no_toast_buff);
+        break;
+      }
+      case 2: {
+        tuple_slot->tts_values[0] =
+            PointerGetDatum(external_compress_toast_buff);
+        tuple_slot->tts_values[1] = PointerGetDatum(no_toast_buff);
+        tuple_slot->tts_values[2] = PointerGetDatum(compress_toast_buff);
+        break;
+      }
+      default:
+        ASSERT_FALSE(true);
+    }
+
+    tuple_slot->tts_values[3] = PointerGetDatum(external_toast_buff);
+    writer->WriteTuple(tuple_slot);
+  }
+  writer->Close();
+
+  // begin full read without projection
+  file_ptr = local_fs->Open(file_name_, fs::kReadMode);
+  EXPECT_NE(nullptr, file_ptr);
+
+  toast_file_ptr = local_fs->Open(toast_file_name, fs::kReadMode);
+  EXPECT_NE(nullptr, file_ptr);
+  MicroPartitionReader::ReaderOptions reader_options;
+  auto reader = new OrcReader(file_ptr, toast_file_ptr);
+  tuple_slot_empty = MakeTupleTableSlot(tuple_desc, &TTSOpsVirtual);
+
+  reader->Open(reader_options);
+  EXPECT_EQ(6UL, reader->GetGroupNums());
+
+  for (int i = 0; i < 106; i++) {
+    ASSERT_TRUE(reader->ReadTuple(tuple_slot_empty));
+    EXPECT_FALSE(tuple_slot_empty->tts_isnull[0]);
+    EXPECT_FALSE(tuple_slot_empty->tts_isnull[1]);
+    EXPECT_FALSE(tuple_slot_empty->tts_isnull[2]);
+    EXPECT_FALSE(tuple_slot_empty->tts_isnull[3]);
+
+    ASSERT_FALSE(VARATT_IS_PAX_SUPPORT_TOAST(tuple_slot_empty->tts_values[0]));
+    ASSERT_FALSE(VARATT_IS_PAX_SUPPORT_TOAST(tuple_slot_empty->tts_values[1]));
+    ASSERT_FALSE(VARATT_IS_PAX_SUPPORT_TOAST(tuple_slot_empty->tts_values[2]));
+    ASSERT_FALSE(VARATT_IS_PAX_SUPPORT_TOAST(tuple_slot_empty->tts_values[3]));
+    switch (i % 3) {
+      case 0: {
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[0]), 10UL + 4);
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[1]), 512UL + 4);
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[2]), 1024UL + 4);
+
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[0]),
+                           no_toast_buff, NO_TOAST_COLUMN_SIZE) == 0);
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[1]),
+                           compress_toast_buff,
+                           COMPRESS_TOAST_COLUMN_SIZE) == 0);
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[2]),
+                           external_compress_toast_buff,
+                           EXTERNAL_COMPRESS_TOAST_COLUMN_SIZE) == 0);
+        break;
+      }
+      case 1: {
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[0]), 512UL + 4);
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[1]), 1024UL + 4);
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[2]), 10UL + 4);
+
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[0]),
+                           compress_toast_buff,
+                           COMPRESS_TOAST_COLUMN_SIZE) == 0);
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[1]),
+                           external_compress_toast_buff,
+                           EXTERNAL_COMPRESS_TOAST_COLUMN_SIZE) == 0);
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[2]),
+                           no_toast_buff, NO_TOAST_COLUMN_SIZE) == 0);
+        break;
+      }
+      case 2: {
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[0]), 1024UL + 4);
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[1]), 10UL + 4);
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[2]), 512UL + 4);
+
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[0]),
+                           external_compress_toast_buff,
+                           EXTERNAL_COMPRESS_TOAST_COLUMN_SIZE) == 0);
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[1]),
+                           no_toast_buff, NO_TOAST_COLUMN_SIZE) == 0);
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[2]),
+                           compress_toast_buff,
+                           COMPRESS_TOAST_COLUMN_SIZE) == 0);
+        break;
+      }
+      default:
+        ASSERT_FALSE(true);
+    }
+
+    ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[3]), 768UL + 4);
+    ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[3]),
+                       external_toast_buff, EXTERNAL_TOAST_COLUMN_SIZE) == 0);
+  }
+  ASSERT_FALSE(reader->ReadTuple(tuple_slot_empty));
+
+  reader->Close();
+  delete reader;
+
+  // begin read with projection
+  file_ptr = local_fs->Open(file_name_, fs::kReadMode);
+  EXPECT_NE(nullptr, file_ptr);
+
+  toast_file_ptr = local_fs->Open(toast_file_name, fs::kReadMode);
+  EXPECT_NE(nullptr, file_ptr);
+  bool *projection = PAX_NEW_ARRAY<bool>(TOAST_COLUMN_NUMS);
+  projection[0] = false;
+  projection[1] = true;
+  projection[2] = true;
+  projection[3] = true;
+  PaxFilter filter(false);
+
+  filter.SetColumnProjection(projection, TOAST_COLUMN_NUMS);
+  reader_options.filter = &filter;
+  reader = new OrcReader(file_ptr, toast_file_ptr);
+  reader->Open(reader_options);
+  EXPECT_EQ(6UL, reader->GetGroupNums());
+
+  for (int i = 0; i < 106; i++) {
+    ASSERT_TRUE(reader->ReadTuple(tuple_slot_empty));
+    EXPECT_FALSE(tuple_slot_empty->tts_isnull[1]);
+    EXPECT_FALSE(tuple_slot_empty->tts_isnull[2]);
+    EXPECT_FALSE(tuple_slot_empty->tts_isnull[3]);
+
+    ASSERT_FALSE(VARATT_IS_PAX_SUPPORT_TOAST(tuple_slot_empty->tts_values[1]));
+    ASSERT_FALSE(VARATT_IS_PAX_SUPPORT_TOAST(tuple_slot_empty->tts_values[2]));
+    ASSERT_FALSE(VARATT_IS_PAX_SUPPORT_TOAST(tuple_slot_empty->tts_values[3]));
+    switch (i % 3) {
+      case 0: {
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[1]), 512UL + 4);
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[2]), 1024UL + 4);
+
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[1]),
+                           compress_toast_buff,
+                           COMPRESS_TOAST_COLUMN_SIZE) == 0);
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[2]),
+                           external_compress_toast_buff,
+                           EXTERNAL_COMPRESS_TOAST_COLUMN_SIZE) == 0);
+        break;
+      }
+      case 1: {
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[1]), 1024UL + 4);
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[2]), 10UL + 4);
+
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[1]),
+                           external_compress_toast_buff,
+                           EXTERNAL_COMPRESS_TOAST_COLUMN_SIZE) == 0);
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[2]),
+                           no_toast_buff, NO_TOAST_COLUMN_SIZE) == 0);
+        break;
+      }
+      case 2: {
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[1]), 10UL + 4);
+        ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[2]), 512UL + 4);
+
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[1]),
+                           no_toast_buff, NO_TOAST_COLUMN_SIZE) == 0);
+        ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[2]),
+                           compress_toast_buff,
+                           COMPRESS_TOAST_COLUMN_SIZE) == 0);
+        break;
+      }
+      default:
+        ASSERT_FALSE(true);
+    }
+
+    ASSERT_EQ(VARSIZE_ANY(tuple_slot_empty->tts_values[3]), 768UL + 4);
+    ASSERT_TRUE(memcmp(DatumGetPointer(tuple_slot_empty->tts_values[3]),
+                       external_toast_buff, EXTERNAL_TOAST_COLUMN_SIZE) == 0);
+  }
+  ASSERT_FALSE(reader->ReadTuple(tuple_slot_empty));
+
+  ExecDropSingleTupleTableSlot(tuple_slot_empty);
+  ExecDropSingleTupleTableSlot(tuple_slot);
+  delete writer;
+  delete reader;
+
+  pax_min_size_of_compress_toast = origin_pax_min_size_of_compress_toast;
+  pax_min_size_of_external_toast = origin_pax_min_size_of_external_toast;
+  Singleton<LocalFileSystem>::GetInstance()->Delete(toast_file_name);
+}
+
 class OrcEncodingTest : public ::testing::TestWithParam<ColumnEncoding_Kind> {
   void SetUp() override {
     Singleton<LocalFileSystem>::GetInstance()->Delete(file_name_);
@@ -447,12 +722,14 @@ TEST_P(OrcEncodingTest, ReadTupleWithEncoding) {
       .attlen = 8,
       .attbyval = true,
       .attalign = TYPALIGN_DOUBLE,
+      .attstorage = TYPSTORAGE_PLAIN,
   };
 
   tuple_desc->attrs[1] = {
       .attlen = 8,
       .attbyval = true,
       .attalign = TYPALIGN_DOUBLE,
+      .attstorage = TYPSTORAGE_PLAIN,
   };
 
   tuple_slot = MakeTupleTableSlot(tuple_desc, &TTSOpsVirtual);
@@ -529,12 +806,14 @@ TEST_P(OrcCompressTest, ReadTupleWithCompress) {
       .attlen = -1,
       .attbyval = false,
       .attalign = TYPALIGN_DOUBLE,
+      .attstorage = TYPSTORAGE_PLAIN,
   };
 
   tuple_desc->attrs[1] = {
       .attlen = -1,
       .attbyval = false,
       .attalign = TYPALIGN_DOUBLE,
+      .attstorage = TYPSTORAGE_PLAIN,
   };
 
   tuple_slot = MakeTupleTableSlot(tuple_desc, &TTSOpsVirtual);
@@ -643,6 +922,7 @@ TEST_F(OrcTest, ReadTupleDefaultColumn) {
   tuple_slot_empty->tts_tupleDescriptor->attrs[3] = {
       .attlen = 4,
       .attbyval = true,
+      .attstorage = TYPSTORAGE_PLAIN,
   };
 
   tuple_slot_empty->tts_tupleDescriptor->natts = COLUMN_NUMS + 1;
@@ -754,11 +1034,13 @@ TEST_F(OrcTest, WriteReadBigTuple) {
       .attlen = 4,
       .attbyval = true,
       .attalign = TYPALIGN_INT,
+      .attstorage = TYPSTORAGE_PLAIN,
   };
   tuple_desc->attrs[1] = {
       .attlen = 4,
       .attbyval = true,
       .attalign = TYPALIGN_INT,
+      .attstorage = TYPSTORAGE_PLAIN,
   };
 
   tuple_slot = MakeTupleTableSlot(tuple_desc, &TTSOpsVirtual);

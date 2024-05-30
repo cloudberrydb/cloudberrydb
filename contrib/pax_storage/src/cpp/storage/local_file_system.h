@@ -29,7 +29,6 @@ class LocalFile final : public File {
   ssize_t PRead(void *ptr, size_t n, off_t offset) override;
   size_t FileLength() const override;
   void Flush() override;
-  void Delete() override;
   void Close() override;
   std::string GetPath() const override;
 
@@ -54,7 +53,7 @@ class LocalFileSystem final : public FileSystem {
   int CreateDirectory(const std::string &path) const override;
   void DeleteDirectory(const std::string &path,
                        bool delete_topleveldir) const override;
-
+  bool Exist(const std::string &file_path) override;
  private:
   LocalFileSystem() = default;
 };

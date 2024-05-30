@@ -15,6 +15,7 @@ extern "C" {
 #include "storage/columns/pax_column_traits.h"
 #include "storage/pax_buffer.h"
 #include "storage/pax_itemptr.h"
+#include "storage/toast/pax_toast.h"
 #include "storage/vec/arrow_wrapper.h"
 
 /// export interface wrapper of arrow
@@ -145,6 +146,36 @@ namespace pax {
 int VecAdapter::GetMaxBatchSizeFromStr(char *max_batch_size_str,
                                        int default_value) {
   return max_batch_size_str ? atoi(max_batch_size_str) : default_value;
+}
+
+static size_t CalcRecordBatchDataBufferSize(PaxColumn *column,
+                                            size_t range_buffer_len,
+                                            size_t num_of_not_nulls) {
+  size_t toast_counts;
+  size_t raw_data_size;
+  Assert(column);
+
+  toast_counts = column->ToastCounts();
+  if (toast_counts > 0) {
+    char *toast_buff;
+    size_t toast_buff_size;
+    auto toast_indexes = column->GetToastIndexes();
+    int64 toast_total_size = 0;
+    for (size_t i = 0; i < toast_indexes->GetSize(); i++) {
+      auto toast_index = (*toast_indexes)[i];
+      std::tie(toast_buff, toast_buff_size) = column->GetBuffer(
+          toast_index - column->GetRangeNonNullRows(0, toast_index));
+      toast_total_size += pax_toast_raw_size(PointerGetDatum(toast_buff));
+      toast_total_size -= pax_toast_hdr_size(PointerGetDatum(toast_buff));
+    }
+
+    raw_data_size = range_buffer_len -
+                    ((num_of_not_nulls - toast_counts) * VARHDRSZ_SHORT) +
+                    toast_total_size;
+  } else {
+    raw_data_size = range_buffer_len - (num_of_not_nulls * VARHDRSZ_SHORT);
+  }
+  return TYPEALIGN(MEMORY_ALIGN_SIZE, raw_data_size);
 }
 
 static void CopyFixedRawBufferWithNull(
@@ -375,6 +406,7 @@ static inline void VarlenaToRawBuffer(char *buffer, size_t buffer_len,
   vl = (struct varlena *)(buffer);
 
 #ifdef ENABLE_DEBUG
+  // should not exist no toast here
   auto tunpacked = cbdb::PgDeToastDatum(vl);
   Assert((Pointer)vl == (Pointer)tunpacked);
 #endif
@@ -420,20 +452,40 @@ void CopyNonFixedRawBuffer(PaxColumn *column,
       std::tie(buffer, buffer_len) =
           column->GetBuffer(data_index_begin + non_null_offset);
 
-      VarlenaToRawBuffer(buffer, buffer_len, &read_data, &read_len);
+      // deal toast
+      if (column->IsToast(i)) {
+        auto et_buffer = column->GetExternalToastDataBuffer();
+        auto toast_raw_size = pax_toast_raw_size(PointerGetDatum(buffer));
+        Assert(toast_raw_size <= out_data_buffer->Available());
 
-      // In vec, bpchar not allow store empty char after the actual characters
-      if (is_bpchar) {
-        read_len = bpchartruelen(read_data, read_len);
+        auto decompress_size = pax_detoast_raw(
+            PointerGetDatum(buffer), out_data_buffer->GetAvailableBuffer(),
+            out_data_buffer->Available(),
+            et_buffer ? et_buffer->Start() : nullptr,
+            et_buffer ? et_buffer->Used() : 0);
+        out_data_buffer->Brush(decompress_size);
+
+        offset_buffer->Write(dst_offset);
+        offset_buffer->Brush(sizeof(int32));
+
+        dst_offset += decompress_size;
+      } else {
+        VarlenaToRawBuffer(buffer, buffer_len, &read_data, &read_len);
+
+        // In vec, bpchar not allow store empty char after the actual characters
+        if (is_bpchar) {
+          read_len = bpchartruelen(read_data, read_len);
+        }
+
+        out_data_buffer->Write(read_data, read_len);
+        out_data_buffer->Brush(read_len);
+
+        offset_buffer->Write(dst_offset);
+        offset_buffer->Brush(sizeof(int32));
+
+        dst_offset += read_len;
       }
 
-      out_data_buffer->Write(read_data, read_len);
-      out_data_buffer->Brush(read_len);
-
-      offset_buffer->Write(dst_offset);
-      offset_buffer->Brush(sizeof(int32));
-
-      dst_offset += read_len;
       non_null_offset++;
     }
   }
@@ -832,7 +884,7 @@ int VecAdapter::AppendToVecBuffer() {
 
   for (size_t index = 0; index < columns->GetColumns(); index++) {
     size_t data_index_begin = 0;
-    size_t data_range_lens = 0;
+    size_t num_of_not_nulls = 0;
     DataBuffer<char> *vec_buffer = nullptr;
     DataBuffer<int32> *offset_buffer = nullptr;
 
@@ -848,7 +900,7 @@ int VecAdapter::AppendToVecBuffer() {
     Assert(index < (size_t)vec_cache_buffer_lens_ && vec_cache_buffer_);
 
     data_index_begin = column->GetRangeNonNullRows(0, range_begin);
-    data_range_lens = column->GetRangeNonNullRows(range_begin, range_lens);
+    num_of_not_nulls = column->GetRangeNonNullRows(range_begin, range_lens);
 
     // data buffer holder
     vec_buffer = &(vec_cache_buffer_[index].vec_buffer);
@@ -857,13 +909,13 @@ int VecAdapter::AppendToVecBuffer() {
     // copy null bitmap
     vec_cache_buffer_[index].null_counts = 0;
     CopyBitmapToVecBuffer(column, micro_partition_visibility_bitmap_,
-                          range_begin + group_base_offset_,
-                          range_begin, range_lens, data_range_lens,
-                          out_range_lens, &vec_cache_buffer_[index]);
+                          range_begin + group_base_offset_, range_begin,
+                          range_lens, num_of_not_nulls, out_range_lens,
+                          &vec_cache_buffer_[index]);
 
     // copy data
     std::tie(raw_buffer, buffer_len) =
-        column->GetRangeBuffer(data_index_begin, data_range_lens);
+        column->GetRangeBuffer(data_index_begin, num_of_not_nulls);
     column_type = column->GetPaxColumnTypeInMem();
 
     switch (column_type) {
@@ -877,29 +929,30 @@ int VecAdapter::AppendToVecBuffer() {
         vec_buffer->Set(BlockBuffer::Alloc<char *>(align_size), align_size);
 
         CopyDecimalRawBuffer(column, micro_partition_visibility_bitmap_,
-                             range_begin + group_base_offset_,
-                             range_begin, range_lens, data_index_begin,
-                             data_range_lens, vec_buffer);
+                             range_begin + group_base_offset_, range_begin,
+                             range_lens, data_index_begin, num_of_not_nulls,
+                             vec_buffer);
         break;
       }
       case PaxColumnTypeInMem::kTypeBpChar:
       case PaxColumnTypeInMem::kTypeNonFixed: {
-        auto raw_data_size = buffer_len - (data_range_lens * VARHDRSZ_SHORT);
-        auto align_size = TYPEALIGN(MEMORY_ALIGN_SIZE, raw_data_size);
-
+        auto data_align_size =
+            CalcRecordBatchDataBufferSize(column, buffer_len, num_of_not_nulls);
         auto offset_align_bytes =
             TYPEALIGN(MEMORY_ALIGN_SIZE, (out_range_lens + 1) * sizeof(int32));
 
         Assert(!vec_buffer->GetBuffer() && !offset_buffer->GetBuffer());
-        vec_buffer->Set(BlockBuffer::Alloc<char *>(align_size), align_size);
+        vec_buffer->Set(BlockBuffer::Alloc<char *>(data_align_size),
+                        data_align_size);
         offset_buffer->Set(BlockBuffer::Alloc<char *>(offset_align_bytes),
                            offset_align_bytes);
 
         CopyNonFixedRawBuffer(column, micro_partition_visibility_bitmap_,
-                              range_begin + group_base_offset_,
-                              range_begin, range_lens, data_index_begin,
-                              data_range_lens, offset_buffer, vec_buffer,
+                              range_begin + group_base_offset_, range_begin,
+                              range_lens, data_index_begin, num_of_not_nulls,
+                              offset_buffer, vec_buffer,
                               column_type == PaxColumnTypeInMem::kTypeBpChar);
+
         break;
       }
       case PaxColumnTypeInMem::kTypeFixed: {
@@ -911,7 +964,7 @@ int VecAdapter::AppendToVecBuffer() {
         vec_buffer->Set(BlockBuffer::Alloc<char *>(align_size), align_size);
         CopyFixedBuffer(column, micro_partition_visibility_bitmap_,
                         range_begin + group_base_offset_, range_begin,
-                        range_lens, data_index_begin, data_range_lens,
+                        range_lens, data_index_begin, num_of_not_nulls,
                         vec_buffer);
 
         break;
@@ -932,7 +985,7 @@ int VecAdapter::AppendToVecBuffer() {
         CopyBooleanBufferToArrowLayout(
             column, micro_partition_visibility_bitmap_,
             range_begin + group_base_offset_, range_begin, range_lens,
-            data_index_begin, data_range_lens, &vec_bool_bitmap);
+            data_index_begin, num_of_not_nulls, &vec_bool_bitmap);
         break;
       }
       default: {
@@ -994,8 +1047,7 @@ void VecAdapter::FullWithCTID(TupleTableSlot *slot,
   auto ctid = slot->tts_tid;
 
   for (size_t i = 0; i < cached_batch_lens_; i++) {
-    SetTupleOffset(&ctid,
-                   (*ctid_offset_in_current_range_)[i]);
+    SetTupleOffset(&ctid, (*ctid_offset_in_current_range_)[i]);
     ctid_data_buffer[i] = CTIDToUint64(ctid);
   }
   batch_buffer->vec_buffer.Set(ctid_data_buffer.Start(),

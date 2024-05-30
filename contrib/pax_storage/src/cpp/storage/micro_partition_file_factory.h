@@ -24,11 +24,12 @@ enum ReaderFlags {
 class MicroPartitionFileFactory final {
  public:
   static MicroPartitionWriter *CreateMicroPartitionWriter(
-      const MicroPartitionWriter::WriterOptions &options, File *file);
+      const MicroPartitionWriter::WriterOptions &options, File *file,
+      File *toast_file = nullptr);
 
   static MicroPartitionReader *CreateMicroPartitionReader(
       const MicroPartitionReader::ReaderOptions &options, int32 flags,
-      File *file);
+      File *file, File *toast_file = nullptr);
 };
 
 }  // namespace pax

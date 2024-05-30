@@ -121,14 +121,6 @@ void LocalFile::Flush() {
   CBDB_CHECK(fsync(fd_) == 0, cbdb::CException::ExType::kExTypeIOError);
 }
 
-void LocalFile::Delete() {
-  int rc;
-
-  rc = remove(file_path_.c_str());
-  CBDB_CHECK(rc == 0 || errno == ENOENT,
-             cbdb::CException::ExType::kExTypeIOError);
-}
-
 void LocalFile::Close() {
   int rc;
 
@@ -219,6 +211,11 @@ void LocalFileSystem::DeleteDirectory(const std::string &path,
   cbdb::PathNameDeleteDir(path.c_str(), delete_topleveldir);
 }
 
+bool LocalFileSystem::Exist(const std::string &file_path) {
+  struct stat filestats;
+  return stat(file_path.c_str(), &filestats) == 0;
+}
+
 }  // namespace pax
 
 namespace paxc {
@@ -236,8 +233,8 @@ void FdHandleAbortCallback(ResourceReleasePhase phase, bool is_commit,
   while (curr) {
     temp = curr;
     curr = curr->next;
-    // When executing sql containing spi logic, ReleaseCurrentSubTransaction 
-    // will be called at the end of spi. At this time, FdHandleAbortCallback 
+    // When executing sql containing spi logic, ReleaseCurrentSubTransaction
+    // will be called at the end of spi. At this time, FdHandleAbortCallback
     // will be called, We cannot release the parent's resources at this time.
     // so it need to check the owner of the resource.
     if (temp->owner == CurrentResourceOwner) {

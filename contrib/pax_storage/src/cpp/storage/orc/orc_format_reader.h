@@ -11,7 +11,7 @@ class PaxDumpReader;
 }
 class OrcFormatReader final {
  public:
-  explicit OrcFormatReader(File *file);
+  explicit OrcFormatReader(File *file, File *toast_file = nullptr);
 
   ~OrcFormatReader();
 
@@ -52,6 +52,7 @@ class OrcFormatReader final {
   std::vector<pax::porc::proto::Type_Kind> column_types_;
   std::vector<std::map<std::string, std::string>> column_attrs_;
   File *file_;
+  File *toast_file_;
   DataBuffer<char> *reused_buffer_;
   size_t num_of_stripes_;
   bool is_vec_;

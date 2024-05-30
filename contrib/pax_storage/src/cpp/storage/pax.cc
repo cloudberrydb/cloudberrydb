@@ -74,6 +74,7 @@ class IndexUpdaterInternal {
 }  // namespace paxc
 
 namespace pax {
+#define TOAST_FILE_SUFFIX ".toast"
 class IndexUpdater final {
  public:
   void Begin(Relation rel) {
@@ -155,6 +156,10 @@ std::string TableWriter::GenFilePath(const std::string &block_id) {
   return cbdb::BuildPaxFilePath(rel_path_, block_id);
 }
 
+std::string TableWriter::GenToastFilePath(const std::string &file_path) {
+  return file_path + TOAST_FILE_SUFFIX;
+}
+
 std::vector<std::tuple<ColumnEncoding_Kind, int>>
 TableWriter::GetRelEncodingOptions() {
   size_t nattrs = 0;
@@ -190,14 +195,23 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
     MicroPartitionStats *mp_stats) {
   MicroPartitionWriter::WriterOptions options;
   std::string file_path;
+  std::string toast_file_path;
   std::string block_id;
+  File *file;
+  File *toast_file = nullptr;
+  MicroPartitionWriter *mp_writer;
+  FileSystem *fs;
 
   Assert(relation_);
   Assert(strategy_);
   Assert(summary_callback_);
 
+  fs = Singleton<LocalFileSystem>::GetInstance();
+  Assert(fs);
+
   block_id = GenerateBlockID(relation_);
   file_path = GenFilePath(block_id);
+  toast_file_path = GenToastFilePath(file_path);
   current_blockno_ = std::stol(block_id);
 
   options.rel_oid = relation_->rd_id;
@@ -209,11 +223,15 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
   options.lengths_encoding_opts = std::make_pair(
       PAX_LENGTHS_DEFAULT_COMPRESSTYPE, PAX_LENGTHS_DEFAULT_COMPRESSLEVEL);
 
-  File *file = Singleton<LocalFileSystem>::GetInstance()->Open(
-      options.file_name, fs::kReadWriteMode);
+  file = fs->Open(options.file_name, fs::kReadWriteMode);
+  Assert(file);
 
-  auto mp_writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(
-      std::move(options), file);
+  if (pax_enable_toast) {
+    toast_file = fs->Open(toast_file_path, fs::kReadWriteMode);
+  }
+
+  mp_writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(
+      std::move(options), file, toast_file);
 
   mp_writer->SetWriteSummaryCallback(summary_callback_);
   mp_writer->SetStatsCollector(mp_stats);
@@ -330,11 +348,17 @@ bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
                            size_t offset) {
   Assert(direction == ForwardScanDirection);
 
+  MicroPartitionReader::ReaderOptions options;
   ReaderFlags reader_flags = FLAGS_EMPTY;
   size_t row_index = current_block_row_index_;
   size_t max_row_index = current_block_metadata_.GetTupleCount() - 1;
   size_t remaining_offset = offset;
+  File *toast_file = nullptr;
+  FileSystem *fs;
   bool ok;
+
+  fs = Singleton<LocalFileSystem>::GetInstance();
+  Assert(fs);
 
   // The number of remaining rows in the current block is enough to satisfy the
   // offset
@@ -375,7 +399,6 @@ bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
     PAX_DELETE(reader_);
   }
 
-  MicroPartitionReader::ReaderOptions options;
   options.block_id = current_block_metadata_.GetMicroPartitionId();
   options.filter = reader_options_.filter;
   options.reused_buffer = reader_options_.reused_buffer;
@@ -388,8 +411,7 @@ bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
   std::string visibility_bitmap_file =
       current_block_metadata_.GetVisibilityBitmapFile();
   if (!visibility_bitmap_file.empty()) {
-    auto file = Singleton<LocalFileSystem>::GetInstance()->Open(
-        visibility_bitmap_file, fs::kReadMode);
+    auto file = fs->Open(visibility_bitmap_file, fs::kReadMode);
     auto file_length = file->FileLength();
     auto bm = std::make_shared<Bitmap8>(file_length * 8);
     file->ReadN(bm->Raw().bitmap, file_length);
@@ -397,10 +419,16 @@ bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
     file->Close();
   }
 
+  if (fs->Exist(current_block_metadata_.GetFileName() + TOAST_FILE_SUFFIX)) {
+    toast_file =
+        fs->Open(current_block_metadata_.GetFileName() + TOAST_FILE_SUFFIX,
+                 fs::kReadMode);
+  }
+
   reader_ = MicroPartitionFileFactory::CreateMicroPartitionReader(
       std::move(options), reader_flags,
-      Singleton<LocalFileSystem>::GetInstance()->Open(
-          current_block_metadata_.GetFileName(), fs::kReadMode));
+      fs->Open(current_block_metadata_.GetFileName(), fs::kReadMode),
+      toast_file);
 
   // row_index start from 0, so row_index = offset -1
   current_block_row_index_ = remaining_offset - 1;
@@ -416,7 +444,12 @@ void TableReader::OpenFile() {
   auto it = iterator_->Next();
   current_block_metadata_ = it;
   MicroPartitionReader::ReaderOptions options;
+  File *toast_file = nullptr;
   int32 reader_flags = FLAGS_EMPTY;
+  FileSystem *fs;
+
+  fs = Singleton<LocalFileSystem>::GetInstance();
+  Assert(fs);
 
   micro_partition_id_ = options.block_id = it.GetMicroPartitionId();
   current_block_number_ = std::stol(options.block_id);
@@ -433,8 +466,7 @@ void TableReader::OpenFile() {
   // load visibility map
   std::string visibility_bitmap_file = it.GetVisibilityBitmapFile();
   if (!visibility_bitmap_file.empty()) {
-    auto file = Singleton<LocalFileSystem>::GetInstance()->Open(
-        visibility_bitmap_file, fs::kReadMode);
+    auto file = fs->Open(visibility_bitmap_file, fs::kReadMode);
     auto file_length = file->FileLength();
     auto bm = std::make_shared<Bitmap8>(file_length * 8);
     file->ReadN(bm->Raw().bitmap, file_length);
@@ -451,10 +483,13 @@ void TableReader::OpenFile() {
   if (reader_options_.vec_build_ctid)
     READER_FLAG_SET_SCAN_WITH_CTID(reader_flags);
 #endif
+  if (fs->Exist(it.GetFileName() + TOAST_FILE_SUFFIX)) {
+    toast_file = fs->Open(it.GetFileName() + TOAST_FILE_SUFFIX, fs::kReadMode);
+  }
+
   reader_ = MicroPartitionFileFactory::CreateMicroPartitionReader(
       std::move(options), reader_flags,
-      Singleton<LocalFileSystem>::GetInstance()->Open(it.GetFileName(),
-                                                      fs::kReadMode));
+      fs->Open(it.GetFileName(), fs::kReadMode), toast_file);
 }
 
 TableDeleter::TableDeleter(

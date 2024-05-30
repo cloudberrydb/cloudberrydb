@@ -56,7 +56,8 @@ class MicroPartitionStats final {
                                        int natts);
   MicroPartitionStats *LightReset();
 
-  void AddRow(TupleTableSlot *slot, TupleDesc desc);
+  void AddRow(TupleTableSlot *slot, TupleDesc desc,
+              const std::vector<Datum> &detoast_vals);
   MicroPartitionStatsData *GetStatsData() { return stats_; }
   const MicroPartitionStatsData *GetStatsData() const { return stats_; }
   const std::vector<int> GetMinMaxColumnIndex() const {
@@ -77,7 +78,8 @@ class MicroPartitionStats final {
 
  private:
   void AddNullColumn(int column_index);
-  void AddNonNullColumn(int column_index, Datum value, TupleDesc desc);
+  void AddNonNullColumn(int column_index, Datum value, Datum detoast,
+                        TupleDesc desc);
 
   void UpdateMinMaxValue(int column_index, Datum datum, Oid collation,
                          int typlen, bool typbyval);

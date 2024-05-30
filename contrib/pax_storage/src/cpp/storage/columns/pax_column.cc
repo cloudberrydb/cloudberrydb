@@ -8,6 +8,7 @@
 
 #include "storage/columns/pax_column_traits.h"
 #include "storage/pax_defined.h"
+#include "storage/toast/pax_toast.h"
 
 namespace pax {
 
@@ -20,38 +21,34 @@ PaxColumn::PaxColumn()
       lengths_encoded_type_(
           ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED),
       lengths_compress_level_(0),
-      type_align_size_(PAX_DATA_NO_ALIGN) {}
+      type_align_size_(PAX_DATA_NO_ALIGN),
+      toast_indexes_(nullptr),
+      toast_flat_map_(nullptr),
+      numeber_of_external_toast_(0),
+      external_toast_data_(nullptr) {}
 
-PaxColumn::~PaxColumn() { PAX_DELETE(null_bitmap_); }
+PaxColumn::~PaxColumn() {
+  PAX_DELETE(null_bitmap_);
+  PAX_DELETE(toast_indexes_);
+  PAX_DELETE(toast_flat_map_);
+  PAX_DELETE(external_toast_data_);
+}
 
 PaxColumnTypeInMem PaxColumn::GetPaxColumnTypeInMem() const {
   return PaxColumnTypeInMem::kTypeInvalid;
 }
 
-bool PaxColumn::HasNull() { return null_bitmap_ != nullptr; }
-
-bool PaxColumn::AllNull() const {
-  return null_bitmap_ && null_bitmap_->Empty();
+void PaxColumn::SetAttributes(std::map<std::string, std::string> attrs) {
+  attrs_map_ = attrs;
 }
-
-void PaxColumn::SetBitmap(Bitmap8 *null_bitmap) {
-  Assert(!null_bitmap_);
-  null_bitmap_ = null_bitmap;
-}
-
-size_t PaxColumn::GetRows() const { return total_rows_; }
-
-size_t PaxColumn::GetNonNullRows() const { return non_null_rows_; }
-
-void PaxColumn::SetRows(size_t total_rows) { total_rows_ = total_rows; }
 
 const std::map<std::string, std::string> &PaxColumn::GetAttributes() {
   return attrs_map_;
 }
 
-void PaxColumn::SetAttributes(std::map<std::string, std::string> attrs) {
-  attrs_map_ = attrs;
-}
+size_t PaxColumn::GetRows() const { return total_rows_; }
+
+size_t PaxColumn::GetNonNullRows() const { return non_null_rows_; }
 
 size_t PaxColumn::GetRangeNonNullRows(size_t start_pos, size_t len) {
   CBDB_CHECK((start_pos + len) <= GetRows(),
@@ -77,17 +74,108 @@ void PaxColumn::AppendNull() {
   ++total_rows_;
 }
 
+void PaxColumn::AppendToast(char *buffer, size_t size) {
+  Assert(VARATT_IS_PAX_SUPPORT_TOAST(buffer));
+  if (VARATT_IS_PAX_EXTERNAL_TOAST(buffer)) {
+    auto ref = PaxExtRefGetDatum(buffer);
+    Assert(ref->data_ref);
+    Assert(ref->data_size > 0);
+    auto off = AppendExternalToastData(ref->data_ref, ref->data_size);
+    PAX_VARATT_EXTERNAL_SET_OFFSET(ref, off);
+  }
+
+  Append(buffer, size);
+  Assert(total_rows_ > 0);
+  AddToastIndex(total_rows_ - 1);
+}
+
 void PaxColumn::Append(char * /*buffer*/, size_t /*size*/) {
   if (null_bitmap_) null_bitmap_->Set(total_rows_);
   ++total_rows_;
   ++non_null_rows_;
 }
 
-size_t PaxColumn::GetAlignSize() const { return type_align_size_; }
-
 void PaxColumn::SetAlignSize(size_t align_size) {
   Assert(align_size > 0 && (align_size & (align_size - 1)) == 0);
   type_align_size_ = align_size;
+}
+
+size_t PaxColumn::GetAlignSize() const { return type_align_size_; }
+
+size_t PaxColumn::ToastCounts() {
+  if (!toast_indexes_) {
+    return 0;
+  }
+
+  Assert(toast_indexes_->Used() > 0);
+  return toast_indexes_->GetSize();
+}
+
+bool PaxColumn::IsToast(size_t pos) {
+  if (!toast_flat_map_) {
+    return false;
+  }
+
+  CBDB_CHECK(pos < total_rows_, cbdb::CException::ExType::kExTypeOutOfRange);
+  return !toast_flat_map_->Test(pos);
+}
+
+void PaxColumn::SetToastIndexes(DataBuffer<int32> *toast_indexes) {
+  Assert(!toast_indexes_ && !toast_flat_map_);
+  toast_indexes_ = toast_indexes;
+  Assert(total_rows_ > 0 && toast_indexes->Used() > 0);
+  toast_flat_map_ = PAX_NEW<Bitmap8>(total_rows_ / 8 + 1);
+  toast_flat_map_->SetN(total_rows_);
+
+  for (size_t i = 0; i < toast_indexes_->GetSize(); i++) {
+    auto toast_index = (*toast_indexes_)[i];
+    Assert(toast_index >= 0 && (size_t)toast_index < total_rows_);
+    toast_flat_map_->Clear(toast_index);
+  }
+}
+
+void PaxColumn::SetExternalToastDataBuffer(
+    DataBuffer<char> *external_toast_data) {
+  Assert(!external_toast_data_);
+  external_toast_data_ = external_toast_data;
+}
+
+DataBuffer<char> *PaxColumn::GetExternalToastDataBuffer() {
+  return external_toast_data_;
+}
+
+size_t PaxColumn::AppendExternalToastData(char *data, size_t size) {
+  size_t rc;
+  if (!external_toast_data_) {
+    external_toast_data_ = PAX_NEW<DataBuffer<char>>(DEFAULT_CAPACITY);
+  }
+
+  if (external_toast_data_->Available() < size) {
+    external_toast_data_->ReSize(external_toast_data_->Used() + size, 2);
+  }
+  rc = external_toast_data_->Used();
+  external_toast_data_->Write(data, size);
+  external_toast_data_->Brush(size);
+
+  return rc;
+}
+
+void PaxColumn::AddToastIndex(int32 index_of_toast) {
+  if (!toast_indexes_) {
+    toast_indexes_ = PAX_NEW<DataBuffer<int32>>(DEFAULT_CAPACITY);
+
+    Assert(!toast_flat_map_);
+    toast_flat_map_ = PAX_NEW<Bitmap8>(DEFAULT_CAPACITY);
+    toast_flat_map_->SetN(total_rows_);
+  }
+
+  if (toast_indexes_->Available() == 0) {
+    toast_indexes_->ReSize(toast_indexes_->Used() + sizeof(int32), 2);
+  }
+
+  toast_indexes_->Write(index_of_toast);
+  toast_indexes_->Brush(sizeof(int32));
+  toast_flat_map_->Clear(total_rows_);
 }
 
 template <typename T>
@@ -126,6 +214,12 @@ void PaxCommColumn<T>::Append(char *buffer, size_t size) {
 
   data_->Write(buffer_t, sizeof(T));
   data_->Brush(sizeof(T));
+}
+
+template <typename T>
+void PaxCommColumn<T>::AppendToast(char * /*buffer*/, size_t /*size*/) {
+  // fixed-column won't get toast datum
+  CBDB_RAISE(cbdb::CException::kExTypeLogicError);
 }
 
 template <typename T>
@@ -288,7 +382,6 @@ int32 PaxNonFixedColumn::GetTypeLength() const { return -1; }
 std::pair<char *, size_t> PaxNonFixedColumn::GetBuffer(size_t position) {
   CBDB_CHECK(position < GetNonNullRows(),
              cbdb::CException::ExType::kExTypeOutOfRange);
-
   return std::make_pair(data_->GetBuffer() + offsets_[position],
                         (*lengths_)[position]);
 }

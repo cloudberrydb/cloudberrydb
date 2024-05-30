@@ -212,7 +212,8 @@ MicroPartitionStats *MicroPartitionStats::LightReset() {
   return this;
 }
 
-void MicroPartitionStats::AddRow(TupleTableSlot *slot, TupleDesc desc) {
+void MicroPartitionStats::AddRow(TupleTableSlot *slot, TupleDesc desc,
+                                 const std::vector<Datum> &detoast_vals) {
   auto n = desc->natts;
 
   DoInitialCheck(desc);
@@ -223,7 +224,7 @@ void MicroPartitionStats::AddRow(TupleTableSlot *slot, TupleDesc desc) {
     if (slot->tts_isnull[i])
       AddNullColumn(i);
     else
-      AddNonNullColumn(i, slot->tts_values[i], desc);
+      AddNonNullColumn(i, slot->tts_values[i], detoast_vals[i], desc);
   }
 }
 
@@ -308,7 +309,7 @@ void MicroPartitionStats::AddNullColumn(int column_index) {
 }
 
 void MicroPartitionStats::AddNonNullColumn(int column_index, Datum value,
-                                           TupleDesc desc) {
+                                           Datum detoast, TupleDesc desc) {
   Assert(column_index >= 0);
   Assert(column_index < static_cast<int>(opfamilies_.size()));
 
@@ -319,6 +320,10 @@ void MicroPartitionStats::AddNonNullColumn(int column_index, Datum value,
   auto info = stats_->GetColumnBasicInfo(column_index);
   auto data_stats = stats_->GetColumnDataStats(column_index);
   stats_->SetAllNull(column_index, false);
+
+  if (detoast != 0 && value != detoast) {
+    value = detoast;
+  }
 
   // update min/max
   switch (status_[column_index]) {

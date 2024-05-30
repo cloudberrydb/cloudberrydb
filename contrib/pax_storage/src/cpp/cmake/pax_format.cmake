@@ -48,6 +48,7 @@ set(pax_storage_src
     storage/pax_buffer.cc
     storage/pax_filter.cc
     storage/proto/protobuf_stream.cc
+    storage/toast/pax_toast.cc
    )
 
 set(pax_vec_src
@@ -57,6 +58,9 @@ storage/vec/pax_vec_reader.cc
 
 set(pax_target_include ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
 set(pax_target_link_libs uuid protobuf zstd z)
+if (PAX_USE_LZ4)
+  list(APPEND pax_target_link_libs lz4)
+endif()
 set(pax_target_link_directories ${PROJECT_SOURCE_DIR}/../../src/backend/)
 
 

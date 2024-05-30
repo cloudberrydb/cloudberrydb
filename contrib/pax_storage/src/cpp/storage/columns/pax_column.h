@@ -138,9 +138,6 @@ class PaxColumn {
   virtual std::pair<char *, size_t> GetRangeBuffer(size_t start_pos,
                                                    size_t len) = 0;
 
-  // Get all rows number(contain null) from column
-  virtual size_t GetRows() const;
-
   // Get rows number(not null) from column
   virtual size_t GetNonNullRows() const;
 
@@ -153,6 +150,11 @@ class PaxColumn {
 
   // Append a null filed into last position
   virtual void AppendNull();
+
+  // Append a toast datum into current column
+  // current datum MUST with varlena head
+  // the external_buffer already being compressed if it setting with compressed
+  virtual void AppendToast(char *buffer, size_t size);
 
   // Estimated memory size from current column
   virtual size_t PhysicalSize() const = 0;
@@ -172,28 +174,40 @@ class PaxColumn {
   virtual int32 GetTypeLength() const = 0;
 
   // Contain null filed or not
-  bool HasNull();
+  inline bool HasNull() { return null_bitmap_ != nullptr; }
 
   // Are all values null?
-  bool AllNull() const;
+  inline bool AllNull() const { return null_bitmap_ && null_bitmap_->Empty(); }
 
-  // Set null bitmap
-  void SetBitmap(Bitmap8 *null_bitmap);
+  // Set the null bitmap
+  inline void SetBitmap(Bitmap8 *null_bitmap) {
+    Assert(!null_bitmap_);
+    null_bitmap_ = null_bitmap;
+  }
 
-  // Get Bitmap
-  Bitmap8 *GetBitmap() { return null_bitmap_; }
-
-  void SetRows(size_t total_rows);
-
-  // Get the column kv attributes
-  const std::map<std::string, std::string> &GetAttributes();
+  // Get the null bitmap
+  inline Bitmap8 *GetBitmap() const { return null_bitmap_; }
 
   // Set the column kv attributes
   void SetAttributes(std::map<std::string, std::string> attrs);
 
-  virtual size_t GetAlignSize() const;
+  // Get the column kv attributes
+  const std::map<std::string, std::string> &GetAttributes();
 
+  // Set the total rows of current column
+  inline void SetRows(size_t total_rows) { total_rows_ = total_rows; }
+
+  // Get all rows number(contain null) from column
+  virtual size_t GetRows() const;
+
+  // Set the align size
+  // Which require from `typalign` in `pg_type`
+  // Notice that: column with encoding won't require a align size
   virtual void SetAlignSize(size_t align_size);
+
+  // Get the align size,
+  // Which require from `typalign` in `pg_type`
+  virtual size_t GetAlignSize() const;
 
   // Get current data part encoding type
   inline ColumnEncoding_Kind GetEncodingType() const { return encoded_type_; }
@@ -208,6 +222,25 @@ class PaxColumn {
 
   // Get current length part compress level
   inline int GetLengthsCompressLevel() const { return lengths_compress_level_; }
+
+  // Get the counts of toast
+  virtual size_t ToastCounts();
+
+  // Test current row is a toast
+  bool IsToast(size_t position);
+
+  // Set the toast indexes
+  void SetToastIndexes(DataBuffer<int32> *toast_indexes);
+
+  // Get the toast indexes
+  inline DataBuffer<int32> *GetToastIndexes() const { return toast_indexes_; }
+
+  // Set the external toast buffer
+  virtual void SetExternalToastDataBuffer(
+      DataBuffer<char> *external_toast_data);
+
+  // Get the external toast data buffer
+  virtual DataBuffer<char> *GetExternalToastDataBuffer();
 
  protected:
   // The encoding option should pass in sub-class
@@ -239,6 +272,12 @@ class PaxColumn {
     auto ret = attrs_map_.insert(std::make_pair(key, value));
     return ret.second;
   }
+
+  // add a index of toast
+  void AddToastIndex(int32 index_of_toast);
+
+  // Append to the external toast data
+  size_t AppendExternalToastData(char *data, size_t size);
 
  private:
   void CreateNulls(size_t cap);
@@ -286,6 +325,22 @@ class PaxColumn {
   // For example, attributes record `n` in `char(n)`
   std::map<std::string, std::string> attrs_map_;
 
+  // The indexes of toast. PAX does not store too many toasts,
+  // So we used a buffer rather than a Bitmap8
+  DataBuffer<int32> *toast_indexes_;
+
+  // The flat map of toast indexes
+  Bitmap8 *toast_flat_map_;
+
+  // The number of external toast
+  size_t numeber_of_external_toast_;
+
+  // The external toast store space
+  // PAX will use PaxColumns to include all columns
+  // all of column inside PaxColumns will used the `external_toast_data_`
+  // in PaxColumns.
+  DataBuffer<char> *external_toast_data_;
+
  private:
   PaxColumn(const PaxColumn &);
   PaxColumn &operator=(const PaxColumn &);
@@ -307,6 +362,8 @@ class PaxCommColumn : public PaxColumn {
   PaxStorageFormat GetStorageFormat() const override;
 
   void Append(char *buffer, size_t size) override;
+
+  void AppendToast(char *buffer, size_t size) override;
 
   std::pair<char *, size_t> GetBuffer(size_t position) override;
 

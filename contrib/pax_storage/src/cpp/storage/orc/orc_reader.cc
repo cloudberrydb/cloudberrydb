@@ -51,14 +51,14 @@ class OrcGroupStatsProvider final : public ColumnStatsProvider {
   size_t group_index_;
 };
 
-OrcReader::OrcReader(File *file)
+OrcReader::OrcReader(File *file, File *toast_file)
     : working_group_(nullptr),
       cached_group_(nullptr),
       current_group_index_(0),
       proj_map_(nullptr),
       proj_len_(0),
       proj_column_index_(nullptr),
-      format_reader_(file),
+      format_reader_(file, toast_file),
       is_closed_(true) {}
 
 std::unique_ptr<ColumnStatsProvider> OrcReader::GetGroupStatsInfo(

@@ -29,6 +29,8 @@ message ColumnStatistics {
   optional bool hasNull = 2 [default=false];
   // the data statistics
   optional pax.stats.ColumnDataStats colDataStats = 3;
+  // has toast datum
+  optional bool hasToast = 4 [default=false];
 }
 
 // `Stream` desc a part of buffer, a column consists of 1 or more streams
@@ -44,6 +46,8 @@ message Stream {
     DATA = 1;
     // length buffer stream
     LENGTH = 2;
+    // toast indexes stream
+    TOAST = 3;
   }
   // the kind of stream
   optional Kind kind = 1;
@@ -107,6 +111,15 @@ message StripeInformation {
   optional uint64 numberOfRows = 4;
   // the statistics of current stripe
   repeated ColumnStatistics colStats = 5;
+  // the global toast file(not this one) offset
+  // of the start of the stripe
+  optional uint64 toastOffset = 6;
+  //the number of bytes of toast data
+  optional uint64 toastLength = 7;
+  //the number of toast
+  optional uint64 numberOfToast = 8;
+  //the external toast length of column
+  repeated uint64 extToastLength = 9;
 }
 
 message Footer {

@@ -2,6 +2,9 @@
 
 #include "comm/cbdb_wrappers.h"
 #include "comm/pax_memory.h"
+#ifdef USE_LZ4
+#include <lz4.h>
+#endif
 #include "zlib.h"  // NOLINT
 #include "zstd.h"  // NOLINT
 
@@ -33,10 +36,6 @@ PaxCompressor *PaxCompressor::CreateBlockCompressor(
   return compressor;
 }
 
-PaxCompressor::PaxCompressorType PaxZSTDCompressor::GetCompressorType() const {
-  return PaxCompressorType::kTypeBlock;
-}
-
 bool PaxZSTDCompressor::ShouldAlignBuffer() const { return false; }
 
 size_t PaxZSTDCompressor::GetCompressBound(size_t src_len) {
@@ -54,14 +53,6 @@ size_t PaxZSTDCompressor::Compress(void *dst_buff, size_t dst_cap,
   return ZSTD_compress(dst_buff, dst_cap, src_buff, src_len, lvl);
 }
 
-size_t PaxZSTDCompressor::GetDecompressSize(const void *src_buff,
-                                            size_t src_len) {
-  Assert(src_buff);
-  Assert(src_len > 0);
-
-  return ZSTD_getFrameContentSize(src_buff, src_len);
-}
-
 size_t PaxZSTDCompressor::Decompress(void *dst_buff, size_t dst_len,
                                      void *src_buff, size_t src_len) {
   Assert(dst_buff);
@@ -76,10 +67,6 @@ bool PaxZSTDCompressor::IsError(size_t code) { return ZSTD_isError(code); }
 
 const char *PaxZSTDCompressor::ErrorName(size_t code) {
   return ZSTD_getErrorName(code);
-}
-
-PaxCompressor::PaxCompressorType PaxZlibCompressor::GetCompressorType() const {
-  return PaxCompressorType::kTypeStreaming;
 }
 
 bool PaxZlibCompressor::ShouldAlignBuffer() const { return false; }
@@ -134,11 +121,6 @@ error:
   return err;
 }
 
-size_t PaxZlibCompressor::GetDecompressSize(const void * /*src_buff*/,
-                                            size_t /*src_len*/) {
-  return -1;
-}
-
 size_t PaxZlibCompressor::Decompress(void *dst_buff, size_t dst_cap,
                                      void *src_buff, size_t src_len) {
   int err;
@@ -184,5 +166,60 @@ bool PaxZlibCompressor::IsError(size_t code) {
 const char *PaxZlibCompressor::ErrorName(size_t /*code*/) {
   return err_msg_.c_str();
 }
+
+bool PgLZCompressor::ShouldAlignBuffer() const { return false; }
+
+size_t PgLZCompressor::GetCompressBound(size_t src_len) {
+  return PGLZ_MAX_OUTPUT(src_len);
+}
+
+size_t PgLZCompressor::Compress(void *dst_buff, size_t dst_cap, void *src_buff,
+                                size_t src_len, int /*lvl*/) {
+  Assert(dst_cap >= PGLZ_MAX_OUTPUT(src_len));
+  return pglz_compress((char *)src_buff, src_len, (char *)dst_buff, NULL);
+}
+
+size_t PgLZCompressor::Decompress(void *dst_buff, size_t dst_len,
+                                  void *src_buff, size_t src_len) {
+  return pglz_decompress((char *)src_buff, src_len, (char *)dst_buff, dst_len,
+                         true);
+}
+
+bool PgLZCompressor::IsError(size_t code) { return ((int)code) < 0; }
+
+const char *PgLZCompressor::ErrorName(size_t code) {
+  return "PG LZ compress/decompress error";
+}
+
+#ifdef USE_LZ4
+
+bool PaxLZ4Compressor::ShouldAlignBuffer() const { return false; }
+
+size_t PaxLZ4Compressor::GetCompressBound(size_t src_len) {
+  return LZ4_compressBound(src_len);
+}
+
+size_t PaxLZ4Compressor::Compress(void *dst_buff, size_t dst_cap,
+                                  void *src_buff, size_t src_len, int /*lvl*/) {
+  return LZ4_compress_default((char *)src_buff, (char *)dst_buff, src_len,
+                              dst_cap);
+}
+
+size_t PaxLZ4Compressor::Decompress(void *dst_buff, size_t dst_len,
+                                    void *src_buff, size_t src_len) {
+  return LZ4_decompress_safe((char *)src_buff, (char *)dst_buff, src_len,
+                             dst_len);
+}
+
+bool PaxLZ4Compressor::IsError(size_t code) {
+  // 0 is failed
+  return ((int)code) <= 0;
+}
+
+const char *PaxLZ4Compressor::ErrorName(size_t code) {
+  return "LZ4 compress/decompress error";
+}
+
+#endif
 
 }  // namespace pax

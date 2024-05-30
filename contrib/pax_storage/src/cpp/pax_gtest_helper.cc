@@ -45,6 +45,7 @@ static TupleDesc CreateTestTupleDesc() {
                           .attlen = -1,
                           .attbyval = false,
                           .attalign = TYPALIGN_DOUBLE,
+                          .attstorage = TYPSTORAGE_PLAIN,
                           .attisdropped = false,
                           .attcollation = DEFAULT_COLLATION_OID};
 
@@ -52,6 +53,7 @@ static TupleDesc CreateTestTupleDesc() {
                           .attlen = -1,
                           .attbyval = false,
                           .attalign = TYPALIGN_DOUBLE,
+                          .attstorage = TYPSTORAGE_PLAIN,
                           .attisdropped = false,
                           .attcollation = DEFAULT_COLLATION_OID};
 
@@ -59,6 +61,7 @@ static TupleDesc CreateTestTupleDesc() {
                           .attlen = 4,
                           .attbyval = true,
                           .attalign = TYPALIGN_INT,
+                          .attstorage = TYPSTORAGE_PLAIN,
                           .attisdropped = false,
                           .attcollation = InvalidOid};
   return tuple_desc;

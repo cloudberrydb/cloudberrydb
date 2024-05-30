@@ -39,12 +39,14 @@ class OrcVecTest : public ::testing::Test {
         .attlen = -1,
         .attbyval = false,
         .attalign = TYPALIGN_DOUBLE,
+        .attstorage = TYPSTORAGE_PLAIN,
     };
 
     tuple_desc->attrs[1] = {
         .attlen = 4,
         .attbyval = true,
         .attalign = TYPALIGN_INT,
+        .attstorage = TYPSTORAGE_PLAIN,
     };
 
     tuple_slot = MakeTupleTableSlot(tuple_desc, &TTSOpsVirtual);

@@ -22,6 +22,8 @@ class PaxVecCommColumn : public PaxColumn {
 
   void AppendNull() override;
 
+  void AppendToast(char *buffer, size_t size) override;
+
   std::pair<char *, size_t> GetBuffer() override;
 
   std::pair<char *, size_t> GetBuffer(size_t position) override;

@@ -46,7 +46,6 @@ class File {
   virtual void PReadN(void *buf, size_t count, off_t offset);
 
   virtual void Flush() = 0;
-  virtual void Delete() = 0;
   virtual void Close() = 0;
   virtual size_t FileLength() const = 0;
   virtual std::string GetPath() const = 0;
@@ -65,7 +64,7 @@ class FileSystem {
   virtual int CreateDirectory(const std::string &path) const = 0;
   virtual void DeleteDirectory(const std::string &path,
                                bool delete_topleveldir) const = 0;
-
+  virtual bool Exist(const std::string &file_path) = 0;
   void WriteFile(const std::string &file_path, const void *ptr, size_t length);
   void WriteFile(const std::string &file_path,
                  const std::function<void(File *file)> &callback);

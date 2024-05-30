@@ -22,12 +22,20 @@ namespace pax {
 #define PAX_MAX_SIZE_PER_FILE_MIN (8 * 1024 * 1024)
 #define PAX_MAX_SIZE_PER_FILE_MAX (320 * 1024 * 1024)
 
+#define PAX_MIN_SIZE_MAKE_COMPRESSED_TOAST (512 * 1024)
+#define PAX_MAX_SIZE_MAKE_COMPRESSED_TOAST (1U << VARLENA_EXTSIZE_BITS)
+#define PAX_MIN_SIZE_MAKE_EXTERNAL_TOAST (10 * 1024 * 1024)
+
 bool pax_enable_debug = true;
 bool pax_enable_filter = true;
 int pax_scan_reuse_buffer_size = 0;
 int pax_max_tuples_per_group = PAX_MAX_TUPLES_PER_GROUP_DEFAULT;
 int pax_max_tuples_per_file = PAX_MAX_TUPLES_PER_FILE_DEFAULT;
 int pax_max_size_per_file = PAX_MAX_SIZE_PER_FILE_DEFAULT;
+
+bool pax_enable_toast = true;
+int pax_min_size_of_compress_toast = PAX_MIN_SIZE_MAKE_COMPRESSED_TOAST;
+int pax_min_size_of_external_toast = PAX_MIN_SIZE_MAKE_EXTERNAL_TOAST;
 
 #ifdef ENABLE_PLASMA
 bool pax_enable_plasma_in_mem = true;
@@ -57,6 +65,28 @@ static bool CheckTuplePerFile(int *newval, void **extra, GucSource source) {
   return ok;
 }
 
+static bool CheckMinCompressToastSize(int *newval, void **extra,
+                                      GucSource source) {
+  bool ok = *newval < pax::pax_min_size_of_external_toast;
+  if (!ok) {
+    elog(WARNING,
+         "The guc pax_min_size_of_compress_toast should LT with "
+         "pax_min_size_of_external_toast");
+  }
+  return ok;
+}
+
+static bool CheckMinExternalToastSize(int *newval, void **extra,
+                                      GucSource source) {
+  bool ok = *newval > pax::pax_min_size_of_compress_toast;
+  if (!ok) {
+    elog(WARNING,
+         "The guc pax_min_size_of_external_toast should BT with "
+         "pax_min_size_of_compress_toast");
+  }
+  return ok;
+}
+
 void DefineGUCs() {
   DefineCustomBoolVariable("pax_enable_debug", "enable pax debug", NULL,
                            &pax::pax_enable_debug, true, PGC_USERSET, 0, NULL,
@@ -67,10 +97,10 @@ void DefineGUCs() {
                            NULL, NULL);
 
 #ifdef ENABLE_PLASMA
-  DefineCustomBoolVariable(
-      "pax_enable_plasma", "Enable plasma cache the set of columns", NULL,
-      &pax::pax_enable_plasma_in_mem, true, PGC_USERSET, GUC_GPDB_NEED_SYNC,
-      NULL, NULL, NULL);
+  DefineCustomBoolVariable("pax_enable_plasma",
+                           "Enable plasma cache the set of columns", NULL,
+                           &pax::pax_enable_plasma_in_mem, true, PGC_USERSET,
+                           GUC_GPDB_NEED_SYNC, NULL, NULL, NULL);
 #endif
 
   DefineCustomIntVariable(
@@ -99,6 +129,24 @@ void DefineGUCs() {
       &pax::pax_max_size_per_file, PAX_MAX_SIZE_PER_FILE_DEFAULT,
       PAX_MAX_SIZE_PER_FILE_MIN, PAX_MAX_SIZE_PER_FILE_MAX, PGC_USERSET, 0,
       NULL, NULL, NULL);
+
+  DefineCustomBoolVariable("pax_enable_toast", "enable pax toast", NULL,
+                           &pax::pax_enable_toast, true, PGC_USERSET, 0, NULL,
+                           NULL, NULL);
+
+  DefineCustomIntVariable(
+      "pax_min_size_of_compress_toast",
+      "the minimum value for creating compress toast", NULL,
+      &pax::pax_min_size_of_compress_toast, PAX_MIN_SIZE_MAKE_COMPRESSED_TOAST,
+      PAX_MIN_SIZE_MAKE_COMPRESSED_TOAST, PAX_MAX_SIZE_MAKE_COMPRESSED_TOAST,
+      PGC_USERSET, 0, CheckMinCompressToastSize, NULL, NULL);
+
+  DefineCustomIntVariable(
+      "pax_min_size_of_external_toast",
+      "the minimum value for creating external toast", NULL,
+      &pax::pax_min_size_of_external_toast, PAX_MIN_SIZE_MAKE_EXTERNAL_TOAST,
+      PAX_MIN_SIZE_MAKE_EXTERNAL_TOAST, INT_MAX, PGC_USERSET, 0,
+      CheckMinExternalToastSize, NULL, NULL);
 }
 
 }  // namespace paxc

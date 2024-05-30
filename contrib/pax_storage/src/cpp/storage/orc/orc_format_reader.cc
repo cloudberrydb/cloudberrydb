@@ -7,13 +7,17 @@
 
 namespace pax {
 
-OrcFormatReader::OrcFormatReader(File *file)
+OrcFormatReader::OrcFormatReader(File *file, File *toast_file)
     : file_(file),
+      toast_file_(toast_file),
       reused_buffer_(nullptr),
       num_of_stripes_(0),
       is_vec_(false) {}
 
-OrcFormatReader::~OrcFormatReader() { PAX_DELETE(file_); }
+OrcFormatReader::~OrcFormatReader() {
+  PAX_DELETE(file_);
+  PAX_DELETE(toast_file_);
+}
 
 void OrcFormatReader::SetReusedBuffer(DataBuffer<char> *data_buffer) {
   reused_buffer_ = data_buffer;
@@ -146,7 +150,10 @@ finish_read:
   }
 }
 
-void OrcFormatReader::Close() { file_->Close(); }
+void OrcFormatReader::Close() {
+  file_->Close();
+  if (toast_file_) toast_file_->Close();
+}
 
 size_t OrcFormatReader::GetStripeNums() const { return num_of_stripes_; }
 
@@ -278,11 +285,22 @@ pax::porc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
     bool all_null = true;
     do {
       bool has_null = stripe_info.colstats(index).hasnull();
+      bool has_toast = stripe_info.colstats(index).hastoast();
       all_null = all_null && stripe_info.colstats(index).allnull();
       if (has_null) {
         const pax::porc::proto::Stream &non_null_stream =
             stripe_footer.streams(streams_index++);
+        Assert(non_null_stream.kind() ==
+               ::pax::porc::proto::Stream_Kind::Stream_Kind_PRESENT);
         batch_len += non_null_stream.length();
+      }
+
+      if (has_toast) {
+        const pax::porc::proto::Stream &toast_stream =
+            stripe_footer.streams(streams_index++);
+        Assert(toast_stream.kind() ==
+               ::pax::porc::proto::Stream_Kind::Stream_Kind_TOAST);
+        batch_len += toast_stream.length();
       }
 
       const pax::porc::proto::Stream *len_or_data_stream =
@@ -817,6 +835,23 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
       data_buffer->Brush(bm_nbytes);
     }
 
+    DataBuffer<int32> *toast_indexes = nullptr;
+    bool has_toast = stripe_info.colstats(index).hastoast();
+    if (has_toast) {
+      const pax::porc::proto::Stream &toast_stream =
+          stripe_footer.streams(streams_index++);
+      auto toast_nbytes = static_cast<uint32>(toast_stream.length());
+      auto toast_n = static_cast<uint32>(toast_stream.column());
+
+      Assert(toast_nbytes >= toast_n * sizeof(int32));
+      Assert(toast_stream.kind() == pax::porc::proto::Stream_Kind_TOAST);
+      toast_indexes = PAX_NEW<DataBuffer<int32>>(
+          reinterpret_cast<int32 *>(data_buffer->GetAvailableBuffer()),
+          toast_n * sizeof(int32), false, false);
+      toast_indexes->BrushAll();
+      data_buffer->Brush(toast_nbytes);
+    }
+
     switch (column_types_[index]) {
       case (pax::porc::proto::Type_Kind::Type_Kind_BPCHAR):
       case (pax::porc::proto::Type_Kind::Type_Kind_VECBPCHAR):
@@ -910,10 +945,14 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
     if (!column_attrs_[index].empty()) {
       last_column->SetAttributes(column_attrs_[index]);
     }
+
+    if (has_toast) {
+      Assert(toast_indexes);
+      last_column->SetToastIndexes(toast_indexes);
+    }
   }
 
 #ifdef ENABLE_DEBUG
-
   auto storage_tyep_verify = is_vec_ ? PaxStorageFormat::kTypeStoragePorcVec
                                      : PaxStorageFormat::kTypeStoragePorcNonVec;
 
@@ -924,8 +963,76 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
       Assert(storage_tyep_verify == column_verify->GetStorageFormat());
     }
   }
-
 #endif
+
+  AssertImply(!toast_file_, stripe_info.toastlength() == 0);
+  // deal the toast part
+  if (toast_file_ && stripe_info.toastlength() > 0) {
+    std::vector<std::pair<size_t, size_t>> projection_no_combine, projection;
+    std::vector<size_t> column_ext_sizes;
+    size_t toast_file_size;
+    uint64 ext_total_size = 0;
+    uint64 curr_column_ext_offset = 0;
+    DataBuffer<char> *external_toast_buffer;
+
+    Assert(stripe_info.numberoftoast() != 0);
+    Assert((size_t)stripe_info.exttoastlength_size() ==
+           pax_columns->GetColumns());
+    toast_file_size = toast_file_->FileLength();
+    Assert(ext_total_size <= toast_file_size);
+
+    for (int i = 0; i < stripe_info.exttoastlength_size(); i++) {
+      auto curr_column_ext_len = stripe_info.exttoastlength(i);
+      column_ext_sizes.emplace_back(curr_column_ext_len);
+      if ((*pax_columns)[i] && curr_column_ext_len) {
+        ext_total_size += curr_column_ext_len;
+        // must be sorted
+        projection_no_combine.emplace_back(
+            curr_column_ext_offset,
+            curr_column_ext_offset + curr_column_ext_len);
+      }
+
+      curr_column_ext_offset += curr_column_ext_len;
+    }
+
+#ifdef ENABLE_DEBUG
+    // verify the external toast datums
+    pax_columns->VerifyAllExternalToasts(column_ext_sizes);
+#endif
+
+    for (size_t i = 0; i < projection_no_combine.size();) {
+      uint64 t = projection_no_combine[i].second;
+      uint64 j = i + 1;
+      while (j < projection_no_combine.size() &&
+             projection_no_combine[j].first == t) {
+        t = projection_no_combine[j].second;
+        j++;
+      }
+      projection.emplace_back(
+          std::make_pair(projection_no_combine[i].first, t));
+      i = j;
+    }
+
+    external_toast_buffer = new DataBuffer<char>(ext_total_size);
+
+    for (const auto &range : projection) {
+      CBDB_CHECK(
+          external_toast_buffer->Available() >= (range.second - range.first) &&
+              range.second <= toast_file_size &&
+              (range.second - range.first) <= stripe_info.toastlength(),
+          cbdb::CException::ExType::kExTypeInvalidExternalToast);
+
+      toast_file_->PReadN(external_toast_buffer->GetAvailableBuffer(),
+                          range.second - range.first,
+                          stripe_info.toastoffset() + range.first);
+      external_toast_buffer->Brush(range.second - range.first);
+    }
+
+    Assert(external_toast_buffer->Available() == 0);
+
+    pax_columns->SetExternalToastDataBuffer(external_toast_buffer,
+                                            column_ext_sizes);
+  }
 
   Assert(streams_size == streams_index);
   return pax_columns;

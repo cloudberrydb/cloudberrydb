@@ -5,11 +5,13 @@
 #include "comm/log.h"
 #include "comm/pax_memory.h"
 #include "storage/columns/pax_column_traits.h"
+#include "storage/local_file_system.h"
 #include "storage/micro_partition_stats.h"
 #include "storage/orc/orc_defined.h"
 #include "storage/orc/orc_group.h"
 #include "storage/orc/porc.h"
 #include "storage/pax_itemptr.h"
+#include "storage/toast/pax_toast.h"
 
 namespace pax {
 
@@ -197,15 +199,18 @@ static PaxColumns *BuildColumns(
 
 OrcWriter::OrcWriter(
     const MicroPartitionWriter::WriterOptions &writer_options,
-    const std::vector<pax::porc::proto::Type_Kind> &column_types, File *file)
+    const std::vector<pax::porc::proto::Type_Kind> &column_types, File *file,
+    File *toast_file)
     : MicroPartitionWriter(writer_options),
       is_closed_(false),
       column_types_(column_types),
       file_(file),
+      toast_file_(toast_file),
       current_written_phy_size_(0),
       row_index_(0),
       total_rows_(0),
-      current_offset_(0) {
+      current_offset_(0),
+      current_toast_file_offset_(0) {
   pax_columns_ = BuildColumns(column_types_, writer_options.encoding_opts,
                               writer_options.lengths_encoding_opts,
                               writer_options.storage_format);
@@ -237,6 +242,11 @@ OrcWriter::OrcWriter(
     }
 
     column->SetAlignSize(align_size);
+
+    // init the datum holder
+    origin_datum_holder_.emplace_back(0);
+    detoast_holder_.emplace_back(0);
+    gen_toast_holder_.emplace_back(0);
   }
 
   summary_.rel_oid = writer_options.rel_oid;
@@ -252,14 +262,12 @@ OrcWriter::OrcWriter(
   auto natts = static_cast<int>(column_types.size());
   auto stats_data = PAX_NEW<OrcColumnStatsData>();
   stats_collector_.SetStatsMessage(stats_data->Initialize(natts), natts);
-  toast_holder_ = PAX_NEW_ARRAY<Datum>(natts);
-  memset(toast_holder_, 0, natts * sizeof(Datum));
 }
 
 OrcWriter::~OrcWriter() {
   PAX_DELETE(pax_columns_);
   PAX_DELETE(file_);
-  PAX_DELETE_ARRAY(toast_holder_);
+  PAX_DELETE(toast_file_);
 }
 
 MicroPartitionWriter *OrcWriter::SetStatsCollector(
@@ -278,13 +286,20 @@ MicroPartitionWriter *OrcWriter::SetStatsCollector(
 
 void OrcWriter::Flush() {
   BufferedOutputStream buffer_mem_stream(2048);
-  if (WriteStripe(&buffer_mem_stream)) {
+  DataBuffer<char> toast_mem(nullptr, 0, true, false);
+  if (WriteStripe(&buffer_mem_stream, &toast_mem)) {
     current_written_phy_size_ += pax_columns_->PhysicalSize();
     Assert(current_offset_ >= buffer_mem_stream.GetDataBuffer()->Used());
     summary_.file_size += buffer_mem_stream.GetDataBuffer()->Used();
     file_->PWriteN(buffer_mem_stream.GetDataBuffer()->GetBuffer(),
                    buffer_mem_stream.GetDataBuffer()->Used(),
                    current_offset_ - buffer_mem_stream.GetDataBuffer()->Used());
+    if (toast_mem.GetBuffer()) {
+      Assert(toast_file_);
+      Assert(current_toast_file_offset_ >= toast_mem.Used());
+      toast_file_->PWriteN(toast_mem.GetBuffer(), toast_mem.Used(),
+                           current_toast_file_offset_ - toast_mem.Used());
+    }
     PAX_DELETE(pax_columns_);
     pax_columns_ = BuildColumns(column_types_, writer_options_.encoding_opts,
                                 writer_options_.lengths_encoding_opts,
@@ -292,29 +307,93 @@ void OrcWriter::Flush() {
   }
 }
 
-void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
-  int n;
+void OrcWriter::PerpareWriteTuple(TupleTableSlot *table_slot) {
   TupleDesc tuple_desc;
   int16 type_len;
   bool type_by_val;
   bool is_null;
   Datum tts_value;
-  bool has_detoast = false;
+  char type_storage;
   struct varlena *tts_value_vl = nullptr, *detoast_vl = nullptr;
 
-  summary_.num_tuples++;
+  tuple_desc = writer_options_.rel_tuple_desc;
+  Assert(tuple_desc);
+  for (int i = 0; i < tuple_desc->natts; i++) {
+    auto attrs = TupleDescAttr(tuple_desc, i);
+    type_len = attrs->attlen;
+    type_by_val = attrs->attbyval;
+    is_null = table_slot->tts_isnull[i];
+    tts_value = table_slot->tts_values[i];
+    type_storage = attrs->attstorage;
+
+    AssertImply(attrs->attisdropped, is_null);
+
+    if (is_null) {
+      continue;
+    }
+
+    // prepare toast
+    if (!type_by_val && type_len == -1) {
+      tts_value_vl = (struct varlena *)DatumGetPointer(tts_value);
+      origin_datum_holder_[i] = tts_value;
+
+      // Once passin toast is compress toast and datum is within the range
+      // allowed by PAX, then PAX will direct store it
+      if (VARATT_IS_COMPRESSED(tts_value_vl)) {
+        auto compress_toast_extsize =
+            VARDATA_COMPRESSED_GET_EXTSIZE(tts_value_vl);
+
+        if (type_storage != TYPSTORAGE_PLAIN &&
+            !VARATT_CAN_MAKE_PAX_EXTERNAL_TOAST_BY_SIZE(
+                compress_toast_extsize) &&
+            VARATT_CAN_MAKE_PAX_COMPRESSED_TOAST_BY_SIZE(
+                compress_toast_extsize)) {
+          continue;
+        }
+      }
+
+      // still detoast the origin toast
+      detoast_vl = cbdb::PgDeToastDatum(tts_value_vl);
+      Assert(detoast_vl != nullptr);
+      detoast_holder_[i] = PointerGetDatum(detoast_vl);
+
+      if (tts_value_vl != detoast_vl) {
+        table_slot->tts_values[i] = PointerGetDatum(detoast_vl);
+      }
+
+      // only make toast here
+      Datum new_toast =
+          pax_make_toast(PointerGetDatum(detoast_vl), type_storage);
+
+      if (new_toast) {
+        gen_toast_holder_[i] = new_toast;
+        table_slot->tts_values[i] = new_toast;
+      }
+    }
+  }
+}
+
+void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
+  int natts;
+  TupleDesc tuple_desc;
+  int16 type_len;
+  bool type_by_val;
+  bool is_null;
+  Datum tts_value;
+  struct varlena *tts_value_vl = nullptr;
+  PerpareWriteTuple(table_slot);
 
   // The reason why
   tuple_desc = writer_options_.rel_tuple_desc;
   Assert(tuple_desc);
 
   SetTupleOffset(&table_slot->tts_tid, row_index_++);
-  n = tuple_desc->natts;
+  natts = tuple_desc->natts;
 
-  CBDB_CHECK(pax_columns_->GetColumns() == static_cast<size_t>(n),
+  CBDB_CHECK(pax_columns_->GetColumns() == static_cast<size_t>(natts),
              cbdb::CException::ExType::kExTypeSchemaNotMatch);
 
-  for (int i = 0; i < n; i++) {
+  for (int i = 0; i < natts; i++) {
     type_len = tuple_desc->attrs[i].attlen;
     type_by_val = tuple_desc->attrs[i].attbyval;
     is_null = table_slot->tts_isnull[i];
@@ -361,31 +440,37 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
       switch (type_len) {
         case -1: {
           tts_value_vl = (struct varlena *)DatumGetPointer(tts_value);
-          detoast_vl = cbdb::PgDeToastDatum(tts_value_vl);
-          Assert(detoast_vl != nullptr);
-
-          if (tts_value_vl != detoast_vl) {
-            has_detoast = true;
-            toast_holder_[i] = tts_value;
-            table_slot->tts_values[i] = PointerGetDatum(detoast_vl);
-          }
-
           if (COLUMN_STORAGE_FORMAT_IS_VEC(pax_columns_)) {
             // NUMERIC requires a complete Datum
+            // It won't get a toast
             if (tuple_desc->attrs[i].atttypid == NUMERICOID) {
               Assert((*pax_columns_)[i]->GetPaxColumnTypeInMem() ==
                      PaxColumnTypeInMem::kTypeVecDecimal);
-              (*pax_columns_)[i]->Append(reinterpret_cast<char *>(detoast_vl),
-                                         VARSIZE_ANY(detoast_vl));
+              Assert(!VARATT_IS_PAX_SUPPORT_TOAST(tts_value_vl));
+              (*pax_columns_)[i]->Append(reinterpret_cast<char *>(tts_value_vl),
+                                         VARSIZE_ANY(tts_value_vl));
 
             } else {
-              (*pax_columns_)[i]->Append(VARDATA_ANY(detoast_vl),
-                                         VARSIZE_ANY_EXHDR(detoast_vl));
+              if (VARATT_IS_PAX_SUPPORT_TOAST(tts_value_vl)) {
+                (*pax_columns_)[i]->AppendToast(
+                    reinterpret_cast<char *>(tts_value_vl),
+                    PAX_VARSIZE_ANY(tts_value_vl));
+              } else {
+                (*pax_columns_)[i]->Append(VARDATA_ANY(tts_value_vl),
+                                           VARSIZE_ANY_EXHDR(tts_value_vl));
+              }
             }
           } else {
-            (*pax_columns_)[i]->Append(reinterpret_cast<char *>(detoast_vl),
-                                       VARSIZE_ANY(detoast_vl));
+            if (VARATT_IS_PAX_SUPPORT_TOAST(tts_value_vl)) {
+              (*pax_columns_)[i]->AppendToast(
+                  reinterpret_cast<char *>(tts_value_vl),
+                  PAX_VARSIZE_ANY(tts_value_vl));
+            } else {
+              (*pax_columns_)[i]->Append(reinterpret_cast<char *>(tts_value_vl),
+                                         VARSIZE_ANY(tts_value_vl));
+            }
           }
+
           break;
         }
         default:
@@ -397,17 +482,44 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
     }
   }
 
+  summary_.num_tuples++;
   pax_columns_->AddRows(1);
-  stats_collector_.AddRow(table_slot, tuple_desc);
+  stats_collector_.AddRow(table_slot, tuple_desc, detoast_holder_);
 
-  if (has_detoast) {
-    for (int i = 0; i < n; i++) {
-      if (PointerIsValid(toast_holder_[i])) {
-        cbdb::Pfree(DatumGetPointer(table_slot->tts_values[i]));
-        table_slot->tts_values[i] = toast_holder_[i];
-        toast_holder_[i] = 0;
-      }
+  EndWriteTuple(table_slot);
+}
+
+void OrcWriter::EndWriteTuple(TupleTableSlot *table_slot) {
+  TupleDesc tuple_desc;
+
+  tuple_desc = writer_options_.rel_tuple_desc;
+  Assert(tuple_desc);
+
+  for (int i = 0; i < tuple_desc->natts; i++) {
+    auto attrs = TupleDescAttr(tuple_desc, i);
+    auto type_len = attrs->attlen;
+    auto type_byval = attrs->attbyval;
+    auto is_null = table_slot->tts_isnull[i];
+
+    if (is_null || type_byval || type_len != -1) {
+      continue;
     }
+
+    // no need take care current datum refer
+    table_slot->tts_values[i] = origin_datum_holder_[i];
+
+    // detoast happend
+    if (detoast_holder_[i] != origin_datum_holder_[i]) {
+      cbdb::Pfree(DatumGetPointer(detoast_holder_[i]));
+    }
+
+    // created new pax toast
+    if (gen_toast_holder_[i] != 0) {
+      pax_free_toast(gen_toast_holder_[i]);
+    }
+    detoast_holder_[i] = 0;
+    origin_datum_holder_[i] = 0;
+    gen_toast_holder_[i] = 0;
   }
 
   if (pax_columns_->GetRows() >= writer_options_.group_limit) {
@@ -448,8 +560,9 @@ void OrcWriter::MergePaxColumns(OrcWriter *writer) {
   }
 
   BufferedOutputStream buffer_mem_stream(2048);
-  ok = WriteStripe(&buffer_mem_stream, columns, &(writer->stats_collector_),
-                   writer->mp_stats_);
+  DataBuffer<char> toast_mem(nullptr, 0, true, false);
+  ok = WriteStripe(&buffer_mem_stream, &toast_mem, columns,
+                   &(writer->stats_collector_), writer->mp_stats_);
 
   // must be ok
   Assert(ok);
@@ -457,6 +570,14 @@ void OrcWriter::MergePaxColumns(OrcWriter *writer) {
   file_->PWriteN(buffer_mem_stream.GetDataBuffer()->GetBuffer(),
                  buffer_mem_stream.GetDataBuffer()->Used(),
                  current_offset_ - buffer_mem_stream.GetDataBuffer()->Used());
+
+  // direct write the toast
+  if (toast_mem.GetBuffer()) {
+    Assert(toast_file_);
+    Assert(current_toast_file_offset_ >= toast_mem.Used());
+    toast_file_->PWriteN(toast_mem.GetBuffer(), toast_mem.Used(),
+                         current_toast_file_offset_ - toast_mem.Used());
+  }
 
   // Not do memory merge
 }
@@ -476,6 +597,9 @@ void OrcWriter::MergeGroup(OrcWriter *orc_writer, int group_index,
   auto total_len = stripe_info.footerlength();
   auto stripe_data_len = stripe_info.datalength();
   auto number_of_rows = stripe_info.numberofrows();
+  auto number_of_toast = stripe_info.numberoftoast();
+  auto toast_off = stripe_info.toastoffset();
+  auto toast_len = stripe_info.toastlength();
 
   // will not flush empty group in disk
   Assert(stripe_data_len);
@@ -494,6 +618,26 @@ void OrcWriter::MergeGroup(OrcWriter *orc_writer, int group_index,
   summary_.file_size += total_len;
   file_->PWriteN(merge_buffer->GetBuffer(), total_len, current_offset_);
 
+  // merge the toast file content
+  // We could merge a single toast file directly into another file,
+  // but this would make assumptions about the toast file
+
+  // check the external toast exist
+  if (toast_len > 0) {
+    // must exist
+    Assert(toast_file_);
+    Assert(merge_buffer->GetBuffer());
+    if (merge_buffer->Capacity() < toast_len) {
+      merge_buffer->Clear();
+      merge_buffer->Set(BlockBuffer::Alloc<char *>(toast_len), toast_len);
+    }
+    orc_writer->toast_file_->Flush();
+    orc_writer->toast_file_->PReadN(merge_buffer->GetBuffer(), toast_len,
+                                    toast_off);
+    toast_file_->PWriteN(merge_buffer->GetBuffer(), toast_len,
+                         current_toast_file_offset_);
+  }
+
   auto stripe_info_write = file_footer_.add_stripes();
 
   stripe_info_write->set_offset(current_offset_);
@@ -501,6 +645,11 @@ void OrcWriter::MergeGroup(OrcWriter *orc_writer, int group_index,
   stripe_info_write->set_footerlength(total_len);
   stripe_info_write->set_numberofrows(number_of_rows);
 
+  stripe_info_write->set_numberoftoast(number_of_toast);
+  stripe_info_write->set_toastoffset(current_toast_file_offset_);
+  stripe_info_write->set_toastlength(toast_len);
+
+  current_toast_file_offset_ += toast_len;
   current_offset_ += total_len;
   total_rows_ += number_of_rows;
 
@@ -511,21 +660,35 @@ void OrcWriter::MergeGroup(OrcWriter *orc_writer, int group_index,
     auto col_stats = stripe_info.colstats(stats_index);
     auto col_stats_write = stripe_info_write->add_colstats();
     col_stats_write->CopyFrom(col_stats);
+
+    stripe_info_write->add_exttoastlength(
+        stripe_info.exttoastlength(stats_index));
   }
 }
 
 void OrcWriter::DeleteUnstateFile() {
-  file_->Delete();
+  auto fs = Singleton<LocalFileSystem>::GetInstance();
+  auto file_path = file_->GetPath();
   file_->Close();
+  fs->Delete(file_path);
+
+  if (toast_file_) {
+    auto toast_file_path = toast_file_->GetPath();
+    toast_file_->Close();
+    fs->Delete(toast_file_path);
+  }
+
   is_closed_ = true;
 }
 
-bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream) {
-  return WriteStripe(buffer_mem_stream, pax_columns_, &stats_collector_,
-                     mp_stats_);
+bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
+                            DataBuffer<char> *toast_mem) {
+  return WriteStripe(buffer_mem_stream, toast_mem, pax_columns_,
+                     &stats_collector_, mp_stats_);
 }
 
 bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
+                            DataBuffer<char> *toast_mem,
                             PaxColumns *pax_columns,
                             MicroPartitionStats *stripe_stats,
                             MicroPartitionStats *file_stats) {
@@ -536,6 +699,8 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
 
   size_t data_len = 0;
   size_t number_of_row = pax_columns->GetRows();
+  size_t toast_len = 0;
+  size_t number_of_toast = pax_columns->ToastCounts();
 
   // No need add stripe if nothing in memeory
   if (number_of_row == 0) {
@@ -596,14 +761,18 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
 
     *stripe_footer.add_pax_col_encodings() = encoding_kinds[i];
 
+    pb_stats->set_hastoast(pax_column->ToastCounts() > 0);
     pb_stats->set_hasnull(pax_column->HasNull());
     pb_stats->set_allnull(pax_column->AllNull());
     *pb_stats->mutable_coldatastats() =
         *stats_data->GetColumnDataStats(static_cast<int>(i));
-    PAX_LOG_IF(pax_enable_debug,
-               "write group[%lu](allnull=%s, hasnull=%s, nrows=%lu)", i,
-               pax_column->AllNull() ? "true" : "false",
-               pax_column->HasNull() ? "true" : "false", pax_column->GetRows());
+    PAX_LOG_IF(
+        pax_enable_debug,
+        "write group[%lu](allnull=%s, hasnull=%s, hastoast=%s, nrows=%lu)", i,
+        pax_column->AllNull() ? "true" : "false",
+        pax_column->HasNull() ? "true" : "false",
+        pax_column->ToastCounts() > 0 ? "true" : "false",
+        pax_column->GetRows());
   }
   if (file_stats) {
     file_stats->MergeTo(stripe_stats, writer_options_.rel_tuple_desc);
@@ -618,12 +787,32 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
   CBDB_CHECK(stripe_footer.SerializeToZeroCopyStream(buffer_mem_stream),
              cbdb::CException::ExType::kExTypeIOError);
 
+  // Begin deal the toast memory
+  if (number_of_toast > 0) {
+    auto external_data_buffer = pax_columns->GetExternalToastDataBuffer();
+    toast_len = external_data_buffer->Used();
+    if (toast_len > 0) {
+      Assert(!toast_mem->GetBuffer());
+      toast_mem->Set(external_data_buffer->GetBuffer(), toast_len);
+      toast_mem->BrushAll();
+    }
+  }
+
   stripe_info->set_offset(current_offset_);
   stripe_info->set_datalength(data_len);
   stripe_info->set_footerlength(buffer_mem_stream->GetSize());
   stripe_info->set_numberofrows(number_of_row);
+  stripe_info->set_toastoffset(current_toast_file_offset_);
+  stripe_info->set_toastlength(toast_len);
+  stripe_info->set_numberoftoast(number_of_toast);
+  for (size_t i = 0; i < pax_columns->GetColumns(); i++) {
+    PaxColumn *pax_column = (*pax_columns)[i];
+    auto ext_buffer = pax_column->GetExternalToastDataBuffer();
+    stripe_info->add_exttoastlength(ext_buffer ? ext_buffer->Used() : 0);
+  }
 
   current_offset_ += buffer_mem_stream->GetSize();
+  current_toast_file_offset_ += toast_len;
   total_rows_ += number_of_row;
 
   return true;
@@ -637,8 +826,9 @@ void OrcWriter::Close() {
   size_t file_offset = current_offset_;
   bool empty_stripe = false;
   DataBuffer<char> *data_buffer;
+  DataBuffer<char> toast_mem(nullptr, 0, true, false);
 
-  empty_stripe = !WriteStripe(&buffer_mem_stream);
+  empty_stripe = !WriteStripe(&buffer_mem_stream, &toast_mem);
   if (empty_stripe) {
     data_buffer = PAX_NEW<DataBuffer<char>>(2048);
     buffer_mem_stream.Set(data_buffer);
@@ -653,6 +843,25 @@ void OrcWriter::Close() {
 
   file_->PWriteN(buffer_mem_stream.GetDataBuffer()->GetBuffer(),
                  buffer_mem_stream.GetDataBuffer()->Used(), file_offset);
+
+  if (toast_mem.GetBuffer()) {
+    Assert(toast_file_);
+    Assert(current_toast_file_offset_ >= toast_mem.Used());
+    toast_file_->PWriteN(toast_mem.GetBuffer(), toast_mem.Used(),
+                         current_toast_file_offset_ - toast_mem.Used());
+  }
+
+  // Close toast_file before origin file
+  if (toast_file_) {
+    auto toast_file_path = toast_file_->GetPath();
+    toast_file_->Flush();
+    toast_file_->Close();
+    // no toast happend
+    if (current_toast_file_offset_ == 0) {
+      Singleton<LocalFileSystem>::GetInstance()->Delete(toast_file_path);
+    }
+  }
+
   file_->Flush();
   file_->Close();
   if (empty_stripe) {

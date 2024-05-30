@@ -1,6 +1,7 @@
 #include "storage/orc/orc_group.h"
 
 #include "comm/pax_memory.h"
+#include "storage/toast/pax_toast.h"
 
 namespace pax {
 
@@ -21,6 +22,10 @@ OrcGroup::OrcGroup(PaxColumns *pax_column, size_t row_offset,
 OrcGroup::~OrcGroup() {
   PAX_DELETE(pax_columns_);
   PAX_DELETE_ARRAY(current_nulls_);
+  for (auto buffer : buffer_holder_) {
+    auto ref = DatumGetPointer(buffer);
+    PAX_DELETE(ref);
+  }
 }
 
 size_t OrcGroup::GetRows() const { return pax_columns_->GetRows(); }
@@ -93,8 +98,9 @@ std::pair<bool, size_t> OrcGroup::ReadTuple(TupleTableSlot *slot) {
         slot->tts_isnull[index] = true;
         continue;
       }
-      Assert((*pax_columns_)[index]);
+
       auto column = ((*pax_columns_)[index]);
+      Assert(column);
 
       std::tie(slot->tts_values[index], slot->tts_isnull[index]) =
           GetColumnValue(column, current_row_index_, &(current_nulls_[index]));
@@ -184,19 +190,31 @@ bool OrcGroup::GetTuple(TupleTableSlot *slot, size_t row_index) {
 // Used in `GetColumnValue`
 // After accumulating `null_counts` in `GetColumnValue`
 // Then we can direct get Datum when storage type is `orc`
-static Datum GetDatumWithNonNull(PaxColumn *column, size_t non_null_offset) {
-  Assert(column);
-  Datum datum = 0;
+static std::pair<Datum, Datum> GetDatumWithNonNull(PaxColumn *column,
+                                                   size_t non_null_offset,
+                                                   size_t row_offset) {
+  Datum datum = 0, ref = 0;
   char *buffer;
   size_t buffer_len;
+
+  Assert(column);
 
   std::tie(buffer, buffer_len) = column->GetBuffer(non_null_offset);
   switch (column->GetPaxColumnTypeInMem()) {
     case kTypeBpChar:
     case kTypeDecimal:
-    case kTypeNonFixed:
+    case kTypeNonFixed: {
       datum = PointerGetDatum(buffer);
+      if (column->IsToast(row_offset)) {
+        auto external_buffer = column->GetExternalToastDataBuffer();
+        Datum d = pax_detoast(
+            datum, external_buffer ? external_buffer->Start() : nullptr,
+            external_buffer ? external_buffer->Used() : 0);
+        datum = d;
+        ref = datum;
+      }
       break;
+    }
     case kTypeBitPacked:
     case kTypeFixed: {
       Assert(buffer_len > 0);
@@ -225,7 +243,7 @@ static Datum GetDatumWithNonNull(PaxColumn *column, size_t non_null_offset) {
       Assert(!"should't be here, non-implemented column type in memory");
       break;
   }
-  return datum;
+  return {datum, ref};
 }
 
 std::pair<Datum, bool> OrcGroup::GetColumnValue(TupleDesc desc,
@@ -269,6 +287,7 @@ std::pair<Datum, bool> OrcGroup::GetColumnValue(PaxColumn *column,  // NOLINT
   Assert(column);
   Assert(row_index < column->GetRows());
   Assert(row_index >= *null_counts);
+  Datum rc, ref;
 
   if (column->HasNull()) {
     auto bm = column->GetBitmap();
@@ -278,8 +297,13 @@ std::pair<Datum, bool> OrcGroup::GetColumnValue(PaxColumn *column,  // NOLINT
       return {0, true};
     }
   }
+  std::tie(rc, ref) =
+      GetDatumWithNonNull(column, row_index - *null_counts, row_index);
+  if (ref) {
+    buffer_holder_.emplace_back(ref);
+  }
 
-  return {GetDatumWithNonNull(column, row_index - *null_counts), false};
+  return {rc, false};
 }
 
 std::pair<Datum, bool> OrcGroup::GetColumnValue(size_t column_index,
@@ -296,6 +320,7 @@ std::pair<Datum, bool> OrcGroup::GetColumnValue(PaxColumn *column,
                                                 size_t row_index) {
   Assert(column);
   Assert(row_index < column->GetRows());
+  Datum rc, ref;
 
   if (column->HasNull()) {
     auto bm = column->GetBitmap();
@@ -305,9 +330,13 @@ std::pair<Datum, bool> OrcGroup::GetColumnValue(PaxColumn *column,
     }
   }
 
-  return {
-      GetDatumWithNonNull(column, column->GetRangeNonNullRows(0, row_index)),
-      false};
+  std::tie(rc, ref) = GetDatumWithNonNull(
+      column, column->GetRangeNonNullRows(0, row_index), row_index);
+  if (ref) {
+    buffer_holder_.emplace_back(ref);
+  }
+
+  return {rc, false};
 }
 
 }  // namespace pax

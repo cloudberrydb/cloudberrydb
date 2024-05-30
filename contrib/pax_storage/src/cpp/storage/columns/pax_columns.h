@@ -31,6 +31,8 @@ class PaxColumns : public PaxColumn {
 
   void Append(char *buffer, size_t size) override;
 
+  void AppendToast(char *buffer, size_t size) override;
+
   void Set(DataBuffer<char> *data);
 
   void SetStorageFormat(PaxStorageFormat format);
@@ -47,6 +49,19 @@ class PaxColumns : public PaxColumn {
 
   // Get number of column in columns
   virtual size_t GetColumns() const;
+
+  // Get number of toast in columns
+  size_t ToastCounts() override;
+
+  // Set the external toast buffer
+  void SetExternalToastDataBuffer(DataBuffer<char> *external_toast_data,
+                                  const std::vector<size_t> &column_sizes);
+
+  // Get the external toast data buffer
+  DataBuffer<char> *GetExternalToastDataBuffer() override;
+
+  // verify the external toast buffer
+  void VerifyAllExternalToasts(const std::vector<uint64> &ext_toast_lens);
 
   // Get the combine buffer of all columns
   std::pair<char *, size_t> GetBuffer() override;

@@ -53,6 +53,7 @@ class PaxVecTest
                             .attlen = -1,
                             .attbyval = false,
                             .attalign = TYPALIGN_DOUBLE,
+                            .attstorage = TYPSTORAGE_PLAIN,
                             .attcollation = DEFAULT_COLLATION_OID};
 
     tuple_slot = MakeTupleTableSlot(tuple_desc, &TTSOpsVecTuple);
@@ -90,12 +91,14 @@ class PaxVecTest
                               .attlen = 4,
                               .attbyval = true,
                               .attalign = TYPALIGN_INT,
+                              .attstorage = TYPSTORAGE_PLAIN,
                               .attcollation = InvalidOid};
     } else {
       tuple_desc->attrs[0] = {.atttypid = TEXTOID,
                               .attlen = -1,
                               .attbyval = false,
                               .attalign = TYPALIGN_DOUBLE,
+                              .attstorage = TYPSTORAGE_PLAIN,
                               .attcollation = DEFAULT_COLLATION_OID};
     }
 
@@ -104,6 +107,7 @@ class PaxVecTest
                               .attlen = 8,
                               .attbyval = true,
                               .attalign = TYPALIGN_DOUBLE,
+                              .attstorage = TYPSTORAGE_PLAIN,
                               .attcollation = DEFAULT_COLLATION_OID};
       const char *blockname = "ctid";
       namestrcpy(&tuple_desc->attrs[1].attname, blockname);

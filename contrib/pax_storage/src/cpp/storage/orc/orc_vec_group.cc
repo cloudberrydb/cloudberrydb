@@ -1,5 +1,5 @@
 #include "storage/orc/orc_group.h"
-
+#include "storage/toast/pax_toast.h"
 namespace pax {
 
 OrcVecGroup::OrcVecGroup(PaxColumns *pax_column, size_t row_offset,
@@ -9,14 +9,8 @@ OrcVecGroup::OrcVecGroup(PaxColumns *pax_column, size_t row_offset,
   Assert(COLUMN_STORAGE_FORMAT_IS_VEC(pax_column));
 }
 
-OrcVecGroup::~OrcVecGroup() {
-  for (auto buffer : buffer_holder_) {
-    cbdb::Pfree(buffer);
-  }
-}
-
-static std::pair<Datum, struct varlena *> GetDatumWithNonNull(PaxColumn *column,
-                                                              size_t row_index);
+static std::pair<Datum, Datum> GetDatumWithNonNull(PaxColumn *column,
+                                                   size_t row_index);
 
 std::pair<Datum, bool> OrcVecGroup::GetColumnValue(size_t column_index,
                                                    size_t row_index) {
@@ -32,8 +26,7 @@ std::pair<Datum, bool> OrcVecGroup::GetColumnValue(PaxColumn *column,
                                                    size_t row_index) {
   Assert(column);
   Assert(row_index < column->GetRows());
-  Datum datum;
-  struct varlena *buffer_ref = nullptr;
+  Datum datum, ref;
 
   if (column->HasNull()) {
     auto bm = column->GetBitmap();
@@ -43,31 +36,41 @@ std::pair<Datum, bool> OrcVecGroup::GetColumnValue(PaxColumn *column,
     }
   }
 
-  std::tie(datum, buffer_ref) = GetDatumWithNonNull(column, row_index);
-  if (buffer_ref) buffer_holder_.emplace_back(buffer_ref);
+  std::tie(datum, ref) = GetDatumWithNonNull(column, row_index);
+  if (ref) buffer_holder_.emplace_back(ref);
 
   return {datum, false};
 }
 
-static std::pair<Datum, struct varlena *> GetDatumWithNonNull(
-    PaxColumn *column, size_t row_index) {
-  Assert(column);
-  Datum datum = 0;
+static std::pair<Datum, Datum> GetDatumWithNonNull(PaxColumn *column,
+                                                   size_t row_index) {
+  Datum datum = 0, ref = 0;
   char *buffer;
   size_t buffer_len;
-  struct varlena *result_ref = nullptr;
+
+  Assert(column);
 
   std::tie(buffer, buffer_len) = column->GetBuffer(row_index);
   switch (column->GetPaxColumnTypeInMem()) {
     case kTypeVecBpChar:
     case kTypeNonFixed:
+      if (column->IsToast(row_index)) {
+        auto external_buffer = column->GetExternalToastDataBuffer();
+        Datum d = pax_detoast(
+            datum, external_buffer ? external_buffer->Start() : nullptr,
+            external_buffer ? external_buffer->Used() : 0);
+        datum = d;
+        ref = datum;
+        break;
+      }
+
       CBDB_WRAP_START;
       {
-        result_ref = reinterpret_cast<struct varlena *>(
-            cbdb::Palloc(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len + VARHDRSZ)));
-        SET_VARSIZE(result_ref, buffer_len + VARHDRSZ);
-        memcpy(VARDATA(result_ref), buffer, buffer_len);
-        datum = PointerGetDatum(result_ref);
+        ref = PointerGetDatum(
+            palloc(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len + VARHDRSZ)));
+        SET_VARSIZE(ref, buffer_len + VARHDRSZ);
+        memcpy(VARDATA(ref), buffer, buffer_len);
+        datum = ref;
       }
       CBDB_WRAP_END;
       break;
@@ -104,7 +107,7 @@ static std::pair<Datum, struct varlena *> GetDatumWithNonNull(
       break;
   }
 
-  return {datum, result_ref};
+  return {datum, ref};
 }
 
 std::pair<Datum, bool> OrcVecGroup::GetColumnValue(PaxColumn *column,
@@ -117,8 +120,8 @@ std::pair<Datum, bool> OrcVecGroup::GetColumnValue(PaxColumn *column,
       return {0, true};
     }
   }
-  Datum datum;
-  struct varlena *buffer_ref = nullptr;
+  Datum datum, buffer_ref;
+
   std::tie(datum, buffer_ref) = GetDatumWithNonNull(column, row_index);
   if (buffer_ref) buffer_holder_.emplace_back(buffer_ref);
 

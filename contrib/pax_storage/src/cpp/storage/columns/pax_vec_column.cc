@@ -1,6 +1,7 @@
 #include "storage/columns/pax_vec_column.h"
 
 #include "comm/pax_memory.h"
+#include "storage/toast/pax_toast.h"
 
 namespace pax {
 
@@ -53,6 +54,12 @@ void PaxVecCommColumn<T>::AppendNull() {
   PaxColumn::AppendNull();
   static_assert(sizeof(T) <= sizeof(int64), "invalid append null");
   AppendInternal(null_buffer, sizeof(T));
+}
+
+template <typename T>
+void PaxVecCommColumn<T>::AppendToast(char * /*buffer*/, size_t /*size*/) {
+  // fixed-column won't get toast datum
+  CBDB_RAISE(cbdb::CException::kExTypeLogicError);
 }
 
 template <typename T>

@@ -9,6 +9,10 @@ extern int pax_max_tuples_per_group;
 extern int pax_max_tuples_per_file;
 extern int pax_max_size_per_file;
 
+extern bool pax_enable_toast;
+extern int pax_min_size_of_compress_toast;
+extern int pax_min_size_of_external_toast;
+
 #ifdef VEC_BUILD
 // The guc define in vectorization(contrib/vectorization/main.c:L31)
 // PAX needs this GUC value to determine record batch return size.

@@ -13,10 +13,17 @@ namespace pax::tests {
 #define INT32_COLUMN_VALUE 0x123
 #define INT32_COLUMN_VALUE_DEFAULT 0x001
 
+#define TOAST_COLUMN_NUMS 4
+#define NO_TOAST_COLUMN_SIZE 14
+#define COMPRESS_TOAST_COLUMN_SIZE 516
+#define EXTERNAL_TOAST_COLUMN_SIZE 772
+#define EXTERNAL_COMPRESS_TOAST_COLUMN_SIZE 1028
+
 extern void CreateMemoryContext();
 extern void CreateTestResourceOwner();
 extern void ReleaseTestResourceOwner();
 extern TupleTableSlot *CreateTestTupleTableSlot(bool with_value = true);
+extern TupleTableSlot *CreateTestToastTupleTableSlot();
 #ifdef VEC_BUILD
 extern TupleTableSlot *CreateVecEmptyTupleSlot(TupleDesc tuple_desc);
 #endif

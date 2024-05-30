@@ -9,9 +9,9 @@
 
 namespace pax {
 MicroPartitionReader *MicroPartitionFileFactory::CreateMicroPartitionReader(
-    const MicroPartitionReader::ReaderOptions &options, int32 flags,
-    File *file) {
-  MicroPartitionReader *reader = PAX_NEW<OrcReader>(file);
+    const MicroPartitionReader::ReaderOptions &options, int32 flags, File *file,
+    File *toast_file) {
+  MicroPartitionReader *reader = PAX_NEW<OrcReader>(file, toast_file);
 
 #ifdef VEC_BUILD
   if (flags & ReaderFlags::FLAGS_VECTOR_PATH) {
@@ -41,13 +41,15 @@ MicroPartitionReader *MicroPartitionFileFactory::CreateMicroPartitionReader(
 }
 
 MicroPartitionWriter *MicroPartitionFileFactory::CreateMicroPartitionWriter(
-    const MicroPartitionWriter::WriterOptions &options, File *file) {
+    const MicroPartitionWriter::WriterOptions &options, File *file,
+    File *toast_file) {
   std::vector<pax::porc::proto::Type_Kind> type_kinds;
   MicroPartitionWriter *writer = nullptr;
   type_kinds = OrcWriter::BuildSchema(
       options.rel_tuple_desc,
       options.storage_format == PaxStorageFormat::kTypeStoragePorcVec);
-  writer = PAX_NEW<OrcWriter>(std::move(options), std::move(type_kinds), file);
+  writer = PAX_NEW<OrcWriter>(std::move(options), std::move(type_kinds), file,
+                              toast_file);
   return writer;
 }
 

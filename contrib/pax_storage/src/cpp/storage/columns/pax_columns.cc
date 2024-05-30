@@ -8,6 +8,7 @@
 
 #include "comm/pax_memory.h"
 #include "storage/columns/pax_column_traits.h"
+#include "storage/toast/pax_toast.h"
 
 namespace pax {
 
@@ -24,7 +25,9 @@ static PaxColumn *CreateCommColumn(bool is_vec,
 }
 
 PaxColumns::PaxColumns()
-    : row_nums_(0), storage_format_(PaxStorageFormat::kTypeStoragePorcNonVec) {
+    : PaxColumn(),
+      row_nums_(0),
+      storage_format_(PaxStorageFormat::kTypeStoragePorcNonVec) {
   data_ = PAX_NEW<DataBuffer<char>>(0);
 }
 
@@ -77,6 +80,10 @@ void PaxColumns::Append(char * /*buffer*/, size_t /*size*/) {
   CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
 }
 
+void PaxColumns::AppendToast(char *buffer, size_t size) {
+  CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
+}
+
 void PaxColumns::Set(DataBuffer<char> *data) {
   Assert(data_->GetBuffer() == nullptr);
 
@@ -94,7 +101,7 @@ int32 PaxColumns::GetTypeLength() const {
 
 size_t PaxColumns::PhysicalSize() const {
   size_t total_size = 0;
-  for (auto column : columns_) {
+  for (const auto &column : columns_) {
     if (column) total_size += column->PhysicalSize();
   }
   return total_size;
@@ -109,6 +116,178 @@ int64 PaxColumns::GetLengthsOriginLength() const {
 }
 
 size_t PaxColumns::GetColumns() const { return columns_.size(); }
+
+size_t PaxColumns::ToastCounts() {
+  size_t all_number_of_toasts = 0;
+  for (const auto &column : columns_) {
+    if (!column) {
+      continue;
+    }
+    all_number_of_toasts += column->ToastCounts();
+  }
+
+  return all_number_of_toasts;
+}
+
+void PaxColumns::SetExternalToastDataBuffer(
+    DataBuffer<char> *external_toast_data,
+    const std::vector<size_t> &column_sizes) {
+  Assert(!external_toast_data_);
+  external_toast_data_ = external_toast_data;
+  size_t curr_offset = 0;
+  for (size_t i = 0; i < columns_.size(); i++) {
+    auto column = columns_[i];
+    size_t column_size = column_sizes[i];
+    // no toasts
+    if (!column || column->ToastCounts() == 0) {
+      continue;
+    }
+
+    // no external toasts
+    if (column_size == 0) {
+      continue;
+    }
+
+    CBDB_CHECK(curr_offset + column_size <= external_toast_data->Used(),
+               cbdb::CException::ExType::kExTypeOutOfRange);
+
+    auto column_eb = PAX_NEW<DataBuffer<char>>(
+        external_toast_data->Start() + curr_offset, column_size, false, false);
+    column_eb->BrushAll();
+    column->SetExternalToastDataBuffer(column_eb);
+    curr_offset += column_size;
+  }
+}
+
+DataBuffer<char> *PaxColumns::GetExternalToastDataBuffer() {
+  DataBuffer<char> *column_external_buffer;
+  size_t buffer_len = 0;
+
+  if (!external_toast_data_) {
+    external_toast_data_ = PAX_NEW<DataBuffer<char>>(DEFAULT_CAPACITY);
+  }
+
+  if (external_toast_data_->Used() != 0) {
+    // already combined
+    return external_toast_data_;
+  }
+
+  for (const auto &column : columns_) {
+    if (!column) {
+      continue;
+    }
+    column_external_buffer = column->GetExternalToastDataBuffer();
+    if (!column_external_buffer) {
+      continue;
+    }
+    buffer_len = column_external_buffer->Used();
+    if (external_toast_data_->Available() < buffer_len) {
+      external_toast_data_->ReSize(external_toast_data_->Used() + buffer_len,
+                                   2);
+    }
+
+    external_toast_data_->Write(column_external_buffer->Start(), buffer_len);
+    external_toast_data_->Brush(buffer_len);
+  }
+
+  return external_toast_data_;
+}
+
+void PaxColumns::VerifyAllExternalToasts(
+    const std::vector<uint64> &ext_toast_lens) {
+#ifndef ENABLE_DEBUG
+  (void)ext_toast_lens;
+#else
+  std::vector<std::pair<size_t, size_t>> result_uncombined;
+  std::vector<std::pair<size_t, size_t>> result;
+  DataBuffer<int32> *data_indexes;
+  char *buffer;
+  size_t buff_len;
+
+  Assert(ext_toast_lens.size() == columns_.size());
+
+  for (size_t i = 0; i < columns_.size(); i++) {
+    auto column = columns_[i];
+    if (!column) {
+      continue;
+    }
+    data_indexes = column->GetToastIndexes();
+    // no toast here
+    if (!data_indexes) {
+      Assert(ext_toast_lens[i] == 0);
+      continue;
+    }
+
+    uint64 off;
+    uint64 len;
+    bool init = false;
+    for (size_t i = 0; i < data_indexes->GetSize(); i++) {
+      std::tie(buffer, buff_len) = column->GetBuffer((*data_indexes)[i]);
+      Assert(VARATT_IS_PAX_SUPPORT_TOAST(buffer));
+      if (!VARATT_IS_EXTERNAL(buffer)) {
+        continue;
+      }
+      Assert(VARTAG_EXTERNAL(buffer) == VARTAG_CUSTOM);
+
+      auto ext_toast = PaxExtGetDatum(buffer);
+
+      if (!init) {
+        off = ext_toast->va_extoffs;
+        len = ext_toast->va_extsize;
+        init = true;
+      } else {
+        // should no hole in the toast file
+        Assert(ext_toast->va_extoffs == (off + len));
+        off = ext_toast->va_extoffs;
+        len = ext_toast->va_extsize;
+      }
+    }
+  }
+
+  for (size_t i = 0; i < columns_.size(); i++) {
+    auto column = columns_[i];
+    if (!column) {
+      continue;
+    }
+
+    data_indexes = column->GetToastIndexes();
+    // no toast here
+    if (!data_indexes) {
+      Assert(ext_toast_lens[i] == 0);
+      continue;
+    }
+
+    uint64 first_offset;
+    bool got_first_external_toast = false;
+    for (size_t i = 0; i < data_indexes->GetSize(); i++) {
+      std::tie(buffer, buff_len) = column->GetBuffer((*data_indexes)[i]);
+      if (VARATT_IS_EXTERNAL(buffer)) {
+        auto ext_toast = PaxExtGetDatum(buffer);
+        first_offset = ext_toast->va_extoffs;
+        got_first_external_toast = true;
+        break;
+      }
+    }
+
+    // exist external toast
+    if (got_first_external_toast) {
+      uint64 last_offset;
+      uint64 last_size;
+      for (int64 i = data_indexes->GetSize() - 1; i >= 0; i--) {
+        std::tie(buffer, buff_len) = column->GetBuffer((*data_indexes)[i]);
+        if (VARATT_IS_EXTERNAL(buffer)) {
+          auto ext_toast = PaxExtGetDatum(buffer);
+          last_offset = ext_toast->va_extoffs;
+          last_size = ext_toast->va_extsize;
+          break;
+        }
+      }
+      // check the range is match the len
+      Assert(last_offset + last_size - first_offset == ext_toast_lens[i]);
+    }
+  }
+#endif
+}
 
 std::pair<char *, size_t> PaxColumns::GetBuffer() {
   PaxColumns::ColumnStreamsFunc column_streams_func_null;
@@ -156,7 +335,7 @@ DataBuffer<char> *PaxColumns::GetDataBuffer(
 
 #ifdef ENABLE_DEBUG
   auto storage_format = GetStorageFormat();
-  for (auto column : columns_) {
+  for (const auto &column : columns_) {
     AssertImply(column, column->GetStorageFormat() == storage_format);
   }
 #endif
@@ -182,7 +361,7 @@ size_t PaxColumns::MeasureVecDataBuffer(
     const ColumnStreamsFunc &column_streams_func,
     const ColumnEncodingFunc &column_encoding_func) {
   size_t buffer_len = 0;
-  for (auto column : columns_) {
+  for (const auto &column : columns_) {
     if (!column) {
       continue;
     }
@@ -200,6 +379,15 @@ size_t PaxColumns::MeasureVecDataBuffer(
       buffer_len += bm_length;
       column_streams_func(pax::porc::proto::Stream_Kind_PRESENT, total_rows,
                           bm_length, 0);
+    }
+
+    if (column->ToastCounts() > 0) {
+      auto toast_indexes = column->GetToastIndexes();
+      Assert(toast_indexes);
+      auto ti_length = TYPEALIGN(MEMORY_ALIGN_SIZE, toast_indexes->Used());
+      buffer_len += ti_length;
+      column_streams_func(pax::porc::proto::Stream_Kind_TOAST,
+                          column->ToastCounts(), ti_length, 0);
     }
 
     switch (column->GetPaxColumnTypeInMem()) {
@@ -278,7 +466,7 @@ size_t PaxColumns::MeasureOrcDataBuffer(
     const ColumnEncodingFunc &column_encoding_func) {
   size_t buffer_len = 0;
 
-  for (auto column : columns_) {
+  for (const auto &column : columns_) {
     if (!column) {
       continue;
     }
@@ -291,6 +479,15 @@ size_t PaxColumns::MeasureOrcDataBuffer(
       buffer_len += bm_length;
       column_streams_func(pax::porc::proto::Stream_Kind_PRESENT,
                           column->GetRows(), bm_length, 0);
+    }
+
+    if (column->ToastCounts() > 0) {
+      auto toast_indexes = column->GetToastIndexes();
+      Assert(toast_indexes);
+      auto ti_length = toast_indexes->Used();
+      buffer_len += ti_length;
+      column_streams_func(pax::porc::proto::Stream_Kind_TOAST,
+                          column->ToastCounts(), ti_length, 0);
     }
 
     size_t column_size = column->GetNonNullRows();
@@ -374,13 +571,14 @@ void PaxColumns::CombineVecDataBuffer() {
     data_buffer->Brush(gap_size);
   };
 
-  for (auto column : columns_) {
+  for (const auto &column : columns_) {
     if (!column) {
       continue;
     }
 
     if (column->HasNull()) {
       auto bm = column->GetBitmap();
+      Assert(bm);
       auto nbytes = bm->MinimalStoredBytes(column->GetRows());
       Assert(nbytes <= bm->Raw().size);
 
@@ -388,6 +586,18 @@ void PaxColumns::CombineVecDataBuffer() {
       data_->Write(reinterpret_cast<char *>(bm->Raw().bitmap), nbytes);
       data_->Brush(nbytes);
 
+      fill_padding_buffer(nullptr, data_, nbytes, MEMORY_ALIGN_SIZE);
+    }
+
+    if (column->ToastCounts() > 0) {
+      auto toast_indexes = column->GetToastIndexes();
+      Assert(toast_indexes);
+      auto nbytes = toast_indexes->Used();
+
+      Assert(data_->Available() >= nbytes);
+
+      data_->Write(reinterpret_cast<char *>(toast_indexes->Start()), nbytes);
+      data_->Brush(nbytes);
       fill_padding_buffer(nullptr, data_, nbytes, MEMORY_ALIGN_SIZE);
     }
 
@@ -445,17 +655,29 @@ void PaxColumns::CombineOrcDataBuffer() {
   char *buffer = nullptr;
   size_t buffer_len = 0;
 
-  for (auto column : columns_) {
+  for (const auto &column : columns_) {
     if (!column) {
       continue;
     }
 
     if (column->HasNull()) {
       auto bm = column->GetBitmap();
+      Assert(bm);
       auto nbytes = bm->MinimalStoredBytes(column->GetRows());
       Assert(nbytes <= bm->Raw().size);
 
+      Assert(data_->Available() >= nbytes);
       data_->Write(reinterpret_cast<char *>(bm->Raw().bitmap), nbytes);
+      data_->Brush(nbytes);
+    }
+
+    if (column->ToastCounts() > 0) {
+      auto toast_indexes = column->GetToastIndexes();
+      Assert(toast_indexes);
+      auto nbytes = toast_indexes->Used();
+
+      Assert(data_->Available() >= nbytes);
+      data_->Write(reinterpret_cast<char *>(toast_indexes->Start()), nbytes);
       data_->Brush(nbytes);
     }
 

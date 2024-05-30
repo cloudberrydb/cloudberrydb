@@ -53,6 +53,8 @@ class TableWriter {
  protected:
   virtual std::string GenFilePath(const std::string &block_id);
 
+  virtual std::string GenToastFilePath(const std::string &file_path);
+
   virtual std::vector<std::tuple<ColumnEncoding_Kind, int>>
   GetRelEncodingOptions();
 

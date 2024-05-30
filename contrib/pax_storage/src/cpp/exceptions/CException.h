@@ -18,7 +18,6 @@
 //
 // CBDB_CATCH_MATCH() is optional and can have several match pattern.
 
-
 // being of a try block w/o explicit handler
 #define CBDB_TRY()                                          \
   do {                                                      \
@@ -115,6 +114,12 @@ class CException {
     kExTypeCompressError,
     kExTypeArrowExportError,
     kExTypeArrowBatchSizeTooSmall,
+    kExTypeToastNoLZ4Support,
+    kExTypeToastInvalidCompressType,
+    kExTypeToastPGLZError,
+    kExTypeToastLZ4Error,
+    kExTypeInvalidExternalToast,
+    kExTypeToastNotMatch,
   };
 
   explicit CException(ExType extype);

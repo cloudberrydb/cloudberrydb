@@ -28,6 +28,7 @@ TEST_F(MicroPartitionStatsTest, MicroPartitionStatsInfoCombine) {
                           .attlen = 4,
                           .attbyval = true,
                           .attalign = TYPALIGN_INT,
+                          .attstorage = TYPSTORAGE_PLAIN,
                           .attisdropped = false,
                           .attcollation = InvalidOid};
 
@@ -35,6 +36,7 @@ TEST_F(MicroPartitionStatsTest, MicroPartitionStatsInfoCombine) {
                           .attlen = -1,
                           .attbyval = false,
                           .attalign = TYPALIGN_DOUBLE,
+                          .attstorage = TYPSTORAGE_PLAIN,
                           .attisdropped = false,
                           .attcollation = DEFAULT_COLLATION_OID};
 
@@ -42,12 +44,14 @@ TEST_F(MicroPartitionStatsTest, MicroPartitionStatsInfoCombine) {
                           .attlen = 4,
                           .attbyval = true,
                           .attalign = TYPALIGN_INT,
+                          .attstorage = TYPSTORAGE_PLAIN,
                           .attisdropped = false,
                           .attcollation = InvalidOid};
   tuple_desc->attrs[3] = {.atttypid = INT4OID,
                           .attlen = 4,
                           .attbyval = true,
                           .attalign = TYPALIGN_INT,
+                          .attstorage = TYPSTORAGE_PLAIN,
                           .attisdropped = false,
                           .attcollation = InvalidOid};
 

@@ -64,6 +64,7 @@ set(pax_storage_src
     storage/proto/protobuf_stream.cc
     storage/pax.cc 
     storage/pax_table_partition_writer.cc  
+    storage/toast/pax_toast.cc
     storage/strategy.cc
     storage/micro_partition_iterator.cc
   )
@@ -98,6 +99,9 @@ set(pax_target_src  ${PROTO_SRCS} ${pax_storage_src} ${pax_exceptions_src}
   ${pax_access_src} ${pax_comm_src} ${pax_catalog_src} ${pax_vec_src})
 set(pax_target_include ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
 set(pax_target_link_libs protobuf zstd z postgres)
+if (PAX_USE_LZ4)
+  list(APPEND pax_target_link_libs lz4)
+endif()
 set(pax_target_link_directories ${PROJECT_SOURCE_DIR}/../../src/backend/)
 set(pax_target_dependencies generate_protobuf create_sql_script)
 

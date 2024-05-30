@@ -30,7 +30,7 @@ class OrcGroup : public MicroPartitionReader::Group {
 
   std::pair<Datum, bool> GetColumnValue(TupleDesc desc, size_t column_index,
                                         size_t row_index) override;
-  void SetVisibilityMap(std::shared_ptr<Bitmap8>visibility_bitmap) {
+  void SetVisibilityMap(std::shared_ptr<Bitmap8> visibility_bitmap) {
     micro_partition_visibility_bitmap_ = visibility_bitmap;
   }
 
@@ -56,9 +56,10 @@ class OrcGroup : public MicroPartitionReader::Group {
  protected:
   PaxColumns *pax_columns_;
   // only referenced
-  std::shared_ptr<Bitmap8>micro_partition_visibility_bitmap_;
+  std::shared_ptr<Bitmap8> micro_partition_visibility_bitmap_;
   size_t row_offset_;
   size_t current_row_index_;
+  std::vector<Datum> buffer_holder_;
 
  private:
   friend class tools::PaxDumpReader;
@@ -72,8 +73,6 @@ class OrcVecGroup final : public OrcGroup {
   OrcVecGroup(PaxColumns *pax_column, size_t row_offset,
               const std::vector<int> *proj_col_index);
 
-  ~OrcVecGroup() override;
-
  private:
   std::pair<Datum, bool> GetColumnValue(size_t column_index,
                                         size_t row_index) override;
@@ -83,9 +82,6 @@ class OrcVecGroup final : public OrcGroup {
 
   std::pair<Datum, bool> GetColumnValue(PaxColumn *column, size_t row_index,
                                         uint32 *null_counts) override;
-
- private:
-  std::vector<struct varlena *> buffer_holder_;
 };
 
 }  // namespace pax

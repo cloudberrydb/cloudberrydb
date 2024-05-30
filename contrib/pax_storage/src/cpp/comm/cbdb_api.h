@@ -21,6 +21,8 @@ extern "C" {
 #include "access/tsmapi.h"
 #include "access/tupdesc.h"
 #include "access/tupdesc_details.h"
+#include "access/toast_compression.h"
+#include "access/toast_internals.h" // for TOAST_COMPRESS_SET_SIZE_AND_COMPRESS_METHOD
 #include "catalog/catalog.h"
 #include "catalog/dependency.h"
 #include "catalog/heap.h"
@@ -61,6 +63,7 @@ extern "C" {
 #include "cdb/cdbvars.h"
 #include "commands/cluster.h"
 #include "common/file_utils.h"
+#include "common/pg_lzcompress.h"
 #include "executor/executor.h"
 #include "executor/tuptable.h"
 #include "nodes/nodeFuncs.h"
