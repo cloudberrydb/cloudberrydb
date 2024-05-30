@@ -1578,6 +1578,22 @@ select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having c1 >
  Optimizer: Postgres query optimizer
 (9 rows)
 
+-- having quals without column reference.
+explain(costs off, verbose)
+select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having 2 > 1;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: mc1, mc3, (avg(mc2))
+   ->  HashAggregate
+         Output: mc1, mc3, avg(mc2)
+         Group Key: aqumv_mvt4_0.mc1, aqumv_mvt4_0.mc3
+         ->  Seq Scan on public.aqumv_mvt4_0
+               Output: mc1, mc2, mc3
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(9 rows)
+
 abort;
 -- Test Order By of origin query.
 begin;
