@@ -67,6 +67,7 @@
 #define NUMERIC_LE 1723
 #define NUMERIC_ADD 1724
 #define NUMERIC_SUB 1725
+#define VEC_NUMERIC_MAX_PRECISION 35
 
 planner_hook_type           planner_prev = NULL;
 
@@ -99,14 +100,54 @@ is_type_vectorable(Oid typeOid)
 	return false;
 }
 
+static bool
+is_numeric_func_vectorable(FuncExpr *expr)
+{
+	Oid funcOid = expr->funcid;
+	ListCell *l = NULL;
+	foreach(l, expr->args)
+	{
+		Expr  *arg_expr = (Expr *) lfirst(l);
+		if (!IsA(arg_expr, Const))
+			continue;
+		/* check numeric const args precision/scale */ 
+		Const* const_expr = (Const*) arg_expr;
+		if (strcmp(get_func_name(funcOid), "round") == 0)
+		{
+			int32_t scale = const_expr->constbyval ? const_expr->constvalue: const_expr->consttypmod;
+			if (scale >= VEC_NUMERIC_MAX_PRECISION)
+			{
+				elog(DEBUG2, "Fallback to non-vectorization; numeric round  scale %d not support", scale);
+				return false;
+			}
+		}
+		else if (strcmp(get_func_name(funcOid), "numeric") == 0) 
+		{
+			int32_t numeric_type = const_expr->constbyval ? const_expr->constvalue: const_expr->consttypmod;
+			int32_t precision = ((numeric_type  - VARHDRSZ) >> 16) & 0xffff;
+			if (precision > VEC_NUMERIC_MAX_PRECISION)
+			{
+				elog(DEBUG2, "Fallback to non-vectorization; numeric cast precision %d not support", precision);
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 /* Fixme: Should check by OID instead of name. */
 static bool
-is_func_vectorable(Oid funcOid)
+is_func_vectorable(FuncExpr *expr)
 {
-	if (get_function_name(funcOid) != NULL)
-		return true;
-	elog(DEBUG2, "Fallback to non-vectorization; funcOid %d not support", funcOid);
-	return false;
+	Oid funcOid = expr->funcid;
+	if (get_function_name(funcOid) == NULL)
+	{
+		elog(DEBUG2, "Fallback to non-vectorization; funcOid %d not support", funcOid);
+		return false;
+	}
+	if (!is_numeric_func_vectorable(expr))
+		return false;
+	return true;
 }
 
 static bool 
@@ -163,6 +204,22 @@ is_scan_type_vectorable(Form_pg_attribute attr)
 	{
 		elog(DEBUG2, "Fallback to non-vectorization; scan type %d not support", typeOid);
 		return false;
+	}
+	if (typeOid == NUMERICOID)
+	{
+		int32_t numeric_type, precision;
+		if (attr->atttypmod == -1)
+		{
+			elog(DEBUG2, "Fallback to non-vectorization; numeric type precision and scale not specified");
+			return false;
+		}
+		numeric_type = attr->atttypmod - VARHDRSZ;
+		precision = (numeric_type >> 16) & 0xffff;
+		if (precision > VEC_NUMERIC_MAX_PRECISION)
+		{
+			elog(DEBUG2, "Fallback to non-vectorization; numeric type precision %d not support", precision);
+			return false;
+		}	
 	}
 	return is_type_vectorable(typeOid);
 }
@@ -445,11 +502,11 @@ is_expr_vectorable(Expr* expr, void *context)
 			break;
 		case T_FuncExpr:
 			{
-				FuncExpr	  *opexpr = (FuncExpr *)expr;
+				FuncExpr *func_expr = (FuncExpr *)expr;
 
-				if (!is_func_vectorable(opexpr->funcid))
+				if (!is_func_vectorable(func_expr))
 					return false;
-				if (!is_type_vectorable(opexpr->funcresulttype))
+				if (!is_type_vectorable(func_expr->funcresulttype))
 					return false;
 			}
 			break;

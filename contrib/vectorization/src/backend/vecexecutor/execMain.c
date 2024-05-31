@@ -393,7 +393,7 @@ func_args_to_expression(List *args, PlanBuildContext *pcontext, const char* func
 }
 
 static GArrowExpression *
-build_round_expr(List *args, PlanBuildContext *pcontext)
+build_round_expr(List *args, PlanBuildContext *pcontext, bool has_precision)
 {
 	ListCell *l = NULL;
 	GList *arguments = NULL;
@@ -407,12 +407,11 @@ build_round_expr(List *args, PlanBuildContext *pcontext)
 		if (IsA(expr, Const))
 		{
 			Const* const_expr = (Const*) expr;
-			scale = const_expr->constvalue;
-			if (const_expr->consttypmod > (int32) (VARHDRSZ))
-			{
-				int32_t typmod = const_expr->consttypmod - VARHDRSZ;
-				scale = typmod & 0xffff;
-			}
+			int numeric_type = const_expr->constbyval ? const_expr->constvalue: const_expr->consttypmod;
+			if (has_precision)
+				scale = (numeric_type - VARHDRSZ) & 0xffff;
+			else
+				scale = numeric_type;
 			continue;
 		}
 		cur_expr = expr_to_arrow_expression(expr, pcontext);
@@ -509,7 +508,7 @@ get_function_expression(FuncExpr *opexpr, PlanBuildContext *pcontext)
 	}
 	else if(0 == strcmp(name, "numeric") && list_length(opexpr->args) == 2)
 	{
-		return build_round_expr(opexpr->args, pcontext);
+		return build_round_expr(opexpr->args, pcontext, true);
 	}
 	else if (0 ==strcmp(name, "date_trunc"))
 		return func_args_to_expression(opexpr->args, pcontext, "strptime");
@@ -529,7 +528,7 @@ get_function_expression(FuncExpr *opexpr, PlanBuildContext *pcontext)
 	else if (0 == strcmp(name, "upper"))
 		return func_args_to_expression(opexpr->args, pcontext, "utf8_upper");
 	else if (0 == strcmp(name, "round"))
-		return build_round_expr(opexpr->args, pcontext);
+		return build_round_expr(opexpr->args, pcontext, false);
 	else if (0 == strcmp(name, "text"))
 		return build_cast_expression(opexpr, pcontext);
 	else
