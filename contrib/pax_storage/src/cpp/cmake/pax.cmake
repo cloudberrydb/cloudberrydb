@@ -57,6 +57,7 @@ set(pax_storage_src
     storage/orc/orc_group.cc
     storage/orc/orc_vec_group.cc
     storage/orc/orc_reader.cc
+    storage/orc/orc_type.cc
     storage/orc/orc_writer.cc
     storage/pax_buffer.cc
     storage/pax_filter.cc

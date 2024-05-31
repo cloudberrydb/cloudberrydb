@@ -9,6 +9,7 @@
 #include "storage/micro_partition_stats.h"
 #include "storage/orc/orc_defined.h"
 #include "storage/orc/orc_group.h"
+#include "storage/orc/orc_type.h"
 #include "storage/orc/porc.h"
 #include "storage/pax_itemptr.h"
 #include "storage/toast/pax_toast.h"
@@ -20,44 +21,7 @@ std::vector<pax::porc::proto::Type_Kind> OrcWriter::BuildSchema(TupleDesc desc,
   std::vector<pax::porc::proto::Type_Kind> type_kinds;
   for (int i = 0; i < desc->natts; i++) {
     auto attr = &desc->attrs[i];
-    if (attr->attbyval) {
-      switch (attr->attlen) {
-        case 1:
-          if (attr->atttypid == BOOLOID) {
-            type_kinds.emplace_back(
-                pax::porc::proto::Type_Kind::Type_Kind_BOOLEAN);
-          } else {
-            type_kinds.emplace_back(
-                pax::porc::proto::Type_Kind::Type_Kind_BYTE);
-          }
-          break;
-        case 2:
-          type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_SHORT);
-          break;
-        case 4:
-          type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_INT);
-          break;
-        case 8:
-          type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_LONG);
-          break;
-        default:
-          Assert(!"should not be here! pg_type which attbyval=true only have typlen of "
-                  "1, 2, 4, or 8");
-      }
-    } else {
-      Assert(attr->attlen > 0 || attr->attlen == -1);
-      if (attr->atttypid == NUMERICOID) {
-        type_kinds.emplace_back(
-            is_vec ? pax::porc::proto::Type_Kind::Type_Kind_VECDECIMAL
-                   : pax::porc::proto::Type_Kind::Type_Kind_DECIMAL);
-      } else if (attr->atttypid == BPCHAROID) {
-        type_kinds.emplace_back(
-            is_vec ? pax::porc::proto::Type_Kind::Type_Kind_VECBPCHAR
-                   : pax::porc::proto::Type_Kind::Type_Kind_BPCHAR);
-      } else {
-        type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_STRING);
-      }
-    }
+    type_kinds.emplace_back(ConvertPgTypeToPorcType(attr, is_vec));
   }
 
   return type_kinds;

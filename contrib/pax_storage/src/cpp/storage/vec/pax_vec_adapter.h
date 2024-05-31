@@ -57,6 +57,8 @@ class VecAdapter final {
 
  private:
   void FullWithCTID(TupleTableSlot *slot, VecBatchBuffer *batch_buffer);
+
+  void FillMissColumn(int attr_index);
   int AppendVecFormat();
 
   inline size_t GetInvisibleNumber(size_t range_begin, size_t range_lens) {

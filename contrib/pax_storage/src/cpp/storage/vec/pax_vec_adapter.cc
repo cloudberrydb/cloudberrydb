@@ -13,6 +13,7 @@ extern "C" {
 
 #include "comm/vec_numeric.h"
 #include "storage/columns/pax_column_traits.h"
+#include "storage/orc/orc_type.h"
 #include "storage/pax_buffer.h"
 #include "storage/pax_itemptr.h"
 #include "storage/toast/pax_toast.h"
@@ -830,14 +831,11 @@ void VecAdapter::SetDataSource(PaxColumns *columns, int group_base_offset) {
   group_base_offset_ = group_base_offset;
   current_cached_pax_columns_index_ = 0;
   cached_batch_lens_ = 0;
-  // FIXME(jiaqizho): should expand vec_cache_buffer_
-  // if columns number not match vec_cache_buffer_ will not take care of
-  // schema it only handle buffer
   AssertImply(vec_cache_buffer_,
-              columns->GetColumns() == (size_t)vec_cache_buffer_lens_);
+              columns->GetColumns() <= (size_t)vec_cache_buffer_lens_);
   if (!vec_cache_buffer_) {
-    vec_cache_buffer_ = PAX_NEW_ARRAY<VecBatchBuffer>(columns->GetColumns());
-    vec_cache_buffer_lens_ = columns->GetColumns();
+    vec_cache_buffer_lens_ = rel_tuple_desc_->natts;
+    vec_cache_buffer_ = PAX_NEW_ARRAY<VecBatchBuffer>(vec_cache_buffer_lens_);
   }
 }
 
@@ -973,7 +971,8 @@ int VecAdapter::AppendToVecBuffer() {
         break;
       }
       case PaxColumnTypeInMem::kTypeBitPacked: {
-        auto align_size = TYPEALIGN(MEMORY_ALIGN_SIZE, BITS_TO_BYTES(out_range_lens));
+        auto align_size =
+            TYPEALIGN(MEMORY_ALIGN_SIZE, BITS_TO_BYTES(out_range_lens));
         Assert(!vec_buffer->GetBuffer());
         // the boolean_buffer is bitpacked-layout, we must use Alloc0 to fill it
         // with zeros. then we can only set the bit according to the index of
@@ -1219,6 +1218,166 @@ int VecAdapter::AppendVecFormat() {
   return total_rows;
 }
 
+void VecAdapter::FillMissColumn(int index) {
+  Datum tts_default_value;
+  Datum tts_isnull;
+  AttrMissing *attrmiss = nullptr;
+
+  DataBuffer<char> *vec_data_buffer = nullptr;
+  DataBuffer<char> *null_bits_buffer = nullptr;
+  DataBuffer<int32> *offset_buffer = nullptr;
+
+  Assert(index < rel_tuple_desc_->natts);
+
+  if (rel_tuple_desc_->constr) attrmiss = rel_tuple_desc_->constr->missing;
+
+  if (!attrmiss) {
+    // no missing values array at all, so just fill everything in as NULL
+    tts_default_value = 0;
+    tts_isnull = true;
+  } else {
+    // fill with default value
+    tts_default_value = attrmiss[index].am_value;
+    tts_isnull = !attrmiss[index].am_present;
+  }
+
+  auto column_type_kind =
+      ConvertPgTypeToPorcType(&rel_tuple_desc_->attrs[index], false);
+
+  vec_data_buffer = &(vec_cache_buffer_[index].vec_buffer);
+  offset_buffer = &(vec_cache_buffer_[index].offset_buffer);
+  Assert(vec_data_buffer->GetBuffer() == nullptr);
+  Assert(offset_buffer->GetBuffer() == nullptr);
+  Assert(null_bits_buffer->GetBuffer() == nullptr);
+
+  // copy null bitmap
+  if (tts_isnull) {
+    null_bits_buffer = &(vec_cache_buffer_[index].null_bits_buffer);
+    vec_cache_buffer_[index].null_counts = cached_batch_lens_;
+
+    auto null_align_bytes =
+        TYPEALIGN(MEMORY_ALIGN_SIZE, BITS_TO_BYTES(cached_batch_lens_));
+
+    // all nulls
+    null_bits_buffer->Set(BlockBuffer::Alloc0<char *>(null_align_bytes),
+                          null_align_bytes);
+    null_bits_buffer->Brush(null_align_bytes);
+  } else {
+    vec_cache_buffer_[index].null_counts = 0;
+  }
+
+  switch (column_type_kind) {
+    // bitpacked layout
+    case pax::porc::proto::Type_Kind::Type_Kind_BOOLEAN: {
+      auto buffer_size =
+          TYPEALIGN(MEMORY_ALIGN_SIZE, BITS_TO_BYTES(cached_batch_lens_));
+      auto bitpacked_buffer = BlockBuffer::Alloc<char *>(buffer_size);
+      if (DatumGetBool(tts_default_value)) {
+        memset(bitpacked_buffer, 0xff, buffer_size);
+      } else {
+        memset(bitpacked_buffer, 0, buffer_size);
+      }
+      vec_data_buffer->Set(bitpacked_buffer, buffer_size);
+      break;
+    }
+    // fixed-length layout
+    case pax::porc::proto::Type_Kind::Type_Kind_BYTE:
+    case pax::porc::proto::Type_Kind::Type_Kind_SHORT:
+    case pax::porc::proto::Type_Kind::Type_Kind_INT:
+    case pax::porc::proto::Type_Kind::Type_Kind_LONG: {
+      auto buffer_size =
+          TYPEALIGN(MEMORY_ALIGN_SIZE,
+                    cached_batch_lens_ * rel_tuple_desc_->attrs[index].attlen);
+      auto data_buffer = BlockBuffer::Alloc<char *>(buffer_size);
+      vec_data_buffer->Set(data_buffer, buffer_size);
+      if (tts_isnull) {
+        vec_data_buffer->Brush(buffer_size);
+      } else {
+        for (size_t i = 0; i < cached_batch_lens_; i++) {
+          vec_data_buffer->Write((char *)&tts_default_value,
+                                 rel_tuple_desc_->attrs[index].attlen);
+          vec_data_buffer->Brush(rel_tuple_desc_->attrs[index].attlen);
+        }
+      }
+      break;
+    }
+    // decimal layout
+    case pax::porc::proto::Type_Kind::Type_Kind_DECIMAL: {
+      int32 type_len = VEC_SHORT_NUMERIC_STORE_BYTES;
+      auto buffer_size =
+          TYPEALIGN(MEMORY_ALIGN_SIZE, cached_batch_lens_ * type_len);
+      auto data_buffer = BlockBuffer::Alloc<char *>(buffer_size);
+
+      vec_data_buffer->Set(data_buffer, buffer_size);
+
+      if (tts_isnull) {
+        vec_data_buffer->Brush(buffer_size);
+      } else {
+        for (size_t i = 0; i < cached_batch_lens_; i++) {
+          Numeric numeric;
+          size_t num_len = 0;
+          auto vl = (struct varlena *)DatumGetPointer(tts_default_value);
+          num_len = VARSIZE_ANY_EXHDR(vl);
+          numeric = cbdb::DatumToNumeric(PointerGetDatum(vl));
+
+          char *dest_buff = vec_data_buffer->GetAvailableBuffer();
+          Assert(vec_data_buffer->Available() >= (size_t)type_len);
+          pg_short_numeric_to_vec_short_numeric(
+              numeric, num_len, (int64 *)dest_buff,
+              (int64 *)(dest_buff + sizeof(int64)));
+          vec_data_buffer->Brush(type_len);
+        }
+      }
+
+      break;
+    }
+    // non-fixed layout
+    // bpchar is special and the trailing space character should be removed
+    case pax::porc::proto::Type_Kind::Type_Kind_BPCHAR:
+    case pax::porc::proto::Type_Kind::Type_Kind_STRING: {
+      auto offset_align_bytes = TYPEALIGN(
+          MEMORY_ALIGN_SIZE, (cached_batch_lens_ + 1) * sizeof(int32));
+      offset_buffer->Set(BlockBuffer::Alloc0<char *>(offset_align_bytes),
+                         offset_align_bytes);
+
+      if (!tts_isnull) {
+        size_t read_len = 0;
+        char *read_data;
+        int default_len = 0;
+        auto default_vl =
+            cbdb::PointerAndLenFromDatum(tts_default_value, &default_len);
+
+        VarlenaToRawBuffer((char *)default_vl, default_len, &read_data,
+                           &read_len);
+
+        auto buffer_len = cached_batch_lens_ * default_len;
+        auto raw_data_size = buffer_len - (cached_batch_lens_ * VARHDRSZ_SHORT);
+        auto align_size = TYPEALIGN(MEMORY_ALIGN_SIZE, raw_data_size);
+        vec_data_buffer->Set(BlockBuffer::Alloc0<char *>(align_size),
+                             align_size);
+        for (size_t i = 0; i < cached_batch_lens_; i++) {
+          // In vec, bpchar not allow store empty char after the actual
+          // characters
+          if (column_type_kind ==
+              pax::porc::proto::Type_Kind::Type_Kind_BPCHAR) {
+            read_len = bpchartruelen(read_data, read_len);
+          }
+          vec_data_buffer->Write(read_data, read_len);
+          vec_data_buffer->Brush(read_len);
+          offset_buffer->Write(i * read_len);
+          offset_buffer->Brush(sizeof(int32));
+        }
+        offset_buffer->Write(cached_batch_lens_ * read_len);
+        offset_buffer->Brush(sizeof(int32));
+      }
+
+      break;
+    }
+    default:
+      CBDB_RAISE(cbdb::CException::kExTypeInvalid);
+  }
+}
+
 size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {
   // when visibility map is enabled, all rows of a vec batch may be filtered
   // out. this time cached_batch_length is 0
@@ -1270,7 +1429,6 @@ size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {
     ConvSchemaAndDataToVec(attr->atttypid, column_name, cached_batch_lens_,
                            vec_batch_buffer, schema_types, array_vector,
                            field_names);
-
     vec_batch_buffer->Reset();
   }
 
@@ -1310,20 +1468,35 @@ size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {
   // by `attisdropped` so `schema_types.size()` is 1, we need full null in it.
   // But in file2, `schema_types.size()` is 3, so do nothing.
   auto natts = build_ctid_ ? target_desc->natts - 1 : target_desc->natts;
-  Assert((int)schema_types.size() <= natts);
-  for (int index = schema_types.size(); index < natts; index++) {
-    VecBatchBuffer temp_batch_buffer;
-    char *target_column_name = NameStr(target_desc->attrs[index].attname);
 
-    // FIXME(jiaqizho): should setting default value here
-    // but missing this part of logic
+  // TODO(gongxun): should fill the missing column at here to reduce the
+  // unnessary fill
+  for (size_t index = schema_types.size(); index < (size_t)natts; index++) {
+    auto attr = &target_desc->attrs[index];
+    char *column_name = NameStr(attr->attname);
+    size_t index_in_rel;
 
-    // No sure whether can direct add `null()` here
-    ConvSchemaAndDataToVec(target_desc->attrs[index].atttypid,
-                           target_column_name, cached_batch_lens_,
-                           &temp_batch_buffer, schema_types, array_vector,
-                           field_names);
+    // attrs is order by column index, so we can start from the last index
+    for (index_in_rel = index; index_in_rel < (size_t)rel_tuple_desc_->natts;
+         index_in_rel++) {
+      if (strcmp(column_name,
+                 NameStr(rel_tuple_desc_->attrs[index_in_rel].attname)) == 0) {
+        FillMissColumn(index_in_rel);
+        vec_batch_buffer = &vec_cache_buffer_[index_in_rel];
+
+        ConvSchemaAndDataToVec(attr->atttypid, column_name, cached_batch_lens_,
+                               vec_batch_buffer, schema_types, array_vector,
+                               field_names);
+        vec_batch_buffer->Reset();
+        break;
+      }
+    }
+    // must the missing column found in relation tuple desc
+    CBDB_CHECK(index_in_rel != (size_t)rel_tuple_desc_->natts,
+               cbdb::CException::kExTypeInvalid);
   }
+
+  Assert((int)schema_types.size() == natts);
 
   // The CTID will be full with int64(table no(16) + block number(16) +
   // offset(32)) The current value of CTID is accurate, But we cannot get the
