@@ -455,8 +455,11 @@ void CopyNonFixedRawBuffer(PaxColumn *column,
       // deal toast
       if (column->IsToast(i)) {
         auto et_buffer = column->GetExternalToastDataBuffer();
+
+#ifdef USE_ASSERT_CHECKING
         auto toast_raw_size = pax_toast_raw_size(PointerGetDatum(buffer));
         Assert(toast_raw_size <= out_data_buffer->Available());
+#endif
 
         auto decompress_size = pax_detoast_raw(
             PointerGetDatum(buffer), out_data_buffer->GetAvailableBuffer(),

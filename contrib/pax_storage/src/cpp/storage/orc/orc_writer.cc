@@ -825,7 +825,7 @@ void OrcWriter::Close() {
   BufferedOutputStream buffer_mem_stream(2048);
   size_t file_offset = current_offset_;
   bool empty_stripe = false;
-  DataBuffer<char> *data_buffer;
+  DataBuffer<char> *data_buffer = nullptr;
   DataBuffer<char> toast_mem(nullptr, 0, true, false);
 
   empty_stripe = !WriteStripe(&buffer_mem_stream, &toast_mem);
