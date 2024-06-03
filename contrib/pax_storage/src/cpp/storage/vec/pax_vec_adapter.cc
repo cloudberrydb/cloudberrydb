@@ -1248,11 +1248,11 @@ void VecAdapter::FillMissColumn(int index) {
   offset_buffer = &(vec_cache_buffer_[index].offset_buffer);
   Assert(vec_data_buffer->GetBuffer() == nullptr);
   Assert(offset_buffer->GetBuffer() == nullptr);
-  Assert(null_bits_buffer->GetBuffer() == nullptr);
 
   // copy null bitmap
   if (tts_isnull) {
     null_bits_buffer = &(vec_cache_buffer_[index].null_bits_buffer);
+    Assert(null_bits_buffer->GetBuffer() == nullptr);
     vec_cache_buffer_[index].null_counts = cached_batch_lens_;
 
     auto null_align_bytes =
