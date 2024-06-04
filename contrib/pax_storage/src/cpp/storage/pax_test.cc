@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "access/pax_partition.h"
+#include "access/paxc_rel_options.h"
 #include "comm/gtest_wrappers.h"
 #include "comm/guc.h"
 #include "exceptions/CException.h"
@@ -169,6 +170,14 @@ TEST_F(PaxWriterTest, WriteReadTuple) {
   delete reader;
 }
 
+std::vector<int> MockGetALLMinMaxColumnsIndex(Relation rel) {
+  std::vector<int> minmax_columns;
+  for (int i = 0; i < rel->rd_att->natts; i++) {
+    minmax_columns.push_back(i);
+  }
+  return minmax_columns;
+}
+
 TEST_F(PaxWriterTest, TestOper) {
   TupleTableSlot *slot = CreateTestTupleTableSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
@@ -176,6 +185,8 @@ TEST_F(PaxWriterTest, TestOper) {
   std::vector<size_t> mins;
   std::vector<size_t> maxs;
   int origin_pax_max_tuples_per_group = pax_max_tuples_per_group;
+  Stub *stub;
+  stub = new Stub();
 
   std::remove((pax_file_name + std::to_string(0)).c_str());
   std::remove((pax_file_name + std::to_string(1)).c_str());
@@ -186,13 +197,16 @@ TEST_F(PaxWriterTest, TestOper) {
 
   TableWriter::WriteSummaryCallback callback =
       [&mins, &maxs](const WriteSummary &summary) {
-        auto min = *reinterpret_cast<const int32 *>(
-            summary.mp_stats.columnstats(2).datastats().minimal().data());
-        auto max = *reinterpret_cast<const int32 *>(
-            summary.mp_stats.columnstats(2).datastats().maximum().data());
-
-        mins.emplace_back(min);
-        maxs.emplace_back(max);
+        ASSERT_NE(summary.mp_stats, nullptr);
+        ASSERT_EQ(summary.mp_stats->columnstats_size(), COLUMN_NUMS);
+        auto min_ptr = reinterpret_cast<const int32 *>(
+            summary.mp_stats->columnstats(2).datastats().minimal().data());
+        auto max_ptr = reinterpret_cast<const int32 *>(
+            summary.mp_stats->columnstats(2).datastats().maximum().data());
+        ASSERT_NE(min_ptr, nullptr);
+        ASSERT_NE(max_ptr, nullptr);
+        mins.emplace_back(*min_ptr);
+        maxs.emplace_back(*max_ptr);
       };
 
   auto strategy = new MockSplitStrategy();
@@ -201,14 +215,11 @@ TEST_F(PaxWriterTest, TestOper) {
   // 8 groups in a file
   pax_max_tuples_per_group = split_size / 8;
 
-  std::vector<int> minmax_columns;
-  for (int i = 0; i < relation->rd_att->natts; i++) minmax_columns.push_back(i);
+  stub->set(cbdb::GetMinMaxColumnsIndex, MockGetALLMinMaxColumnsIndex);
 
-  auto stats = new MicroPartitionStats();
-  stats->SetMinMaxColumnIndex(std::move(minmax_columns));
   auto writer = new MockWriter(relation, callback);
   writer->SetFileSplitStrategy(strategy);
-  writer->SetStatsCollector(stats);
+
   uint32 call_times = 0;
   EXPECT_CALL(*writer, GenFilePath(_))
       .Times(AtLeast(2))
@@ -281,6 +292,8 @@ TEST_F(PaxWriterTest, TestOper) {
   std::remove((pax_file_name + std::to_string(0)).c_str());
   std::remove((pax_file_name + std::to_string(1)).c_str());
   std::remove((pax_file_name + std::to_string(2)).c_str());
+
+  delete stub;
 
   pax_max_tuples_per_group = origin_pax_max_tuples_per_group;
 }
@@ -542,7 +555,6 @@ class MockParitionWriter : public TableParitionWriter {
       : TableParitionWriter(relation, bucket) {
     SetWriteSummaryCallback(callback);
     SetFileSplitStrategy(new PaxDefaultSplitStrategy());
-    SetStatsCollector(new MicroPartitionStats());
   }
 
   MOCK_METHOD(std::string, GenFilePath, (const std::string &), (override));

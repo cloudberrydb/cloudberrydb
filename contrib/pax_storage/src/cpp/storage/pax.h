@@ -46,8 +46,6 @@ class TableWriter {
 
   TableWriter *SetFileSplitStrategy(const FileSplitStrategy *strategy);
 
-  TableWriter *SetStatsCollector(MicroPartitionStats *mp_stats);
-
   BlockNumber GetBlockNumber() const { return current_blockno_; }
 
  protected:
@@ -57,6 +55,8 @@ class TableWriter {
 
   virtual std::vector<std::tuple<ColumnEncoding_Kind, int>>
   GetRelEncodingOptions();
+
+  std::vector<int> GetMinMaxColumnIndexes();
 
   MicroPartitionWriter *CreateMicroPartitionWriter(
       MicroPartitionStats *mp_stats);
@@ -74,6 +74,8 @@ class TableWriter {
   BlockNumber current_blockno_ = 0;
   bool already_get_format_ = false;
   PaxStorageFormat storage_format_ = PaxStorageFormat::kTypeStoragePorcNonVec;
+  bool already_get_min_max_col_idx_ = false;
+  std::vector<int> min_max_col_idx_;
 };
 
 class TableReader final {

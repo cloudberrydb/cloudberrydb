@@ -20,29 +20,6 @@ class MicroPartitionStats;
 class OrcFormatReader;
 class OrcGroup;
 
-class OrcColumnStatsData : public MicroPartitionStatsData {
- public:
-  OrcColumnStatsData() = default;
-  OrcColumnStatsData *Initialize(int natts);
-  void CopyFrom(MicroPartitionStatsData *stats) override;
-  ::pax::stats::ColumnBasicInfo *GetColumnBasicInfo(int column_index) override;
-  ::pax::stats::ColumnDataStats *GetColumnDataStats(int column_index) override;
-  int ColumnSize() const override;
-  void SetAllNull(int column_index, bool allnull) override;
-  void SetHasNull(int column_index, bool hasnull) override;
-  bool GetAllNull(int column_index) override;
-  bool GetHasNull(int column_index) override;
-  void Reset();
-
- private:
-  void CheckVectorSize() const;
-
-  std::vector<::pax::stats::ColumnDataStats> col_data_stats_;
-  std::vector<::pax::stats::ColumnBasicInfo> col_basic_info_;
-  std::vector<bool> has_nulls_;
-  std::vector<bool> all_nulls_;
-};
-
 class OrcWriter : public MicroPartitionWriter {
  public:
   OrcWriter(const MicroPartitionWriter::WriterOptions &orc_writer_options,
@@ -58,9 +35,6 @@ class OrcWriter : public MicroPartitionWriter {
   void MergeTo(MicroPartitionWriter *writer) override;
 
   void Close() override;
-
-  MicroPartitionWriter *SetStatsCollector(
-      MicroPartitionStats *mpstats) override;
 
   size_t PhysicalSize() const override;
 
@@ -130,7 +104,7 @@ class OrcWriter : public MicroPartitionWriter {
 
   ::pax::porc::proto::Footer file_footer_;
   ::pax::porc::proto::PostScript post_script_;
-  ::pax::MicroPartitionStats stats_collector_;
+  ::pax::MicroPartitionStats group_stats_;
 };
 
 #ifdef ENABLE_PLASMA

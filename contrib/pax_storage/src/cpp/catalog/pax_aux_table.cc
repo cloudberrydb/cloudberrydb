@@ -480,9 +480,9 @@ static void CPaxCopyPaxBlockEntry(Relation old_relation,
   }
 }
 
-void FetchMicroPartitionAuxRow(Relation rel, Snapshot snapshot, const char *blockname,
-                               void (*callback)(Datum *values, bool *isnull, void *arg),
-                               void *arg) {
+void FetchMicroPartitionAuxRow(
+    Relation rel, Snapshot snapshot, const char *blockname,
+    void (*callback)(Datum *values, bool *isnull, void *arg), void *arg) {
   ::paxc::ScanAuxContext context;
   HeapTuple tuple;
   Oid aux_relid;
@@ -495,8 +495,8 @@ void FetchMicroPartitionAuxRow(Relation rel, Snapshot snapshot, const char *bloc
                                     AccessShareLock, blockname);
   tuple = context.SearchMicroPartitionEntry();
   if (!HeapTupleIsValid(tuple))
-    elog(ERROR, "get micro partition \"%s\" failed for relation(%u)",
-         blockname, RelationGetRelid(rel));
+    elog(ERROR, "get micro partition \"%s\" failed for relation(%u)", blockname,
+         RelationGetRelid(rel));
 
   bool should_free_stats = false;
   struct varlena *flat_stats = nullptr;
@@ -506,19 +506,20 @@ void FetchMicroPartitionAuxRow(Relation rel, Snapshot snapshot, const char *bloc
     values[i] = heap_getattr(tuple, i + 1, tup_desc, &isnull[i]);
 
   if (!isnull[ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS - 1]) {
-    auto pstat = DatumGetPointer(values[ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS - 1]);
+    auto pstat =
+        DatumGetPointer(values[ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS - 1]);
     auto stats = reinterpret_cast<struct varlena *>(pstat);
     flat_stats = pg_detoast_datum_packed(stats);
     should_free_stats = flat_stats != stats;
-    values[ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS - 1] = PointerGetDatum(flat_stats);
+    values[ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS - 1] =
+        PointerGetDatum(flat_stats);
   }
 
-  if (callback)
-    callback(values, isnull, arg);
+  if (callback) callback(values, isnull, arg);
 
   AssertImply(should_free_stats, flat_stats);
   if (should_free_stats) pfree(flat_stats);
-  
+
   context.EndSearchMicroPartition(NoLock);
 }
 }  // namespace paxc
@@ -542,7 +543,8 @@ struct FetchMicroPartitionAuxRowContext {
   Relation rel;
 };
 
-static void FetchMicroPartitionAuxRowCallback(Datum *values, bool *isnull, void *arg) {
+static void FetchMicroPartitionAuxRowCallback(Datum *values, bool *isnull,
+                                              void *arg) {
   auto ctx = reinterpret_cast<struct FetchMicroPartitionAuxRowContext *>(arg);
   auto rel = ctx->rel;
   auto rel_path = cbdb::BuildPaxDirectoryPath(rel->rd_node, rel->rd_backend);
@@ -557,17 +559,21 @@ static void FetchMicroPartitionAuxRowCallback(Datum *values, bool *isnull, void 
   }
 
   Assert(!isnull[ANUM_PG_PAX_BLOCK_TABLES_PTTUPCOUNT - 1]);
-  ctx->info.SetTupleCount(cbdb::DatumToInt32(values[ANUM_PG_PAX_BLOCK_TABLES_PTTUPCOUNT - 1]));
+  ctx->info.SetTupleCount(
+      cbdb::DatumToInt32(values[ANUM_PG_PAX_BLOCK_TABLES_PTTUPCOUNT - 1]));
 
   Assert(!isnull[ANUM_PG_PAX_BLOCK_TABLES_PTBLOCKSIZE - 1]);
-  ctx->info.SetTupleCount(cbdb::DatumToInt32(values[ANUM_PG_PAX_BLOCK_TABLES_PTBLOCKSIZE - 1]));
+  ctx->info.SetTupleCount(
+      cbdb::DatumToInt32(values[ANUM_PG_PAX_BLOCK_TABLES_PTBLOCKSIZE - 1]));
 
   Assert(!isnull[ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS - 1]);
   {
     ::pax::stats::MicroPartitionStatisticsInfo stats_info;
-    auto pstats = cbdb::DatumToPointer(values[ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS - 1]);
+    auto pstats = cbdb::DatumToPointer(
+        values[ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS - 1]);
     auto flat_stats = reinterpret_cast<struct varlena *>(pstats);
-    auto ok = stats_info.ParseFromArray(VARDATA_ANY(flat_stats), VARSIZE_ANY_EXHDR(flat_stats));
+    auto ok = stats_info.ParseFromArray(VARDATA_ANY(flat_stats),
+                                        VARSIZE_ANY_EXHDR(flat_stats));
 
     CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
     ctx->info.SetStats(std::move(stats_info));
@@ -580,7 +586,8 @@ static void FetchMicroPartitionAuxRowCallback(Datum *values, bool *isnull, void 
   }
 }
 
-static void FetchMicroPartitionAuxRowCallbackWrapper(Datum *values, bool *isnull, void *arg) {
+static void FetchMicroPartitionAuxRowCallbackWrapper(Datum *values,
+                                                     bool *isnull, void *arg) {
   CBDB_TRY();
   { FetchMicroPartitionAuxRowCallback(values, isnull, arg); }
   CBDB_CATCH_DEFAULT();
@@ -622,7 +629,10 @@ void InsertOrUpdateMicroPartitionEntry(const pax::WriteSummary &summary) {
     aux_relid = ::paxc::GetPaxAuxRelid(summary.rel_oid);
     paxc::InsertOrUpdateMicroPartitionPlaceHolder(
         aux_relid, summary.block_id.c_str(), summary.num_tuples,
-        summary.file_size, summary.mp_stats, nullptr);
+        summary.file_size,
+        summary.mp_stats ? *summary.mp_stats
+                         : ::pax::stats::MicroPartitionStatisticsInfo(),
+        nullptr);
   }
   CBDB_WRAP_END;
 }

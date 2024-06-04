@@ -174,14 +174,21 @@ OrcWriter::OrcWriter(
       row_index_(0),
       total_rows_(0),
       current_offset_(0),
-      current_toast_file_offset_(0) {
+      current_toast_file_offset_(0),
+      group_stats_(writer_options.rel_tuple_desc) {
+  TupleDesc desc;
+  int natts;
+
+  desc = writer_options.rel_tuple_desc;
+  natts = static_cast<int>(column_types.size());
+  Assert(desc);
+  Assert(desc->natts == natts);
+
   pax_columns_ = BuildColumns(column_types_, writer_options.encoding_opts,
                               writer_options.lengths_encoding_opts,
                               writer_options.storage_format);
 
-  TupleDesc desc = writer_options.rel_tuple_desc;
-  Assert(desc);
-  for (int i = 0; i < desc->natts; i++) {
+  for (int i = 0; i < natts; i++) {
     auto attr = &desc->attrs[i];
     Assert((size_t)i < pax_columns_->GetColumns());
     auto column = (*pax_columns_)[i];
@@ -223,29 +230,13 @@ OrcWriter::OrcWriter(
   post_script_.set_writer(PORC_WRITER_ID);
   post_script_.set_magic(PORC_MAGIC_ID);
 
-  auto natts = static_cast<int>(column_types.size());
-  auto stats_data = PAX_NEW<OrcColumnStatsData>();
-  stats_collector_.SetStatsMessage(stats_data->Initialize(natts), natts);
+  group_stats_.Initialize(writer_options.enable_min_max_col_idxs);
 }
 
 OrcWriter::~OrcWriter() {
   PAX_DELETE(pax_columns_);
   PAX_DELETE(file_);
   PAX_DELETE(toast_file_);
-}
-
-MicroPartitionWriter *OrcWriter::SetStatsCollector(
-    MicroPartitionStats *mpstats) {
-  if (mpstats) {
-    auto stats_data = PAX_NEW<MicroPartittionFileStatsData>(
-        &summary_.mp_stats, static_cast<int>(column_types_.size()));
-    mpstats->SetStatsMessage(stats_data, column_types_.size());
-    stats_collector_.SetMinMaxColumnIndex(
-        std::vector<int>(mpstats->GetMinMaxColumnIndex()));
-
-    return MicroPartitionWriter::SetStatsCollector(mpstats);
-  }
-  return MicroPartitionWriter::SetStatsCollector(mpstats);
 }
 
 void OrcWriter::Flush() {
@@ -448,7 +439,7 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
 
   summary_.num_tuples++;
   pax_columns_->AddRows(1);
-  stats_collector_.AddRow(table_slot, tuple_desc, detoast_holder_);
+  group_stats_.AddRow(table_slot, detoast_holder_);
 
   EndWriteTuple(table_slot);
 }
@@ -509,8 +500,9 @@ void OrcWriter::MergeTo(MicroPartitionWriter *writer) {
 
   // Update summary
   summary_.num_tuples += orc_writer->summary_.num_tuples;
+
   if (mp_stats_) {
-    mp_stats_->MergeTo(orc_writer->mp_stats_, writer_options_.rel_tuple_desc);
+    mp_stats_->MergeTo(orc_writer->mp_stats_);
   }
 }
 
@@ -526,7 +518,7 @@ void OrcWriter::MergePaxColumns(OrcWriter *writer) {
   BufferedOutputStream buffer_mem_stream(2048);
   DataBuffer<char> toast_mem(nullptr, 0, true, false);
   ok = WriteStripe(&buffer_mem_stream, &toast_mem, columns,
-                   &(writer->stats_collector_), writer->mp_stats_);
+                   &(writer->group_stats_), writer->mp_stats_);
 
   // must be ok
   Assert(ok);
@@ -647,8 +639,8 @@ void OrcWriter::DeleteUnstateFile() {
 
 bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
                             DataBuffer<char> *toast_mem) {
-  return WriteStripe(buffer_mem_stream, toast_mem, pax_columns_,
-                     &stats_collector_, mp_stats_);
+  return WriteStripe(buffer_mem_stream, toast_mem, pax_columns_, &group_stats_,
+                     mp_stats_);
 }
 
 bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
@@ -715,10 +707,15 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
     data_len += stream.length();
   }
 
+  if (file_stats) {
+    file_stats->MergeTo(stripe_stats);
+  }
+
+  auto stats_info = stripe_stats->Serialize();
+  Assert(stats_info);
+
   stripe_info = file_footer_.add_stripes();
-  auto stats_data =
-      dynamic_cast<OrcColumnStatsData *>(stripe_stats->GetStatsData());
-  Assert(stats_data);
+
   for (size_t i = 0; i < pax_columns->GetColumns(); i++) {
     auto pb_stats = stripe_info->add_colstats();
     PaxColumn *pax_column = (*pax_columns)[i];
@@ -729,7 +726,7 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
     pb_stats->set_hasnull(pax_column->HasNull());
     pb_stats->set_allnull(pax_column->AllNull());
     *pb_stats->mutable_coldatastats() =
-        *stats_data->GetColumnDataStats(static_cast<int>(i));
+        stats_info->columnstats(static_cast<int>(i)).datastats();
     PAX_LOG_IF(
         pax_enable_debug,
         "write group[%lu](allnull=%s, hasnull=%s, hastoast=%s, nrows=%lu)", i,
@@ -738,13 +735,8 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
         pax_column->ToastCounts() > 0 ? "true" : "false",
         pax_column->GetRows());
   }
-  if (file_stats) {
-    file_stats->MergeTo(stripe_stats, writer_options_.rel_tuple_desc);
-  }
 
-  stats_data->Reset();
-  stripe_stats->LightReset();
-
+  stripe_stats->Reset();
   buffer_mem_stream->Set(data_buffer);
 
   // check memory io with protobuf
@@ -801,6 +793,7 @@ void OrcWriter::Close() {
   WriteFileFooter(&buffer_mem_stream);
   WritePostscript(&buffer_mem_stream);
   if (summary_callback_) {
+    summary_.mp_stats = !mp_stats_ ? nullptr : mp_stats_->Serialize();
     summary_.file_size += buffer_mem_stream.GetDataBuffer()->Used();
     summary_callback_(summary_);
   }
@@ -866,12 +859,10 @@ void OrcWriter::WriteFileFooter(BufferedOutputStream *buffer_mem_stream) {
     file_footer_.mutable_types(0)->add_subtypes(i);
   }
 
-  auto stats_data =
-      dynamic_cast<OrcColumnStatsData *>(stats_collector_.GetStatsData());
   Assert(file_footer_.colinfo_size() == 0);
   for (size_t i = 0; i < pax_columns_->GetColumns(); i++) {
     auto pb_colinfo = file_footer_.add_colinfo();
-    *pb_colinfo = *stats_data->GetColumnBasicInfo(static_cast<int>(i));
+    *pb_colinfo = *group_stats_.GetColumnBasicInfo(static_cast<int>(i));
   }
 
   buffer_mem_stream->StartBufferOutRecord();
@@ -893,64 +884,4 @@ void OrcWriter::WritePostscript(BufferedOutputStream *buffer_mem_stream) {
   buffer_mem_stream->DirectWrite((char *)&ps_len, PORC_POST_SCRIPT_SIZE);
 }
 
-OrcColumnStatsData *OrcColumnStatsData::Initialize(int natts) {
-  Assert(natts >= 0);
-  col_data_stats_.resize(natts);
-  col_basic_info_.resize(natts);
-  has_nulls_.resize(natts);
-  all_nulls_.resize(natts);
-
-  Reset();
-  return this;
-}
-
-void OrcColumnStatsData::CopyFrom(MicroPartitionStatsData * /*stats*/) {
-  CBDB_RAISE(cbdb::CException::ExType::kExTypeUnImplements);
-}
-
-void OrcColumnStatsData::CheckVectorSize() const {
-  Assert(col_data_stats_.size() == col_basic_info_.size());
-}
-
-void OrcColumnStatsData::Reset() {
-  auto n = col_basic_info_.size();
-  for (size_t i = 0; i < n; i++) {
-    col_data_stats_[i].Clear();
-    has_nulls_[i] = false;
-    all_nulls_[i] = true;
-  }
-}
-
-::pax::stats::ColumnBasicInfo *OrcColumnStatsData::GetColumnBasicInfo(
-    int column_index) {
-  Assert(column_index >= 0 && column_index < ColumnSize());
-  return &col_basic_info_[column_index];
-}
-
-::pax::stats::ColumnDataStats *OrcColumnStatsData::GetColumnDataStats(
-    int column_index) {
-  Assert(column_index >= 0 && column_index < ColumnSize());
-  return &col_data_stats_[column_index];
-}
-
-int OrcColumnStatsData::ColumnSize() const {
-  Assert(col_data_stats_.size() == col_basic_info_.size());
-  return static_cast<int>(col_basic_info_.size());
-}
-
-void OrcColumnStatsData::SetAllNull(int column_index, bool allnull) {
-  all_nulls_[column_index] = allnull;
-}
-
-void OrcColumnStatsData::SetHasNull(int column_index, bool hasnull) {
-  has_nulls_[column_index] = hasnull;
-}
-
-bool OrcColumnStatsData::GetAllNull(int column_index) {
-  return all_nulls_[column_index];
-}
-
-bool OrcColumnStatsData::GetHasNull(int column_index) {
-  return has_nulls_[column_index];
-}
 }  // namespace pax

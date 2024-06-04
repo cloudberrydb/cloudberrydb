@@ -132,14 +132,6 @@ TableWriter *TableWriter::SetFileSplitStrategy(
   return this;
 }
 
-TableWriter *TableWriter::SetStatsCollector(MicroPartitionStats *mp_stats) {
-  Assert(!mp_stats_);
-  Assert(!writer_);  // must be set before the writer is created.
-
-  mp_stats_ = mp_stats;
-  return this;
-}
-
 TableWriter::~TableWriter() {
   // must call close before delete table writer
   Assert(writer_ == nullptr);
@@ -158,6 +150,15 @@ std::string TableWriter::GenFilePath(const std::string &block_id) {
 
 std::string TableWriter::GenToastFilePath(const std::string &file_path) {
   return file_path + TOAST_FILE_SUFFIX;
+}
+
+std::vector<int> TableWriter::GetMinMaxColumnIndexes() {
+  if (!already_get_min_max_col_idx_) {
+    min_max_col_idx_ = cbdb::GetMinMaxColumnsIndex(relation_);
+    already_get_min_max_col_idx_ = true;
+  }
+
+  return min_max_col_idx_;
 }
 
 std::vector<std::tuple<ColumnEncoding_Kind, int>>
@@ -222,6 +223,7 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
   options.storage_format = GetStorageFormat();
   options.lengths_encoding_opts = std::make_pair(
       PAX_LENGTHS_DEFAULT_COMPRESSTYPE, PAX_LENGTHS_DEFAULT_COMPRESSLEVEL);
+  options.enable_min_max_col_idxs = GetMinMaxColumnIndexes();
 
   file = fs->Open(options.file_name, fs::kReadWriteMode);
   Assert(file);
@@ -233,13 +235,8 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
   mp_writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(
       std::move(options), file, toast_file);
 
-  mp_writer->SetWriteSummaryCallback(summary_callback_);
-  mp_writer->SetStatsCollector(mp_stats);
-
-  if (mp_stats) {
-    mp_stats->DoInitialCheck(relation_->rd_att);
-  }
-
+  mp_writer->SetWriteSummaryCallback(summary_callback_)
+      ->SetStatsCollector(mp_stats);
   return mp_writer;
 }
 
@@ -247,6 +244,14 @@ void TableWriter::Open() {
   rel_path_ =
       cbdb::BuildPaxDirectoryPath(relation_->rd_node, relation_->rd_backend);
   // Exception may be thrown causing writer_ to be nullptr
+
+  if (!mp_stats_) {
+    mp_stats_ = PAX_NEW<MicroPartitionStats>(RelationGetDescr(relation_));
+    mp_stats_->Initialize(GetMinMaxColumnIndexes());
+  } else {
+    mp_stats_->Reset();
+  }
+
   writer_ = CreateMicroPartitionWriter(mp_stats_);
   num_tuples_ = 0;
   // insert tuple into the aux table before inserting any tuples.
@@ -638,11 +643,8 @@ void TableDeleter::Delete() {
 
 void TableDeleter::OpenWriter() {
   writer_ = PAX_NEW<TableWriter>(rel_);
-  auto stats = PAX_NEW<MicroPartitionStats>()->SetMinMaxColumnIndex(
-      cbdb::GetMinMaxColumnsIndex(rel_));
   writer_->SetWriteSummaryCallback(&cbdb::InsertOrUpdateMicroPartitionEntry)
       ->SetFileSplitStrategy(PAX_NEW<PaxDefaultSplitStrategy>())
-      ->SetStatsCollector(stats)
       ->Open();
 }
 

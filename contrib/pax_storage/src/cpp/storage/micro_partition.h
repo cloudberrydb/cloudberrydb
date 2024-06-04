@@ -29,6 +29,7 @@ class MicroPartitionWriter {
     Oid rel_oid = InvalidOid;
     std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
     std::pair<ColumnEncoding_Kind, int> lengths_encoding_opts;
+    std::vector<int> enable_min_max_col_idxs;
 
     size_t group_limit = pax_max_tuples_per_group;
     PaxStorageFormat storage_format = PaxStorageFormat::kTypeStoragePorcNonVec;
@@ -41,13 +42,16 @@ class MicroPartitionWriter {
           rel_tuple_desc(wo.rel_tuple_desc),
           rel_oid(wo.rel_oid),
           encoding_opts(std::move(wo.encoding_opts)),
+          enable_min_max_col_idxs(std::move(wo.enable_min_max_col_idxs)),
           group_limit(wo.group_limit) {}
+
     WriterOptions &operator=(WriterOptions &&wo) {
       file_name = std::move(wo.file_name);
       block_id = std::move(wo.block_id);
       rel_tuple_desc = wo.rel_tuple_desc;
       rel_oid = wo.rel_oid;
       encoding_opts = std::move(wo.encoding_opts);
+      enable_min_max_col_idxs = std::move(wo.enable_min_max_col_idxs);
       group_limit = wo.group_limit;
       return *this;
     }

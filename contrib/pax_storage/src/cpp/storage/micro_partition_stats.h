@@ -1,5 +1,4 @@
 #pragma once
-#include "comm/cbdb_api.h"
 
 #include <string>
 #include <utility>
@@ -8,6 +7,7 @@
 #include "comm/guc.h"
 #include "storage/oper/pax_stats.h"
 #include "storage/pax_filter.h"
+
 namespace pax {
 namespace stats {
 class MicroPartitionStatisticsInfo;
@@ -15,77 +15,45 @@ class ColumnBasicInfo;
 class ColumnDataStats;
 }  // namespace stats
 
-class MicroPartitionStatsData {
- public:
-  virtual void CopyFrom(MicroPartitionStatsData *stats) = 0;
-  virtual ::pax::stats::ColumnBasicInfo *GetColumnBasicInfo(
-      int column_index) = 0;
-  virtual ::pax::stats::ColumnDataStats *GetColumnDataStats(
-      int column_index) = 0;
-  virtual int ColumnSize() const = 0;
-  virtual void SetAllNull(int column_index, bool allnull) = 0;
-  virtual void SetHasNull(int column_index, bool hasnull) = 0;
-  virtual bool GetAllNull(int column_index) = 0;
-  virtual bool GetHasNull(int column_index) = 0;
-  virtual ~MicroPartitionStatsData() = default;
-};
-
-class MicroPartittionFileStatsData final : public MicroPartitionStatsData {
- public:
-  MicroPartittionFileStatsData(::pax::stats::MicroPartitionStatisticsInfo *info,
-                               int natts);
-  void CopyFrom(MicroPartitionStatsData *stats) override;
-  ::pax::stats::ColumnBasicInfo *GetColumnBasicInfo(int column_index) override;
-  ::pax::stats::ColumnDataStats *GetColumnDataStats(int column_index) override;
-  int ColumnSize() const override;
-  void SetAllNull(int column_index, bool allnull) override;
-  void SetHasNull(int column_index, bool hasnull) override;
-  bool GetAllNull(int column_index) override;
-  bool GetHasNull(int column_index) override;
-
- private:
-  ::pax::stats::MicroPartitionStatisticsInfo *info_ = nullptr;
-};
+class MicroPartitionStatsData;
 
 class MicroPartitionStats final {
  public:
-  explicit MicroPartitionStats(bool allow_fallback_to_pg = false);
+  MicroPartitionStats(TupleDesc desc, bool allow_fallback_to_pg = false);
   ~MicroPartitionStats();
-  MicroPartitionStats *SetMinMaxColumnIndex(std::vector<int> &&minmax_columns);
-  MicroPartitionStats *SetStatsMessage(MicroPartitionStatsData *stats,
-                                       int natts);
-  MicroPartitionStats *LightReset();
 
-  void AddRow(TupleTableSlot *slot, TupleDesc desc,
-              const std::vector<Datum> &detoast_vals);
-  MicroPartitionStatsData *GetStatsData() { return stats_; }
-  const MicroPartitionStatsData *GetStatsData() const { return stats_; }
-  const std::vector<int> GetMinMaxColumnIndex() const {
-    return minmax_columns_;
-  }
+  void Initialize(const std::vector<int> &minmax_columns);
+  void AddRow(TupleTableSlot *slot, const std::vector<Datum> &detoast_vals);
+  MicroPartitionStats *Reset();
+  ::pax::stats::MicroPartitionStatisticsInfo *Serialize();
 
-  void MergeTo(MicroPartitionStats *stats, TupleDesc desc);
+  void MergeTo(MicroPartitionStats *stats);
+
+  // used to encode/decode datum
+  static std::string ToValue(Datum datum, int typlen, bool typbyval);
+  static Datum FromValue(const std::string &s, int typlen, bool typbyval,
+                         bool *ok);
 
   static bool MicroPartitionStatisticsInfoCombine(
       stats::MicroPartitionStatisticsInfo *left,
       stats::MicroPartitionStatisticsInfo *right, TupleDesc desc,
       bool allow_fallback_to_pg = false);
-  static std::string ToValue(Datum datum, int typlen, bool typbyval);
-  static Datum FromValue(const std::string &s, int typlen, bool typbyval,
-                         bool *ok);
-
-  void DoInitialCheck(TupleDesc desc);
 
  private:
   void AddNullColumn(int column_index);
-  void AddNonNullColumn(int column_index, Datum value, Datum detoast,
-                        TupleDesc desc);
-
+  void AddNonNullColumn(int column_index, Datum value, Datum detoast);
   void UpdateMinMaxValue(int column_index, Datum datum, Oid collation,
                          int typlen, bool typbyval);
+  void CopyMinMaxValue(Datum src, Datum *dst, int typlen, bool typbyval);
 
+  ::pax::stats::ColumnBasicInfo *GetColumnBasicInfo(int column_index) const;
+
+ private:
+  TupleDesc tuple_desc_;
   // stats_: only references the info object by pointer
-  MicroPartitionStatsData *stats_ = nullptr;
+  MicroPartitionStatsData *stats_;
+  std::vector<Datum> min_in_mem_;
+  std::vector<Datum> max_in_mem_;
 
   std::vector<Oid> opfamilies_;
   // less: pair[0], greater: pair[1]
@@ -100,8 +68,7 @@ class MicroPartitionStats final {
   // 'n': oids are initialized, but min-max value is missing
   // 'y': min-max is set, needs update.
   std::vector<char> status_;
-  std::vector<int> minmax_columns_;
-  bool initial_check_ = false;
+  bool initialized_ = false;
 };
 
 class MicroPartitionStatsProvider final : public ColumnStatsProvider {

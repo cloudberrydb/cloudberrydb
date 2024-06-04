@@ -9,6 +9,27 @@
 
 namespace pax {
 
+class MicroPartitionStatsData final {
+ public:
+  MicroPartitionStatsData(int natts);
+  void Reset();
+  void CopyFrom(MicroPartitionStatsData *stats);
+  ::pax::stats::ColumnBasicInfo *GetColumnBasicInfo(int column_index);
+  ::pax::stats::ColumnDataStats *GetColumnDataStats(int column_index);
+  int ColumnSize() const;
+  void SetAllNull(int column_index, bool allnull);
+  void SetHasNull(int column_index, bool hasnull);
+  bool GetAllNull(int column_index);
+  bool GetHasNull(int column_index);
+
+  inline ::pax::stats::MicroPartitionStatisticsInfo *GetStatsInfoRef() {
+    return &info_;
+  }
+
+ private:
+  ::pax::stats::MicroPartitionStatisticsInfo info_;
+};
+
 bool MicroPartitionStats::MicroPartitionStatisticsInfoCombine(
     stats::MicroPartitionStatisticsInfo *left,
     stats::MicroPartitionStatisticsInfo *right, TupleDesc desc,
@@ -164,23 +185,16 @@ bool MicroPartitionStats::MicroPartitionStatisticsInfoCombine(
   return true;
 }
 
-MicroPartitionStats::MicroPartitionStats(bool allow_fallback_to_pg)
-    : allow_fallback_to_pg_(allow_fallback_to_pg) {}
-
-MicroPartitionStats::~MicroPartitionStats() { PAX_DELETE(stats_); }
-// SetStatsMessage may be called several times in a write,
-// one for each micro partition, so all members need to reset.
-// Some metainfo like typid, collation, oids for less/greater,
-// fmgr should be exactly consistent.
-MicroPartitionStats *MicroPartitionStats::SetStatsMessage(
-    MicroPartitionStatsData *stats, int natts) {
+MicroPartitionStats::MicroPartitionStats(TupleDesc desc,
+                                         bool allow_fallback_to_pg)
+    : tuple_desc_(desc), allow_fallback_to_pg_(allow_fallback_to_pg) {
   FmgrInfo finfo;
+  int natts;
 
-  Assert(natts >= 0);
-  Assert(stats);
-  initial_check_ = false;
-  PAX_DELETE(stats_);
-  stats_ = stats;
+  Assert(tuple_desc_);
+  natts = tuple_desc_->natts;
+
+  stats_ = PAX_NEW<MicroPartitionStatsData>(natts);
 
   memset(&finfo, 0, sizeof(finfo));
   opfamilies_.clear();
@@ -193,44 +207,84 @@ MicroPartitionStats *MicroPartitionStats::SetStatsMessage(
     local_funcs_.emplace_back(
         std::pair<OperMinMaxFunc, OperMinMaxFunc>({nullptr, nullptr}));
     status_.emplace_back('u');
+    min_in_mem_.emplace_back(0);
+    max_in_mem_.emplace_back(0);
   }
-  Assert(stats_->ColumnSize() == natts);
-  return this;
 }
 
-MicroPartitionStats *MicroPartitionStats::SetMinMaxColumnIndex(
-    std::vector<int> &&minmax_columns) {
-  minmax_columns_ = std::move(minmax_columns);
-  return this;
+MicroPartitionStats::~MicroPartitionStats() { PAX_DELETE(stats_); }
+
+::pax::stats::MicroPartitionStatisticsInfo *MicroPartitionStats::Serialize() {
+  auto n = tuple_desc_->natts;
+  stats::ColumnDataStats *data_stats;
+
+  for (auto column_index = 0; column_index < n; column_index++) {
+    // only 'y' need set to the stats_
+    if (status_[column_index] == 'y') {
+      auto att = TupleDescAttr(tuple_desc_, column_index);
+      auto typlen = att->attlen;
+      auto typbyval = att->attbyval;
+
+      data_stats = stats_->GetColumnDataStats(column_index);
+      data_stats->set_minimal(
+          ToValue(min_in_mem_[column_index], typlen, typbyval));
+      data_stats->set_maximum(
+          ToValue(max_in_mem_[column_index], typlen, typbyval));
+
+      // after serialize to pb, clear the memory
+      if (!typbyval && typlen == -1) {
+        char *ref = (char *)cbdb::DatumToPointer(min_in_mem_[column_index]);
+        PAX_DELETE(ref);
+        ref = (char *)cbdb::DatumToPointer(max_in_mem_[column_index]);
+        PAX_DELETE(ref);
+      }
+
+      min_in_mem_[column_index] = 0;
+      max_in_mem_[column_index] = 0;
+    }
+  }
+
+  return stats_->GetStatsInfoRef();
 }
 
-MicroPartitionStats *MicroPartitionStats::LightReset() {
+::pax::stats::ColumnBasicInfo *MicroPartitionStats::GetColumnBasicInfo(
+    int column_index) const {
+  return stats_->GetColumnBasicInfo(column_index);
+}
+
+MicroPartitionStats *MicroPartitionStats::Reset() {
   for (char &status : status_) {
     Assert(status == 'n' || status == 'y' || status == 'x');
     if (status == 'y') status = 'n';
   }
+  stats_->Reset();
   return this;
 }
 
-void MicroPartitionStats::AddRow(TupleTableSlot *slot, TupleDesc desc,
+void MicroPartitionStats::AddRow(TupleTableSlot *slot,
                                  const std::vector<Datum> &detoast_vals) {
-  auto n = desc->natts;
+  auto n = tuple_desc_->natts;
 
-  DoInitialCheck(desc);
+  Assert(initialized_);
   CBDB_CHECK(status_.size() == static_cast<size_t>(n),
              cbdb::CException::ExType::kExTypeSchemaNotMatch);
   for (auto i = 0; i < n; i++) {
-    AssertImply(desc->attrs[i].attisdropped, slot->tts_isnull[i]);
+    AssertImply(tuple_desc_->attrs[i].attisdropped, slot->tts_isnull[i]);
     if (slot->tts_isnull[i])
       AddNullColumn(i);
     else
-      AddNonNullColumn(i, slot->tts_values[i], detoast_vals[i], desc);
+      AddNonNullColumn(i, slot->tts_values[i], detoast_vals[i]);
   }
 }
 
-void MicroPartitionStats::MergeTo(MicroPartitionStats *stats, TupleDesc desc) {
+void MicroPartitionStats::MergeTo(MicroPartitionStats *stats) {
   Assert(status_.size() == stats->status_.size());
   for (size_t column_index = 0; column_index < status_.size(); column_index++) {
+    auto att = TupleDescAttr(tuple_desc_, column_index);
+    auto collation = att->attcollation;
+    auto typlen = att->attlen;
+    auto typbyval = att->attbyval;
+
     Assert(status_[column_index] != 'u' && stats->status_[column_index] != 'u');
     AssertImply(stats->status_[column_index] == 'x',
                 status_[column_index] == 'x');
@@ -255,16 +309,9 @@ void MicroPartitionStats::MergeTo(MicroPartitionStats *stats, TupleDesc desc) {
     if (status_[column_index] == 'y') {
       auto col_basic_stats_merge pg_attribute_unused() =
           stats->stats_->GetColumnBasicInfo(column_index);
-      auto col_data_stats_merge =
-          stats->stats_->GetColumnDataStats(column_index);
 
       auto col_basic_stats pg_attribute_unused() =
           stats_->GetColumnBasicInfo(column_index);
-
-      auto att = TupleDescAttr(desc, column_index);
-      auto collation = att->attcollation;
-      auto typlen = att->attlen;
-      auto typbyval = att->attbyval;
 
       Assert(col_basic_stats->typid() == col_basic_stats_merge->typid());
       Assert(col_basic_stats->opfamily() == col_basic_stats_merge->opfamily());
@@ -282,18 +329,18 @@ void MicroPartitionStats::MergeTo(MicroPartitionStats *stats, TupleDesc desc) {
         stats_->SetHasNull(column_index, true);
       }
 
-      bool ok = false;
-      auto min_val =
-          FromValue(col_data_stats_merge->minimal(), typlen, typbyval, &ok);
-      CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
-      auto max_val =
-          FromValue(col_data_stats_merge->maximum(), typlen, typbyval, &ok);
-      CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
-
-      UpdateMinMaxValue(column_index, min_val, collation, typlen, typbyval);
-      UpdateMinMaxValue(column_index, max_val, collation, typlen, typbyval);
+      UpdateMinMaxValue(column_index, stats->min_in_mem_[column_index],
+                        collation, typlen, typbyval);
+      UpdateMinMaxValue(column_index, stats->max_in_mem_[column_index],
+                        collation, typlen, typbyval);
     } else if (status_[column_index] == 'n') {
       stats_->CopyFrom(stats->stats_);
+
+      CopyMinMaxValue(stats->min_in_mem_[column_index],
+                      &min_in_mem_[column_index], typlen, typbyval);
+      CopyMinMaxValue(stats->max_in_mem_[column_index],
+                      &max_in_mem_[column_index], typlen, typbyval);
+
       status_[column_index] = 'y';
     } else {
       Assert(false);
@@ -309,11 +356,11 @@ void MicroPartitionStats::AddNullColumn(int column_index) {
 }
 
 void MicroPartitionStats::AddNonNullColumn(int column_index, Datum value,
-                                           Datum detoast, TupleDesc desc) {
+                                           Datum detoast) {
   Assert(column_index >= 0);
   Assert(column_index < static_cast<int>(opfamilies_.size()));
 
-  auto att = TupleDescAttr(desc, column_index);
+  auto att = TupleDescAttr(tuple_desc_, column_index);
   auto collation = att->attcollation;
   auto typlen = att->attlen;
   auto typbyval = att->attbyval;
@@ -330,8 +377,6 @@ void MicroPartitionStats::AddNonNullColumn(int column_index, Datum value,
     case 'x':
       break;
     case 'y':
-      Assert(data_stats->has_minimal());
-      Assert(data_stats->has_maximum());
       Assert(info->has_typid());
       Assert(info->has_opfamily());
       Assert(info->typid() == att->atttypid);
@@ -351,8 +396,10 @@ void MicroPartitionStats::AddNonNullColumn(int column_index, Datum value,
       info->set_typid(att->atttypid);
       info->set_collation(collation);
       info->set_opfamily(opfamilies_[column_index]);
-      data_stats->set_minimal(ToValue(value, typlen, typbyval));
-      data_stats->set_maximum(ToValue(value, typlen, typbyval));
+
+      CopyMinMaxValue(value, &min_in_mem_[column_index], typlen, typbyval);
+      CopyMinMaxValue(value, &max_in_mem_[column_index], typlen, typbyval);
+
       status_[column_index] = 'y';
       break;
     }
@@ -364,22 +411,16 @@ void MicroPartitionStats::AddNonNullColumn(int column_index, Datum value,
 void MicroPartitionStats::UpdateMinMaxValue(int column_index, Datum datum,
                                             Oid collation, int typlen,
                                             bool typbyval) {
-  auto data_stats = stats_->GetColumnDataStats(column_index);
-  const auto &min = data_stats->minimal();
-  const auto &max = data_stats->maximum();
   Datum min_datum, max_datum;
-  bool ok, umin = false, umax = false;
+  bool umin = false, umax = false;
 
-  Assert(initial_check_);
+  Assert(initialized_);
   Assert(column_index >= 0 &&
          static_cast<size_t>(column_index) < status_.size());
   Assert(status_[column_index] == 'y');
 
-  min_datum = FromValue(min, typlen, typbyval, &ok);
-  CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
-
-  max_datum = FromValue(max, typlen, typbyval, &ok);
-  CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+  min_datum = min_in_mem_[column_index];
+  max_datum = max_in_mem_[column_index];
 
   // If do have local oper here, then direct call it
   // But if local oper is null, it must be fallback to pg
@@ -400,38 +441,76 @@ void MicroPartitionStats::UpdateMinMaxValue(int column_index, Datum datum,
     Assert(false);
   }
 
-  if (umin) data_stats->set_minimal(ToValue(datum, typlen, typbyval));
-  if (umax) data_stats->set_maximum(ToValue(datum, typlen, typbyval));
+  if (umin)
+    CopyMinMaxValue(datum, &min_in_mem_[column_index], typlen, typbyval);
+  if (umax)
+    CopyMinMaxValue(datum, &max_in_mem_[column_index], typlen, typbyval);
 }
 
-void MicroPartitionStats::DoInitialCheck(TupleDesc desc) {
-  auto natts = desc->natts;
-  auto num_minmax_columns = static_cast<int>(minmax_columns_.size());
+void MicroPartitionStats::CopyMinMaxValue(Datum src, Datum *dst, int typlen,
+                                          bool typbyval) {
+  if (typbyval) {
+    Assert(typlen == 1 || typlen == 2 || typlen == 4 || typlen == 8);
+    *dst = src;
+  } else if (typlen == -1) {
+    struct varlena *val;
+    int len;
+
+    val = (struct varlena *)cbdb::PointerAndLenFromDatum(src, &len);
+    Assert(val && len != -1);
+
+    auto alloc_new_datum = [](struct varlena *vl, int vl_len, Datum *dest) {
+      char *tmp = PAX_NEW_ARRAY<char>(vl_len);
+      memcpy(tmp, (char *)vl, vl_len);
+      *dest = PointerGetDatum(tmp);
+    };
+
+    // check the source datum
+    if (*dst == 0) {
+      alloc_new_datum(val, len, dst);
+    } else {
+      int dst_len;
+      char *result = (char *)cbdb::PointerAndLenFromDatum(*dst, &dst_len);
+      if (dst_len > len) {
+        memcpy(result, (char *)val, len);
+      } else {
+        PAX_DELETE(result);
+        alloc_new_datum(val, len, dst);
+      }
+    }
+  }
+}
+
+void MicroPartitionStats::Initialize(const std::vector<int> &minmax_columns) {
+  auto natts = tuple_desc_->natts;
+  int num_minmax_columns;
 
   Assert(natts == static_cast<int>(status_.size()));
   Assert(status_.size() == opfamilies_.size());
   Assert(status_.size() == finfos_.size());
-  Assert(num_minmax_columns <= natts);
 
-  if (initial_check_) {
+  if (initialized_) {
     return;
   }
 
+  num_minmax_columns = static_cast<int>(minmax_columns.size());
+  Assert(num_minmax_columns <= natts);
+
 #ifdef USE_ASSERT_CHECKING
-  // minmax_columns_ should be sorted
+  // minmax_columns should be sorted
   for (int i = 1; i < num_minmax_columns; i++)
-    Assert(minmax_columns_[i - 1] < minmax_columns_[i]);
+    Assert(minmax_columns[i - 1] < minmax_columns[i]);
 #endif
 
   for (int i = 0, j = 0; i < natts; i++) {
-    auto att = TupleDescAttr(desc, i);
+    auto att = TupleDescAttr(tuple_desc_, i);
 
     if (att->attisdropped) {
       status_[i] = 'x';
       continue;
     }
-    while (j < num_minmax_columns && minmax_columns_[j] < i) j++;
-    if (j >= num_minmax_columns || minmax_columns_[j] != i) {
+    while (j < num_minmax_columns && minmax_columns[j] < i) j++;
+    if (j >= num_minmax_columns || minmax_columns[j] != i) {
       status_[i] = 'x';
       continue;
     }
@@ -451,7 +530,7 @@ void MicroPartitionStats::DoInitialCheck(TupleDesc desc) {
 
     status_[i] = 'n';
   }
-  initial_check_ = true;
+  initialized_ = true;
 }
 
 Datum MicroPartitionStats::FromValue(const std::string &s, int typlen,
@@ -531,61 +610,56 @@ std::string MicroPartitionStats::ToValue(Datum datum, int typlen,
                      typlen);
 }
 
-MicroPartittionFileStatsData::MicroPartittionFileStatsData(
-    ::pax::stats::MicroPartitionStatisticsInfo *info, int natts)
-    : info_(info) {
-  Assert(info);
-  Assert(info->columnstats_size() == 0);
+MicroPartitionStatsData::MicroPartitionStatsData(int natts) : info_() {
+  Assert(natts >= 0);
+
   for (int i = 0; i < natts; i++) {
-    auto col pg_attribute_unused() = info->add_columnstats();
+    auto col pg_attribute_unused() = info_.add_columnstats();
     Assert(col->allnull() && !col->hasnull());
   }
-  Assert(info->columnstats_size() == natts);
 }
 
-void MicroPartittionFileStatsData::CopyFrom(MicroPartitionStatsData *stats) {
-  Assert(stats);
-  if (typeid(this) == typeid(stats)) {
-    auto file_stats = dynamic_cast<MicroPartittionFileStatsData *>(stats);
-    Assert(file_stats);
-    info_->CopyFrom(*file_stats->info_);
-  } else {
-    Assert(info_->columnstats_size() == stats->ColumnSize());
-    for (int index = 0; index < stats->ColumnSize(); index++) {
-      auto column_stats = info_->mutable_columnstats(index);
-      column_stats->set_allnull(stats->GetAllNull(index));
-      column_stats->set_hasnull(stats->GetHasNull(index));
-      column_stats->mutable_datastats()->CopyFrom(
-          *stats->GetColumnDataStats(index));
-      column_stats->mutable_info()->CopyFrom(*stats->GetColumnBasicInfo(index));
-    }
+void MicroPartitionStatsData::Reset() {
+  auto n = info_.columnstats_size();
+
+  info_.mutable_columnstats()->Clear();
+  for (int i = 0; i < n; i++) {
+    auto col pg_attribute_unused() = info_.add_columnstats();
+    Assert(col->allnull() && !col->hasnull());
   }
 }
 
-::pax::stats::ColumnBasicInfo *MicroPartittionFileStatsData::GetColumnBasicInfo(
-    int column_index) {
-  return info_->mutable_columnstats(column_index)->mutable_info();
-}
-::pax::stats::ColumnDataStats *MicroPartittionFileStatsData::GetColumnDataStats(
-    int column_index) {
-  return info_->mutable_columnstats(column_index)->mutable_datastats();
-}
-int MicroPartittionFileStatsData::ColumnSize() const {
-  return info_->columnstats_size();
-}
-void MicroPartittionFileStatsData::SetAllNull(int column_index, bool allnull) {
-  info_->mutable_columnstats(column_index)->set_allnull(allnull);
-}
-void MicroPartittionFileStatsData::SetHasNull(int column_index, bool hasnull) {
-  info_->mutable_columnstats(column_index)->set_hasnull(hasnull);
+void MicroPartitionStatsData::CopyFrom(MicroPartitionStatsData *stats) {
+  Assert(stats);
+  Assert(typeid(this) == typeid(stats));
+
+  info_.CopyFrom(stats->info_);
 }
 
-bool MicroPartittionFileStatsData::GetAllNull(int column_index) {
-  return info_->columnstats(column_index).allnull();
+::pax::stats::ColumnBasicInfo *MicroPartitionStatsData::GetColumnBasicInfo(
+    int column_index) {
+  return info_.mutable_columnstats(column_index)->mutable_info();
+}
+::pax::stats::ColumnDataStats *MicroPartitionStatsData::GetColumnDataStats(
+    int column_index) {
+  return info_.mutable_columnstats(column_index)->mutable_datastats();
+}
+int MicroPartitionStatsData::ColumnSize() const {
+  return info_.columnstats_size();
+}
+void MicroPartitionStatsData::SetAllNull(int column_index, bool allnull) {
+  info_.mutable_columnstats(column_index)->set_allnull(allnull);
+}
+void MicroPartitionStatsData::SetHasNull(int column_index, bool hasnull) {
+  info_.mutable_columnstats(column_index)->set_hasnull(hasnull);
 }
 
-bool MicroPartittionFileStatsData::GetHasNull(int column_index) {
-  return info_->columnstats(column_index).hasnull();
+bool MicroPartitionStatsData::GetAllNull(int column_index) {
+  return info_.columnstats(column_index).allnull();
+}
+
+bool MicroPartitionStatsData::GetHasNull(int column_index) {
+  return info_.columnstats(column_index).hasnull();
 }
 
 MicroPartitionStatsProvider::MicroPartitionStatsProvider(
