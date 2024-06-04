@@ -28,6 +28,7 @@ class MicroPartitionStats final {
   ::pax::stats::MicroPartitionStatisticsInfo *Serialize();
 
   void MergeTo(MicroPartitionStats *stats);
+  ::pax::stats::ColumnBasicInfo *GetColumnBasicInfo(int column_index) const;
 
   // used to encode/decode datum
   static std::string ToValue(Datum datum, int typlen, bool typbyval);
@@ -45,8 +46,6 @@ class MicroPartitionStats final {
   void UpdateMinMaxValue(int column_index, Datum datum, Oid collation,
                          int typlen, bool typbyval);
   void CopyMinMaxValue(Datum src, Datum *dst, int typlen, bool typbyval);
-
-  ::pax::stats::ColumnBasicInfo *GetColumnBasicInfo(int column_index) const;
 
  private:
   TupleDesc tuple_desc_;

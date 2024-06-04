@@ -365,7 +365,6 @@ void MicroPartitionStats::AddNonNullColumn(int column_index, Datum value,
   auto typlen = att->attlen;
   auto typbyval = att->attbyval;
   auto info = stats_->GetColumnBasicInfo(column_index);
-  auto data_stats = stats_->GetColumnDataStats(column_index);
   stats_->SetAllNull(column_index, false);
 
   if (detoast != 0 && value != detoast) {
@@ -390,8 +389,11 @@ void MicroPartitionStats::AddNonNullColumn(int column_index, Datum value,
       AssertImply(info->has_collation(), info->collation() == collation);
       AssertImply(info->has_opfamily(),
                   info->opfamily() == opfamilies_[column_index]);
+#ifdef USE_ASSERT_CHECKING
+      auto data_stats = stats_->GetColumnDataStats(column_index);
       Assert(!data_stats->has_minimal());
       Assert(!data_stats->has_maximum());
+#endif
 
       info->set_typid(att->atttypid);
       info->set_collation(collation);
