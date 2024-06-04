@@ -109,6 +109,6 @@ cat << EOF
 
 Please source greenplum_path.sh after compiling database, then
 
-pip3 install --user -r python-dependencies.txt
+pip3 install --user -r ../../python-dependencies.txt
 
 EOF
