@@ -25,8 +25,7 @@ pax::porc::proto::Type_Kind ConvertPgTypeToPorcType(FormData_pg_attribute *attr,
         type = pax::porc::proto::Type_Kind::Type_Kind_LONG;
         break;
       default:
-        Assert(!"should not be here! pg_type which attbyval=true only have typlen of "
-                  "1, 2, 4, or 8");
+        CBDB_RAISE(cbdb::CException::kExTypeInvalid);
     }
   } else {
     Assert(attr->attlen > 0 || attr->attlen == -1);

@@ -253,6 +253,26 @@ centos7:x86_64:build:
       dotenv: ${GIT_CLONE_PATH}/cbdb-artifacts.txt
     expire_in: 1 week
 
+centos7:x86_64:build-release:
+  stage: build
+  variables:
+    <<: *global_variables
+    CBDB_BUILD_TYPE: "release"
+  script: |
+    mkdir -p ${ROOT_PATH}
+    git clone -b ${CBDB_RELEASE_BRANCH} https://buildbot:Passw0rd@code.hashdata.xyz/cloudberry/cbdb-release ${CBDB_RELEASE_SRC}
+    unset GIT_CLONE_PATH
+    ${CBDB_RELEASE_SRC}/actions/action-build.bash
+    export GIT_CLONE_PATH="/code/cbdb_src"
+    cp ${CBDB_RELEASE_SRC}/cbdb-artifacts.txt ${GIT_CLONE_PATH}/cbdb-artifacts.txt 
+  timeout: 8 hours
+  artifacts:
+    name: "cbdb-artifacts"
+    paths:
+      - ${GIT_CLONE_PATH}/cbdb-artifacts.txt
+    reports:
+      dotenv: ${GIT_CLONE_PATH}/cbdb-artifacts.txt
+    expire_in: 1 week
 
 centos7:x86_64:icw:
   stage: icw_test
