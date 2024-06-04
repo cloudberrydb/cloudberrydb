@@ -31,7 +31,7 @@ sudo yum install -y \
     postgresql-devel
 
 sudo pip3 install conan
-sudo pip3 install -r python-dependencies.txt
+sudo pip3 install -r ../../python-dependencies.txt
 
 sudo tee -a /etc/sysctl.conf << EOF
 kernel.shmmax = 5000000000000

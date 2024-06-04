@@ -11,7 +11,7 @@ sudo yum --enablerepo=powertools install -y libyaml-devel
 sudo yum install -y postgresql
 sudo yum install -y postgresql-devel
 
-pip3.9 install -r python-dependencies.txt
+pip3.9 install -r ../../python-dependencies.txt
 
 #Remove the python3 softlink because on Rocky8 its pointing to python3.6 by default. We need python3.9 for gpdb7.
 sudo rm -rf /usr/bin/python3
