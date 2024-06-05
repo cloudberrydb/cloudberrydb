@@ -730,16 +730,10 @@ static Node *aqumv_adjust_sub_matched_expr_mutator(Node *node, aqumv_equivalent_
 	/*
 	 * We didn't find matched nonpure-Var expr.
 	 * And if expr doesn't have Vars, return it to upper.
+	 * Keep TargetEntry expr no changed in case for count(*).
 	 */
-	List	*expr_vars = pull_var_clause((Node *)node_expr,
-									 PVC_RECURSE_AGGREGATES |
-									 PVC_RECURSE_WINDOWFUNCS |
-									 PVC_INCLUDE_PLACEHOLDERS);
-
-	/* Keep TargetEntry expr no changed in case for count(*). */
-	if (expr_vars == NIL)
+	if (!contain_var_clause((Node *)node_expr))
 		return is_targetEntry ? node : (Node *)node_expr;
-	list_free(expr_vars);
 	
 	/* Try match with mv_pure_vars_index, but do not disturb already rewrited exprs(Var->location = -2)  */
 	if (IsA(node_expr, Var))
