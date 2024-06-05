@@ -48,3 +48,20 @@ SELECT * FROM t1 ORDER BY a,b;
 
 -- drop table
 DROP TABLE t1;
+
+CREATE COLLATION c1 (LOCALE = 'en_US.UTF-8');
+CREATE TABLE test_locale (a char(8) COLLATE "C", b char(8) COLLATE c1) using ao_column;
+INSERT INTO test_locale VALUES ('XXXX', 'A');
+INSERT INTO test_locale VALUES ('ABAB', 'b');
+INSERT INTO test_locale VALUES ('ABAB', 'c');
+INSERT INTO test_locale VALUES ('BBBB', 'D');
+INSERT INTO test_locale VALUES ('BBBB', 'e');
+INSERT INTO test_locale VALUES ('bbbb', 'F');
+INSERT INTO test_locale VALUES ('cccc', 'g');
+INSERT INTO test_locale VALUES ('cccc', 'h');
+INSERT INTO test_locale VALUES ('CCCC', 'I');
+INSERT INTO test_locale VALUES ('CCCC', 'j');
+select a from test_locale order by a;
+select b from test_locale order by b;
+drop table test_locale;
+drop COLLATION c1;

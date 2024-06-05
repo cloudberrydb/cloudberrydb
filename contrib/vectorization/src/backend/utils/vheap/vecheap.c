@@ -17,6 +17,7 @@
 
 #include "utils/vecheap.h"
 #include "utils/arrow.h"
+#include "utils/pg_locale.h"
 
 static inline void swap_nodes(vecheap *heap, int a, int b);
 static void heapify(vecheap *heap, int i);
@@ -244,9 +245,18 @@ merge_issmall(vecheap *heap, int left, int right,
 			}
 			else
 			{
-				compare = strcmp(lstring, rstring);
+				Oid collid = (ssup + i)->ssup_collation;
+				pg_locale_t locale= pg_newlocale_from_collation(collid);
+				if (!locale)
+				{
+					compare = strcoll(lstring, rstring);
+				}
+				else 
+				{
+					compare = strcoll_l(lstring, rstring, locale->info.lt);
+				}
 				if ((ssup + i)->ssup_reverse)
-								INVERT_COMPARE_RESULT(compare);
+					INVERT_COMPARE_RESULT(compare);
 			}
 		}
 
