@@ -50,7 +50,10 @@ ifeq ($(enable_gophermeta), yes)
 endif
 ifeq ($(enable_datalake), yes)
 	chmod +x dependencies.sh  && ./dependencies.sh datalake ${debug}
+	$(MAKE) -C contrib/datalake_fdw all
+	$(MAKE) -C contrib/hive_connector all
 	$(MAKE) -C contrib/datalake_proxy all
+	$(MAKE) -C contrib/datalake_agent all
 endif
 ifeq ($(enable_perfmon), yes)
 	$(MAKE) -C contrib/perfmon all
@@ -108,7 +111,10 @@ ifeq ($(enable_gophermeta), yes)
 	$(MAKE) -C contrib/pg_gophermeta $@
 endif
 ifeq ($(enable_datalake), yes)
+	$(MAKE) -C contrib/datalake_fdw $@
+	$(MAKE) -C contrib/hive_connector $@
 	$(MAKE) -C contrib/datalake_proxy $@
+	$(MAKE) -C contrib/datalake_agent $@
 endif
 ifeq ($(enable_perfmon), yes)
 	$(MAKE) -C contrib/perfmon $@
