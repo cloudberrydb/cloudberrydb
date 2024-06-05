@@ -8352,23 +8352,23 @@ select k from ( select k from (select row_number() over() as k from window_preds
 (23 rows)
 
 explain insert into window_preds select k from ( select k from (select row_number() over() as k from window_preds) f union all select 1::bigint as k from window_preds) as t where k = 1;
-                                                         QUERY PLAN                                                          
------------------------------------------------------------------------------------------------------------------------------
+                                                            QUERY PLAN                                                             
+-----------------------------------------------------------------------------------------------------------------------------------
  Insert on window_preds  (cost=0.00..862.04 rows=1 width=4)
-   ->  Result  (cost=0.00..0.00 rows=0 width=0)
-         ->  Redistribute Motion 1:3  (slice1; segments: 1)  (cost=0.00..862.00 rows=2 width=16)
-               Hash Key: (int4((row_number() OVER (?))))
-               ->  Result  (cost=0.00..862.00 rows=2 width=16)
-                     ->  Append  (cost=0.00..862.00 rows=2 width=8)
-                           ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                                 Filter: ((row_number() OVER (?)) = 1)
-                                 ->  WindowAgg  (cost=0.00..431.00 rows=1 width=8)
-                                       ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
-                                             ->  Seq Scan on window_preds window_preds_1  (cost=0.00..431.00 rows=1 width=1)
-                           ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
+   ->  Result  (cost=0.00..862.00 rows=2 width=16)
+         ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..862.00 rows=2 width=12)
+               Hash Key: (((row_number() OVER (?)))::integer)
+               ->  Result  (cost=0.00..862.00 rows=1 width=12)
+                     ->  Append  (cost=0.00..862.00 rows=1 width=8)
+                           ->  Redistribute Motion 1:3  (slice2; segments: 1)  (cost=0.00..431.00 rows=1 width=8)
                                  ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                                       Filter: (('1'::bigint) = 1)
-                                       ->  Seq Scan on window_preds window_preds_2  (cost=0.00..431.00 rows=1 width=1)
+                                       Filter: ((row_number() OVER (?)) = 1)
+                                       ->  WindowAgg  (cost=0.00..431.00 rows=1 width=8)
+                                             ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
+                                                   ->  Seq Scan on window_preds window_preds_1  (cost=0.00..431.00 rows=1 width=1)
+                           ->  Result  (cost=0.00..431.00 rows=1 width=8)
+                                 Filter: (('1'::bigint) = 1)
+                                 ->  Seq Scan on window_preds window_preds_2  (cost=0.00..431.00 rows=1 width=1)
  Optimizer: Pivotal Optimizer (GPORCA)
 (16 rows)
 
