@@ -911,22 +911,21 @@ explain (costs off)
          ->  Vec Sequence
                ->  Vec Shared Scan (share slice:id 1:0)
                      ->  Vec Seq Scan on gstest2
-               ->  Vec Redistribute Motion 1:3  (slice2)
-                     ->  Vec Append
+               ->  Vec Append
+                     ->  Vec Redistribute Motion 1:3  (slice2)
                            ->  Vec Result
                                  Filter: ((NULL::integer) IS DISTINCT FROM 1)
                                  ->  Vec Finalize Vec Aggregate
                                        ->  Vec Gather Motion 3:1  (slice3; segments: 3)
                                              ->  Vec Partial Vec Aggregate
                                                    ->  Vec Shared Scan (share slice:id 3:0)
-                           ->  Vec Gather Motion 3:1  (slice4; segments: 3)
-                                 ->  Vec GroupAggregate
-                                       Group Key: a
-                                       ->  Vec Sort
-                                             Sort Key: a
-                                             ->  Vec Result
-                                                   Filter: (a IS DISTINCT FROM 1)
-                                                   ->  Vec Shared Scan (share slice:id 4:0)
+                     ->  Vec GroupAggregate
+                           Group Key: a
+                           ->  Vec Sort
+                                 Sort Key: a
+                                 ->  Vec Result
+                                       Filter: (a IS DISTINCT FROM 1)
+                                       ->  Vec Shared Scan (share slice:id 1:0)
  Optimizer: Pivotal Optimizer (GPORCA)
 (24 rows)
 

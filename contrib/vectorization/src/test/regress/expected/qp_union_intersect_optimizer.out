@@ -1857,11 +1857,12 @@ union all
 select * from t_test_append_hash;
                        QUERY PLAN                        
 ---------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
+ Gather Motion 3:1  (slice1; segments: 3)
    ->  Append
-         ->  Seq Scan on t_test_append_rep
-         ->  Broadcast Motion 3:1  (slice2; segments: 3)
-               ->  Seq Scan on t_test_append_hash
+         ->  Result
+               One-Time Filter: (gp_execution_segment() = ###)
+               ->  Seq Scan on t_test_append_rep
+         ->  Seq Scan on t_test_append_hash
  Optimizer: Pivotal Optimizer (GPORCA)
 (6 rows)
 
