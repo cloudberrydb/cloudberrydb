@@ -31,6 +31,10 @@ extern int	max_stack_depth;
 extern int	PostAuthDelay;
 extern int	client_connection_check_interval;
 
+/* Hook for query execution.*/
+typedef void (*exec_simple_query_hook_type) (const char *);
+extern exec_simple_query_hook_type exec_simple_query_hook;
+
 /* GUC-configurable parameters */
 
 typedef enum
@@ -89,5 +93,7 @@ extern const char *get_stats_option_name(const char *arg);
 
 extern void enable_client_wait_timeout_interrupt(void);
 extern void disable_client_wait_timeout_interrupt(void);
+
+extern void exec_simple_query(const char *query_string);
 
 #endif							/* TCOPPROT_H */
