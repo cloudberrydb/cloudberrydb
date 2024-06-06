@@ -488,6 +488,7 @@
 		"optimizer_sample_plans",
 		"optimizer_search_strategy_path",
 		"optimizer_segments",
+		"optimizer_spilling_mem_threshold",
 		"optimizer_sort_factor",
 		"optimizer_trace_fallback",
 		"optimizer_use_external_constant_expression_evaluation_for_ints",

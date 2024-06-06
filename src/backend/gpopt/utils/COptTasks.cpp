@@ -430,6 +430,18 @@ COptTasks::SetCostModelParams(ICostModel *cost_model)
 			cost_param->GetLowerBoundVal() * optimizer_sort_factor,
 			cost_param->GetUpperBoundVal() * optimizer_sort_factor);
 	}
+	if (optimizer_spilling_mem_threshold > 0.0) {
+		ICostModelParams::SCostParam *cost_param =
+				cost_model->GetCostModelParams()->PcpLookup(
+					CCostModelParamsGPDB::EcpHJSpillingMemThreshold);
+
+			CDouble spill_mem_threshold(optimizer_spilling_mem_threshold);
+			cost_model->GetCostModelParams()->SetParam(
+				cost_param->Id(), spill_mem_threshold,
+				spill_mem_threshold - 0.0,
+				spill_mem_threshold + 0.0);
+	}
+
 }
 
 

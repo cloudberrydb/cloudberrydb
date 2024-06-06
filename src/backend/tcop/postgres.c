@@ -149,6 +149,11 @@ int			client_connection_check_interval = 0;
  */
 cancel_pending_hook_type cancel_pending_hook = NULL;
 
+/*
+ * Hook for query execution.
+ */
+exec_simple_query_hook_type exec_simple_query_hook = NULL;
+
 /* ----------------
  *		private typedefs etc
  * ----------------
@@ -1647,7 +1652,7 @@ restore_guc_to_QE(void )
  *
  * Execute a "simple Query" protocol message.
  */
-static void
+void
 exec_simple_query(const char *query_string)
 {
 	CommandDest dest = whereToSendOutput;
@@ -5569,12 +5574,19 @@ PostgresMain(int argc, char *argv[],
 					if (am_walsender)
 					{
 						if (!exec_replication_command(query_string))
-							exec_simple_query(query_string);
+						{
+							if (exec_simple_query_hook)
+								exec_simple_query_hook(query_string);
+							else
+								exec_simple_query(query_string);
+						}
 					}
 					else if (am_ftshandler)
 						HandleFtsMessage(query_string);
 					else if (am_faulthandler)
 						HandleFaultMessage(query_string);
+					else if (exec_simple_query_hook)
+						exec_simple_query_hook(query_string);
 					else
 						exec_simple_query(query_string);
 
@@ -5735,7 +5747,10 @@ PostgresMain(int argc, char *argv[],
 						}
 						else
 						{
-							exec_simple_query(query_string);
+							if (exec_simple_query_hook)
+								exec_simple_query_hook(query_string);
+							else
+								exec_simple_query(query_string);
 						}
 					}
 					else
