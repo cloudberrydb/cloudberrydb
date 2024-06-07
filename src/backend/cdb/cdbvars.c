@@ -619,3 +619,9 @@ gp_execution_dbid(PG_FUNCTION_ARGS)
 {
 	PG_RETURN_INT32(GpIdentity.dbid);
 }
+
+
+/*
+ * Warehouse hook for Create/Drop/Alter Warehouse
+ */
+WarehouseMethod *warehouse_method = NULL;
