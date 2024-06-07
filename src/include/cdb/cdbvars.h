@@ -781,4 +781,47 @@ extern const char * lookup_autostats_mode_by_value(GpAutoStatsModeValue val);
  */
 #define CDB_NOTIFY_ENDPOINT_ACK "ack_notify"
 
+typedef enum WarehouseStatus
+{
+	WAREHOUSE_STATUS_CREATING,
+	WAREHOUSE_STATUS_RUNNING,
+	WAREHOUSE_STATUS_SUSPENDED,
+	WAREHOUSE_STATUS_STOPPING
+} WarehouseStatus;
+
+typedef struct WarehouseSegmentConfig
+{
+	char	   *hostname;
+	char	   *address;
+	int32		port;
+	char	   *data_directory;
+	int16		content_id;
+} WarehouseSegmentConfig;
+
+/*
+ * Warehouse hook for Create/Drop/Alter Warehouse.
+ * There are different implementations for different deployment methods.
+ */
+typedef struct WarehouseMethod{
+bool (*CreateWarehouse_hook)(char *warehouse_name,
+							 int warehouse_size,
+							 char **warehouse_options,
+							 int warehouse_options_size,
+							 WarehouseSegmentConfig **seg_configs,
+							 int *seg_configs_size,
+							 WarehouseStatus *status);
+
+bool (*DropWarehouse_hook)(char *warehouse_name,
+						   WarehouseSegmentConfig *seg_configs,
+						   int warehouse_size);
+
+bool (*AlterWarehouse_hook)(char *warehouse_name,
+							int old_warehouse_size,
+							int new_warehouse_size,
+							WarehouseSegmentConfig **new_seg_configs,
+							int *seg_configs_size);
+} WarehouseMethod;
+
+extern WarehouseMethod *warehouse_method;
+
 #endif   /* CDBVARS_H */
