@@ -4336,7 +4336,7 @@ select t1.* from
                                              ->  Nested Loop
                                                    Output: i8b2.q1, NULL::integer
                                                    ->  Seq Scan on public.int8_tbl i8b2
-                                                         Output: i8b2.q1, i8b2.q2
+                                                         Output: i8b2.q1
                                                    ->  Materialize
                                                          ->  Broadcast Motion 3:3  (slice4; segments: 3)
                                                                ->  Seq Scan on public.int4_tbl i4b2
@@ -4422,7 +4422,7 @@ select t1.* from
                                                          Output: i8b2.q1, NULL::integer
                                                          Hash Cond: (i8b2.q1 = i4b2.f1)
                                                          ->  Seq Scan on public.int8_tbl i8b2
-                                                               Output: i8b2.q1, i8b2.q2
+                                                               Output: i8b2.q1
                                                          ->  Hash
                                                                Output: i4b2.f1
                                                                ->  Seq Scan on public.int4_tbl i4b2

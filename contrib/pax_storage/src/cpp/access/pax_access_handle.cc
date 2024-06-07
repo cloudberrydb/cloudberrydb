@@ -516,9 +516,9 @@ const TupleTableSlotOps *PaxAccessMethod::SlotCallbacks(
 
 uint32 PaxAccessMethod::ScanFlags(Relation relation) {
 #ifdef VEC_BUILD
-  return SCAN_SUPPORT_VECTORIZATION;
+  return SCAN_SUPPORT_VECTORIZATION | SCAN_SUPPORT_COLUMN_ORIENTED_SCAN;
 #else
-  return 0;
+  return SCAN_SUPPORT_COLUMN_ORIENTED_SCAN;
 #endif
 }
 
