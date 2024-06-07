@@ -528,18 +528,6 @@ CREATE DIRECTORY TABLE IF NOT EXISTS dir_table2 TABLESPACE directory_tblspc;    
 NOTICE:  relation "dir_table2" already exists, skipping
 CREATE DIRECTORY TABLE dir_table5 TABLESPACE directory_tblspc;
 CREATE DIRECTORY TABLE dir_table6 TABLESPACE pg_default;
-\dY
-                List of relations
- Schema |    Name    |      Type       |  Owner  
---------+------------+-----------------+---------
- public | dir_table1 | directory table | gpadmin
- public | dir_table2 | directory table | gpadmin
- public | dir_table3 | directory table | gpadmin
- public | dir_table4 | directory table | gpadmin
- public | dir_table5 | directory table | gpadmin
- public | dir_table6 | directory table | gpadmin
-(6 rows)
-
 SELECT count(*) FROM pg_directory_table;
  count 
 -------
@@ -603,12 +591,6 @@ Indexes:
 Distributed by: (relative_path)
 
 \c dirtable_db
-\dY
-      List of relations
- Schema | Name | Type | Owner 
---------+------+------+-------
-(0 rows)
-
 SELECT count(*) FROM pg_directory_table;
  count 
 -------
@@ -643,16 +625,6 @@ ERROR:  directory table "dir_table4" does not exist
 DROP DIRECTORY TABLE IF EXISTS dir_table5;
 DROP DIRECTORY TABLE IF EXISTS dir_table5;  -- skip
 NOTICE:  directory table "dir_table5" does not exist, skipping
-\dY
-                List of relations
- Schema |    Name    |      Type       |  Owner  
---------+------------+-----------------+---------
- public | dir_table1 | directory table | gpadmin
- public | dir_table2 | directory table | gpadmin
- public | dir_table3 | directory table | gpadmin
- public | dir_table6 | directory table | gpadmin
-(4 rows)
-
 SELECT count(*) FROM pg_directory_table;
  count 
 -------
@@ -673,12 +645,6 @@ SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname
 (8 rows)
 
 \c dirtable_db
-\dY
-      List of relations
- Schema | Name | Type | Owner 
---------+------+------+-------
-(0 rows)
-
 SELECT count(*) FROM pg_directory_table;
  count 
 -------

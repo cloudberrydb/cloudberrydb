@@ -207,14 +207,12 @@ CREATE DIRECTORY TABLE IF NOT EXISTS dir_table2 TABLESPACE directory_tblspc;    
 CREATE DIRECTORY TABLE dir_table5 TABLESPACE directory_tblspc;
 CREATE DIRECTORY TABLE dir_table6 TABLESPACE pg_default;
 
-\dY
 SELECT count(*) FROM pg_directory_table;
 SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname like '%dir_table%' ORDER BY 1;
 \d+ dir_table1;
 \d+ dir_table2;
 \d+ dir_table3;
 \c dirtable_db
-\dY
 SELECT count(*) FROM pg_directory_table;
 SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname like '%dir_table%' ORDER BY 1;
 \c regression
@@ -231,11 +229,9 @@ DROP DIRECTORY TABLE dir_table4;    -- fail
 DROP DIRECTORY TABLE IF EXISTS dir_table5;
 DROP DIRECTORY TABLE IF EXISTS dir_table5;  -- skip
 
-\dY
 SELECT count(*) FROM pg_directory_table;
 SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname like '%dir_table%' ORDER BY 1;
 \c dirtable_db
-\dY
 SELECT count(*) FROM pg_directory_table;
 SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname like '%dir_table%' ORDER BY 1;
 \c regression
