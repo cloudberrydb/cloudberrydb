@@ -946,12 +946,22 @@ AC_MSG_RESULT([checking whether to build with preload datalake ... $enable_datal
 AC_SUBST(enable_datalake)
 
 #
+# dfs_tablespace preload
+#
+PGAC_ARG_BOOL(enable, dfs_tablespace, no,
+              [enable preload dfs_tablespace],
+              [AC_DEFINE(USE_DFS_TABLESPACE, 1,
+                         [Define to 1 to preload dfs_tablespace])])
+AC_MSG_RESULT([checking whether to build with preload datalake ... $enable_dfs_tablespace])
+AC_SUBST(enable_dfs_tablespace)
+
+#
 # gophermeta preload
-# enforce enable_gophermeta if enable_datalake is yes
+# enforce enable_gophermeta if enable_datalake is yes or enable_dfs_tablespace is yes
 #
 PGAC_ARG_BOOL(enable, gophermeta, no, [enable preload gophermeta],
               AC_DEFINE(USE_GOPHERMETA, 1, [Define to 1 to preload gophermeta]))
-if test "$enable_datalake" = yes; then
+if test "$enable_datalake" = yes || test "$enable_dfs_tablespace" = yes; then
   enable_gophermeta=yes
   AC_DEFINE(USE_GOPHERMETA, 1,
                           [Define to 1 to preload gophermeta])

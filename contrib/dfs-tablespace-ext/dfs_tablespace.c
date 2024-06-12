@@ -531,7 +531,7 @@ GetDfsTablespaceServer(Oid id)
 	if (spc->opts->serverOffset == 0)
 		return NULL;
 
-	return pstrdup((char *) spc->opts + spc->opts->serverOffset);
+	return (const char *) spc->opts + spc->opts->serverOffset;
 }
 
 const char *
@@ -545,11 +545,12 @@ GetDfsTablespacePath(Oid id)
 	if (spc->opts->pathOffset == 0)
 		return NULL;
 
-	return pstrdup((char *) spc->opts + spc->opts->pathOffset);
+	return (const char *) spc->opts + spc->opts->pathOffset;
 }
 
-bool
+bool 
 IsDfsTablespaceById(Oid spcId)
 {
-	return GetDfsTablespaceServer(spcId) != NULL;
+	TableSpaceCacheEntry *spc = get_tablespace(spcId);
+	return spc->opts && spc->opts->serverOffset != 0;
 }

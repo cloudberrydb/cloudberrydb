@@ -38,18 +38,21 @@ typedef struct LocalFile
 
 static UFile *localFileOpen(Oid spcId, const char *fileName, int fileFlags,
 							char *errorMessage, int errorMessageSize);
-static void localFileClose(UFile *file);
+static int localFileClose(UFile *file);
 static int localFileSync(UFile *file);
 static int localFileRead(UFile *file, char *buffer, int amount);
+static int localFilePread(UFile *file, char *buffer, int amount, off_t offset);
 static int localFileWrite(UFile *file, char *buffer, int amount);
+static int localFilePwrite(UFile *file, char *buffer, int amount, off_t offset);
 static off_t localFileSize(UFile *file);
-static void localFileUnlink(Oid spcId, const char *fileName);
+static int localFileUnlink(Oid spcId, const char *fileName);
 static char *localFormatPathName(RelFileNode *relFileNode);
 static bool localEnsurePath(Oid spcId, const char *PathName);
 static bool localFileExists(Oid spcId, const char *fileName);
 static const char *localFileName(UFile *file);
 static const char *localGetLastError(void);
 static void localGetConnection(Oid spcId);
+static int localFileRmdir (Oid spcId, const char *dirName);
 
 static char localFileErrorStr[UFILE_ERROR_SIZE];
 
@@ -58,9 +61,12 @@ struct FileAm localFileAm = {
 	.close = localFileClose,
 	.sync = localFileSync,
 	.read = localFileRead,
+	.pread = localFilePread,
 	.write = localFileWrite,
+	.pwrite = localFilePwrite,
 	.size = localFileSize,
 	.unlink = localFileUnlink,
+	.rmdir = localFileRmdir,
 	.formatPathName = localFormatPathName,
 	.ensurePath = localEnsurePath,
 	.exists = localFileExists,
@@ -94,12 +100,13 @@ localFileOpen(Oid spcId,
 	return (UFile *) result;
 }
 
-static void
+static int
 localFileClose(UFile *file)
 {
 	LocalFile *localFile = (LocalFile *) file;
 
 	FileClose(localFile->file);
+	return 0;
 }
 
 static int
@@ -256,7 +263,7 @@ destory_local_file_directories(const char* directoryName)
 	return true;
 }
 
-static void
+static int
 localFileUnlink(Oid spcId, const char *fileName)
 {
 	struct stat st;
@@ -273,20 +280,35 @@ localFileUnlink(Oid spcId, const char *fileName)
 							   fileName),
 						 errhint("You can remove the directories manually if necessary.")));
 		LWLockRelease(DirectoryTableLock);
+		return 0;
 	}
 	else
 	{
+		int ret;
 		LWLockRelease(DirectoryTableLock);
 		/* remove file */
-		if (unlink(fileName) < 0)
+		ret = unlink(fileName);
+		if (ret < 0)
 		{
 			if (errno != ENOENT)
 				ereport(WARNING,
 							(errcode_for_file_access(),
 							 errmsg("could not remove file \"%s\": %m", fileName)));
 		}
+		return ret;
 	}
 
+}
+
+static int
+localFileRmdir(Oid spcId, const char *dirName)
+{
+	elog(ERROR,
+		 "could not remove directory %s in table space %u, not implement "
+		 "localFileRmdir",
+		 dirName,
+		 spcId);
+	return -1;
 }
 
 static char *
@@ -374,12 +396,14 @@ UFileOpen(Oid spcId,
 	return ufile;
 }
 
-void
+int
 UFileClose(UFile *file)
 {
-	file->methods->close(file);
+	int ret;
+	ret = file->methods->close(file);
 	//TODO pfree move to close
 	pfree(file);
+	return ret;
 }
 
 int
@@ -395,9 +419,21 @@ UFileRead(UFile *file, char *buffer, int amount)
 }
 
 int
+UFilePRead(UFile *file, char *buffer, int amount, off_t offset)
+{
+	return file->methods->pread(file, buffer, amount, offset);
+}
+
+int
 UFileWrite(UFile *file, char *buffer, int amount)
 {
 	return file->methods->write(file, buffer, amount);
+}
+
+int
+UFilePWrite(UFile *file, char *buffer, int amount, off_t offset)
+{
+	return file->methods->pwrite(file, buffer, amount, offset);
 }
 
 int64_t
@@ -412,14 +448,23 @@ UFileName(UFile *file)
 	return file->methods->name(file);
 }
 
-void
+int
 UFileUnlink(Oid spcId, const char *fileName)
 {
 	FileAm *fileAm;
 
 	fileAm = GetTablespaceFileHandler(spcId);
 
-	fileAm->unlink(spcId, fileName);
+	return fileAm->unlink(spcId, fileName);
+}
+
+int UFileRmdir(Oid spcId, const char *dirName)
+{
+	FileAm *fileAm;
+
+	fileAm = GetTablespaceFileHandler(spcId);
+
+	return fileAm->rmdir(spcId, dirName);
 }
 
 char *
@@ -465,6 +510,6 @@ forceCacheUFileResource(Oid spcId)
 
 	fileAm = GetTablespaceFileHandler(spcId);
 
-	return fileAm->getConnection(spcId);
+	fileAm->getConnection(spcId);
 }
 

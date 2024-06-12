@@ -12,6 +12,8 @@ EXTENSION = dfs_tablespace
 DATA = dfs_tablespace--1.0.sql
 PGFILEDESC = "dfs_tablespace - dfs tablespace"
 
+SHLIB_LINK += -lgopher
+
 ifdef USE_PGXS
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)

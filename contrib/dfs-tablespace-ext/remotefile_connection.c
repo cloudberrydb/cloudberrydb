@@ -153,7 +153,7 @@ checkInterrupt(void)
     return true;
 }
 
-static void
+static gopherFS
 makeConnection(ConnCacheEntry *entry, const char *serverName, const char *path)
 {
     StorageUserMapping *user;
@@ -177,13 +177,9 @@ makeConnection(ConnCacheEntry *entry, const char *serverName, const char *path)
     gopherUserCanceledCallBack(&checkInterrupt);
 
     entry->connection = gopherConnect(*gopherConfig);
-    if (entry->connection == NULL)
-        ereport(ERROR,
-                    (errcode(ERRCODE_INTERNAL_ERROR),
-                     errmsg("failed to connect to gopher: %s", gopherGetLastError())));
-
     gopherDestroyConfig(gopherConfig);
     FreeOption(option);
+    return entry->connection;
 }
 
 static void

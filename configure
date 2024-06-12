@@ -754,6 +754,7 @@ with_icu
 enable_thread_safety
 INCLUDES
 enable_gophermeta
+enable_dfs_tablespace
 enable_datalake
 enable_vectorization
 enable_perfmon
@@ -910,6 +911,7 @@ enable_pax
 enable_vectorization
 enable_perfmon
 enable_datalake
+enable_dfs_tablespace
 enable_gophermeta
 enable_thread_safety
 with_icu
@@ -1628,6 +1630,7 @@ Optional Features:
   --enable-pax            enable pax support
   --enable-vectorization  enable vectorization support
   --enable-datalake       enable preload datalake
+  --enable-dfs-tablespace enable preload dfs-tablespace
   --enable-gophermeta     enable preload gophermeta
   --enable-perfmon     	  enable preload gophermeta
   --disable-thread-safety disable thread-safety in client libraries
@@ -9148,10 +9151,41 @@ $as_echo "checking whether to build with preload datalake ... $enable_datalake" 
 
 
 #
-# gophermeta preload
-# enforce enable_gophermeta if enable_datalake is yes
+# dfs_tablespace preload
 #
 
+
+# Check whether --enable-dfs-tablespace was given.
+if test "${enable_dfs_tablespace+set}" = set; then :
+  enableval=$enable_dfs_tablespace;
+  case $enableval in
+    yes)
+
+$as_echo "#define USE_DFS_TABLESPACE 1" >>confdefs.h
+
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --enable-dfs-tablespace option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  enable_dfs_tablespace=no
+
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with preload dfs_tablespace ... $enable_dfs_tablespace" >&5
+$as_echo "checking whether to build with preload dfs_tablespace ... $enable_dfs_tablespace" >&6; }
+
+
+#
+# gophermeta preload
+# enforce enable_gophermeta if enable_datalake is yes or enable_dfs_tablespace is yes
+#
 
 # Check whether --enable-gophermeta was given.
 if test "${enable_gophermeta+set}" = set; then :
@@ -9176,7 +9210,7 @@ else
 fi
 
 
-if test "$enable_datalake" = yes; then
+if test "$enable_datalake" = yes || test "$enable_dfs_tablespace" = yes; then
   enable_gophermeta=yes
 
 $as_echo "#define USE_GOPHERMETA 1" >>confdefs.h

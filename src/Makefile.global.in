@@ -233,6 +233,7 @@ enable_vectorization    = @enable_vectorization@
 enable_perfmon    = @enable_perfmon@
 enable_pax		= @enable_pax@
 enable_datalake     = @enable_datalake@
+enable_dfs_tablespace     = @enable_dfs_tablespace@
 enable_gophermeta   = @enable_gophermeta@
 enable_gpcloud 	    = @enable_gpcloud@
 enable_ic_proxy     = @enable_ic_proxy@

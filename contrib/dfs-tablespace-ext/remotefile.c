@@ -21,12 +21,15 @@
 
 static UFile *remoteFileOpen(Oid spcId, const char *fileName, int fileFlags,
                char *errorMessage, int errorMessageSize);
-static void remoteFileClose(UFile *file);
+static int remoteFileClose(UFile *file);
 static int remoteFileSync(UFile *file);
 static int remoteFileRead(UFile *file, char *buffer, int amount);
+static int remoteFilePRead(UFile *file, char *buffer, int amount, off_t offset);
 static int remoteFileWrite(UFile *file, char *buffer, int amount);
+static int remoteFilePWrite(UFile *file, char *buffer, int amount, off_t offset);
 static off_t remoteFileSize(UFile *file);
-static void remoteFileUnlink(Oid spcId, const char *fileName);
+static int remoteFileUnlink(Oid spcId, const char *fileName);
+static int remoteFileRmdir(Oid spcId, const char *dirName);
 static char *remoteFormatPathName(RelFileNode *relFileNode);
 static bool remoteEnsurePath(Oid spcId, const char *pathName);
 static bool remoteFileExists(Oid spcId, const char *fileName);
@@ -41,9 +44,12 @@ static struct FileAm remoteFileAm = {
     .close = remoteFileClose,
     .sync = remoteFileSync,
     .read = remoteFileRead,
+    .pread = remoteFilePRead,
     .write = remoteFileWrite,
+    .pwrite = remoteFilePWrite,
     .size = remoteFileSize,
     .unlink = remoteFileUnlink,
+    .rmdir = remoteFileRmdir,
     .formatPathName = remoteFormatPathName,
     .ensurePath = remoteEnsurePath,
     .exists = remoteFileExists,
@@ -113,9 +119,6 @@ destroyRemoteFileHandle(RemoteFileHandle *handle)
     if (handle->next)
         handle->next->prev = handle->prev;
 
-    if (handle->file)
-        gopherCloseFile(handle->fs, handle->file, true);
-
     pfree(handle);
 }
 
@@ -159,45 +162,31 @@ remoteFileOpen(Oid spcId,
     gopherFile gopherFile;
     const char *server;
     const char *tableSpacePath;
-    bool hasError = false;
-    ErrorData *errData;
-    MemoryContext mcxt = CurrentMemoryContext;
 
-    PG_TRY();
-            {
-                server = GetDfsTablespaceServer(spcId);
-                tableSpacePath = GetDfsTablespacePath(spcId);
-                connection = RemoteFileGetConnection(server, tableSpacePath);
-
-                if (!resownerCallbackRegistered)
-                {
-                    RegisterResourceReleaseCallback(remoteFileAbortCallback, NULL);
-                    resownerCallbackRegistered = true;
-                }
-
-                result = palloc(sizeof(RemoteFileEx));
-                result->methods = &remoteFileAm;
-                result->fileName = pstrdup(fileName);
-                result->handle = createRemoteFileHandle();
-            }
-        PG_CATCH();
-            {
-                hasError = true;
-                MemoryContextSwitchTo(mcxt);
-                errData = CopyErrorData();
-                FlushErrorState();
-                strlcpy(errorMessage, errData->message, errorMessageSize);
-                FreeErrorData(errData);
-            }
-    PG_END_TRY();
-
-    if (hasError)
+    server = GetDfsTablespaceServer(spcId);
+    tableSpacePath = GetDfsTablespacePath(spcId);
+    connection = RemoteFileGetConnection(server, tableSpacePath);
+    if (connection == NULL)
+    {
+        strlcpy(errorMessage, gopherGetLastError(), errorMessageSize);
         return NULL;
+    }
+
+    if (!resownerCallbackRegistered)
+    {
+        RegisterResourceReleaseCallback(remoteFileAbortCallback, NULL);
+        resownerCallbackRegistered = true;
+    }
+    
+    result = palloc(sizeof(RemoteFileEx));
+    result->methods = &remoteFileAm;
+    result->fileName = pstrdup(fileName);
+    result->handle = createRemoteFileHandle();
 
     gopherFile = gopherOpenFile(connection, result->fileName, fileFlags, REMOTE_FILE_BLOCK_SIZE);
     if (gopherFile == NULL)
     {
-        snprintf(errorMessage, errorMessageSize, "%s", gopherGetLastError());
+        strlcpy(errorMessage, gopherGetLastError(), errorMessageSize);
         return NULL;
     }
 
@@ -206,31 +195,27 @@ remoteFileOpen(Oid spcId,
     return (UFile *) result;
 }
 
-static void
+static int
 remoteFileClose(UFile *file)
 {
-    RemoteFileEx *remoteFile = (RemoteFileEx *) file;
-
+    int ret;
+    RemoteFileEx *remoteFile = (RemoteFileEx *)file;
+    ret = gopherCloseFile(remoteFile->handle->fs, remoteFile->handle->file, true);
+    remoteFile->handle->file = NULL;
     destroyRemoteFileHandle(remoteFile->handle);
 
+    if (ret < 0)
+        snprintf(remoteFileErrorStr, UFILE_ERROR_SIZE, "%s", gopherGetLastError());
+
     pfree(remoteFile->fileName);
+    return ret;
 }
 
 static int
 remoteFileSync(UFile *file)
 {
-    int result;
-    RemoteFileEx *remoteFile = (RemoteFileEx *) file;
-
-    pgstat_report_wait_start(WAIT_EVENT_DATA_FILE_SYNC);
-    result = gopherCloseFile(remoteFile->handle->fs, remoteFile->handle->file, true);
-    pgstat_report_wait_end();
-    remoteFile->handle->file = NULL;
-
-    if (result == -1)
-        snprintf(remoteFileErrorStr, UFILE_ERROR_SIZE, "%s", gopherGetLastError());
-
-    return result;
+    elog(ERROR, "remote file not support sync");
+    return -1;
 }
 
 static int
@@ -250,6 +235,34 @@ remoteFileRead(UFile *file, char *buffer, int amount)
     }
 
     return bytes;
+}
+
+static int remoteFilePRead(UFile *file, char *buffer, int amount, off_t offset) {
+    int rc;
+    RemoteFileEx *remoteFile = (RemoteFileEx *)file;
+    rc = gopherSeek(remoteFile->handle->fs, remoteFile->handle->file, offset);
+    // The return value of gopherSeek seems to be unreasonably set. Compared
+    // with the lseek implementation, lseek returns the resulting offset
+    // location as measured in bytes from the beginning of the file, and
+    // return -1 represents failure.
+    if (rc < 0)
+    {
+        snprintf(remoteFileErrorStr, UFILE_ERROR_SIZE, "%s", gopherGetLastError());
+        return rc;
+    }
+
+    pgstat_report_wait_start(WAIT_EVENT_DATA_FILE_READ);
+    rc = gopherRead(remoteFile->handle->fs, remoteFile->handle->file, buffer, amount);
+    pgstat_report_wait_end();
+
+    if (rc < 0)
+        snprintf(remoteFileErrorStr, UFILE_ERROR_SIZE, "%s", gopherGetLastError());
+    return rc;
+}
+
+static int remoteFilePWrite(UFile *file, char *buffer, int amount, off_t offset) {
+    snprintf(remoteFileErrorStr, UFILE_ERROR_SIZE, "%s", "remote file not support pwrite");
+    return -1;
 }
 
 static int
@@ -289,9 +302,10 @@ remoteFileSize(UFile *file)
     return result;
 }
 
-static void
+static int
 remoteFileUnlink(Oid spcId, const char *fileName)
 {
+    int ret;
     const char *server;
     const char *tableSpacePath;
     gopherFS connection;
@@ -299,11 +313,39 @@ remoteFileUnlink(Oid spcId, const char *fileName)
     server = GetDfsTablespaceServer(spcId);
     tableSpacePath = GetDfsTablespacePath(spcId);
     connection = RemoteFileGetConnection(server, tableSpacePath);
+    if (connection == NULL) 
+    {
+        snprintf(remoteFileErrorStr, UFILE_ERROR_SIZE, "%s", gopherGetLastError());
+        return -1;
+    }
 
-    if (gopherPrefixDelete(connection, fileName) < 0)
-        ereport(WARNING,
-                (errcode_for_file_access(),
-                    errmsg("could not remove file \"%s\": %s", fileName, gopherGetLastError())));
+    ret = gopherPrefixDelete(connection, fileName);
+    if (ret < 0)
+        snprintf(remoteFileErrorStr, UFILE_ERROR_SIZE, "%s", gopherGetLastError());
+    return ret;
+}
+
+static int
+remoteFileRmdir(Oid spcId, const char *dirName)
+{
+    int ret;
+    const char *server;
+    const char *tableSpacePath;
+    gopherFS connection;
+
+    server = GetDfsTablespaceServer(spcId);
+    tableSpacePath = GetDfsTablespacePath(spcId);
+    connection = RemoteFileGetConnection(server, tableSpacePath);
+    if (connection == NULL) 
+    {
+        snprintf(remoteFileErrorStr, UFILE_ERROR_SIZE, "%s", gopherGetLastError());
+        return -1;
+    }
+
+    ret = gopherPrefixDelete(connection, dirName);
+    if (ret < 0)
+        snprintf(remoteFileErrorStr, UFILE_ERROR_SIZE, "%s", gopherGetLastError());
+    return ret;
 }
 
 static char *
@@ -334,6 +376,11 @@ remoteFileExists(Oid spcId, const char *fileName)
     server = GetDfsTablespaceServer(spcId);
     tableSpacePath = GetDfsTablespacePath(spcId);
     connection = RemoteFileGetConnection(server, tableSpacePath);
+    if (connection == NULL)
+    {
+        elog(ERROR, "remoteFileExists error:%s", gopherGetLastError());
+        return false;
+    }
 
     bool exist = gopherExist(connection, fileName);
 
@@ -372,7 +419,8 @@ remoteGetConnection(Oid spcId)
     server = GetDfsTablespaceServer(spcId);
     tableSpacePath = GetDfsTablespacePath(spcId);
     connection = RemoteFileGetConnection(server, tableSpacePath);
-
-    return;
+    if (connection == NULL)
+    {
+        elog(ERROR, "remoteGetConnection error:%s", gopherGetLastError());
+    }
 }
-

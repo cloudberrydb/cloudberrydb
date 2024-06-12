@@ -58,6 +58,11 @@ endif
 ifeq ($(enable_perfmon), yes)
 	$(MAKE) -C contrib/perfmon all
 endif
+
+ifeq ($(enable_dfs_tablespace), yes)
+	$(MAKE) -C contrib/dfs-tablespace-ext all
+endif
+
 	$(MAKE) -C gpMgmt all
 	$(MAKE) -C gpcontrib all
 	+@echo "All of Cloudberry Database successfully made. Ready to install."
@@ -118,6 +123,9 @@ ifeq ($(enable_datalake), yes)
 endif
 ifeq ($(enable_perfmon), yes)
 	$(MAKE) -C contrib/perfmon $@
+endif
+ifeq ($(enable_dfs_tablespace), yes)
+	$(MAKE) -C contrib/dfs-tablespace-ext $@
 endif
 	$(MAKE) -C gpMgmt $@
 	$(MAKE) -C gpcontrib $@

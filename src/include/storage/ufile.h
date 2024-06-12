@@ -22,12 +22,15 @@ typedef struct FileAm
 {
 	struct UFile* (*open) (Oid spcId, const char *fileName, int fileFlags,
 				char *errorMessage, int errorMessageSize);
-	void (*close) (struct UFile *file);
+	int (*close) (struct UFile *file);
 	int (*sync) (struct UFile *file);
 	int (*read) (struct UFile *file, char *buffer, int amount);
+	int (*pread) (struct UFile *file, char *buffer, int amount, off_t offset);
 	int (*write) (struct UFile *file, char *buffer, int amount);
+	int (*pwrite) (struct UFile *file, char *buffer, int amount, off_t offset);
 	int64_t (*size) (struct UFile *file);
-	void (*unlink) (Oid spcId, const char *fileName);
+	int (*unlink) (Oid spcId, const char *fileName);
+	int (*rmdir) (Oid spcId, const char *dirName);
 	char* (*formatPathName) (RelFileNode *relFileNode);
 	bool (*ensurePath) (Oid spcId, const char *pathName);
 	bool (*exists) (Oid spcId, const char *fileName);
@@ -46,16 +49,19 @@ extern UFile *UFileOpen(Oid spcId,
 						int fileFlags,
 						char *errorMessage,
 						int errorMessageSize);
-extern void UFileClose(UFile *file);
+extern int UFileClose(UFile *file);
 extern int UFileSync(UFile *fiLe);
 
 extern int UFileRead(UFile *file, char *buffer, int amount);
+extern int UFilePRead(UFile *file, char *buffer, int amount, off_t offset);
 extern int UFileWrite(UFile *file, char *buffer, int amount);
+extern int UFilePWrite(UFile *file, char *buffer, int amount, off_t offset);
 
-extern off_t UFileSize(UFile *file);
+extern int64_t UFileSize(UFile *file);
 extern const char *UFileName(UFile *file);
 
-extern void UFileUnlink(Oid spcId, const char *fileName);
+extern int UFileUnlink(Oid spcId, const char *fileName);
+extern int UFileRmdir(Oid spcId, const char *dirName);
 extern char* UFileFormatPathName(RelFileNode *relFileNode);
 extern bool UFileEnsurePath(Oid spcId, const char *pathName);
 extern bool UFileExists(Oid spcId, const char *fileName);

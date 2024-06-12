@@ -14,5 +14,8 @@
 		"pax",
 #endif
 #ifdef USE_PERFMON
-		"gpmmon","gpmon"
+		"gpmmon","gpmon",
+#endif
+#ifdef USE_DFS_TABLESPACE
+		"dfs_tablespace",
 #endif

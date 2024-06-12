@@ -434,10 +434,10 @@ dfsObjectAccessHook(ObjectAccessType access, Oid classId, Oid objectId, int subI
 			    && (rel->rd_rel->relkind == RELKIND_RELATION ||
 					rel->rd_rel->relkind == RELKIND_TOASTVALUE ||
 					rel->rd_rel->relkind == RELKIND_MATVIEW )
-				&& !RelationIsHeap(rel))
+				&& RelationIsHeap(rel))
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-						 errmsg("could not create table in dfs tablespace, because it is not unistorage table")));
+						 errmsg("could not create heap table in dfs tablespace")));
 
 			RelationClose(rel);
 		}
