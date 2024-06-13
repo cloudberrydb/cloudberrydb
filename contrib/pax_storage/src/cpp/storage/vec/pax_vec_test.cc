@@ -1,6 +1,8 @@
 #include "comm/gtest_wrappers.h"
+#include "comm/singleton.h"
 #include "pax_gtest_helper.h"
 #include "storage/columns/pax_vec_numeric_column.h"
+#include "storage/local_file_system.h"
 #include "storage/pax.h"
 #include "storage/vec/pax_vec_adapter.h"
 #ifdef VEC_BUILD
@@ -1395,6 +1397,7 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
 
   auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
+  relation->rd_rel = (Form_pg_class)cbdb::Palloc0(sizeof(*relation->rd_rel));
   relation->rd_att = tuple_slot->tts_tupleDescriptor;
   bool callback_called = false;
 

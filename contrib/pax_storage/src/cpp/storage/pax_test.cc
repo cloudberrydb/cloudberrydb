@@ -114,6 +114,7 @@ TEST_F(PaxWriterTest, WriteReadTuple) {
 
   auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
   relation->rd_att = slot->tts_tupleDescriptor;
+  relation->rd_rel = (Form_pg_class)cbdb::Palloc0(sizeof(*relation->rd_rel));
   bool callback_called = false;
 
   TableWriter::WriteSummaryCallback callback =
@@ -193,6 +194,7 @@ TEST_F(PaxWriterTest, TestOper) {
   std::remove((pax_file_name + std::to_string(2)).c_str());
 
   relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
+  relation->rd_rel = (Form_pg_class)cbdb::Palloc0(sizeof(*relation->rd_rel));
   relation->rd_att = slot->tts_tupleDescriptor;
 
   TableWriter::WriteSummaryCallback callback =
@@ -302,6 +304,7 @@ TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
   TupleTableSlot *slot = CreateTestTupleTableSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
   auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
+  relation->rd_rel = (Form_pg_class)cbdb::Palloc0(sizeof(*relation->rd_rel));
 
   relation->rd_att = slot->tts_tupleDescriptor;
   bool callback_called = false;
@@ -383,6 +386,7 @@ TEST_F(PaxWriterTest, WriteReadTupleSplitFile2) {
   TupleTableSlot *slot = CreateTestTupleTableSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
   auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
+  relation->rd_rel = (Form_pg_class)cbdb::Palloc0(sizeof(*relation->rd_rel));
   int origin_pax_max_tuples_per_group = pax_max_tuples_per_group;
   pax_max_tuples_per_group = 100;
 
@@ -451,6 +455,7 @@ TEST_F(PaxWriterTest, TestCacheColumns) {
   std::remove(uuid_file_name);
 
   auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
+  relation->rd_rel = (Form_pg_class)cbdb::Palloc0(sizeof(*relation->rd_rel));
   relation->rd_att = slot->tts_tupleDescriptor;
   bool callback_called = false;
 

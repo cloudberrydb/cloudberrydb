@@ -1,8 +1,9 @@
 #include "comm/cbdb_wrappers.h"
 
+#include <algorithm>
+
 #include "access/paxc_rel_options.h"
 #include "comm/paxc_wrappers.h"
-#include <algorithm>
 extern "C" {
 const char *progname;
 }
@@ -246,12 +247,6 @@ void cbdb::PathNameDeleteDir(const char *path, bool delete_topleveldir) {
   CBDB_WRAP_END;
 }
 
-void cbdb::CopyFile(const char *srcsegpath, const char *dstsegpath) {
-  CBDB_WRAP_START;
-  { paxc::CopyFile(srcsegpath, dstsegpath); }
-  CBDB_WRAP_END;
-}
-
 void cbdb::MakedirRecursive(const char *path) {
   CBDB_WRAP_START;
   { paxc::MakedirRecursive(path); }
@@ -259,10 +254,12 @@ void cbdb::MakedirRecursive(const char *path) {
 }
 
 std::string cbdb::BuildPaxDirectoryPath(RelFileNode rd_node,
-                                        BackendId rd_backend) {
+                                        BackendId rd_backend,
+                                        bool is_dfs_path) {
   CBDB_WRAP_START;
   {
-    char *tmp_str = paxc::BuildPaxDirectoryPath(rd_node, rd_backend);
+    char *tmp_str =
+        paxc::BuildPaxDirectoryPath(rd_node, rd_backend, is_dfs_path);
     std::string ret_str(tmp_str);
     pfree(tmp_str);
     return ret_str;
@@ -270,8 +267,7 @@ std::string cbdb::BuildPaxDirectoryPath(RelFileNode rd_node,
   CBDB_WRAP_END;
 }
 
-std::string cbdb::BuildPaxFilePath(const char *rel_path,
-                                   const char *block_id) {
+std::string cbdb::BuildPaxFilePath(const char *rel_path, const char *block_id) {
   char path[4096];
   Assert(rel_path && block_id);
 
@@ -301,6 +297,28 @@ bool cbdb::IsSystemAttrNumExist(struct PaxcExtractcolumnContext *context,
                                 AttrNumber number) {
   Assert(number < 0 && number > FirstLowInvalidHeapAttributeNumber && context);
   return context->system_attr_number_mask[~number];
+}
+
+std::string cbdb::GetDfsTablespaceServer(Oid id) {
+  CBDB_WRAP_START;
+  {
+    return paxc::GetDfsTablespaceServer(id);
+  }
+  CBDB_WRAP_END;
+}
+
+std::string cbdb::GetDfsTablespacePath(Oid id) {
+  CBDB_WRAP_START;
+  {
+    return paxc::GetDfsTablespacePath(id);
+  }
+  CBDB_WRAP_END;
+}
+
+bool cbdb::IsDfsTablespaceById(Oid spcId) {
+  CBDB_WRAP_START;
+  { return paxc::IsDfsTablespaceById(spcId); }
+  CBDB_WRAP_END;
 }
 
 extern "C" {
@@ -337,8 +355,11 @@ static bool paxc_extractcolumns_walker(  // NOLINT
     return false;
   }
 
-  return expression_tree_walker(node, (bool (*)()) (void (*) () /* to make -Wcast-function-type happy*/) (paxc_extractcolumns_walker),
-                                (void *)ec_ctx);
+  return expression_tree_walker(
+      node,
+      (bool (*)())(void (*)() /* to make -Wcast-function-type happy*/)(
+          paxc_extractcolumns_walker),
+      (void *)ec_ctx);
 }
 
 };  // extern "C"
@@ -369,7 +390,6 @@ bool cbdb::MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily,
   }
   CBDB_WRAP_END;
 }
-
 
 Datum cbdb::FunctionCall1Coll(FmgrInfo *flinfo, Oid collation, Datum arg1) {
   CBDB_WRAP_START;
@@ -461,5 +481,107 @@ char *cbdb::GetGUCConfigOptionByName(const char *name, const char **varname,
                                      bool missing_ok) {
   CBDB_WRAP_START;
   { return GetConfigOptionByName(name, varname, missing_ok); }
+  CBDB_WRAP_END;
+}
+
+// ::UFile Operator
+UFile *cbdb::UFileOpen(Oid spcId, const char *fileName, int fileFlags,
+                       char *errorMessage, int errorMessageSize) {
+  CBDB_WRAP_START;
+  {
+    return ::UFileOpen(spcId, fileName, fileFlags, errorMessage,
+                       errorMessageSize);
+  }
+  CBDB_WRAP_END;
+}
+
+int cbdb::UFileClose(UFile *file) {
+  CBDB_WRAP_START;
+  { return ::UFileClose(file); }
+  CBDB_WRAP_END;
+}
+
+int cbdb::UFileSync(UFile *fiLe) {
+  CBDB_WRAP_START;
+  { return ::UFileSync(fiLe); }
+  CBDB_WRAP_END;
+}
+
+int cbdb::UFileRead(UFile *file, char *buffer, int amount) {
+  CBDB_WRAP_START;
+  { return ::UFileRead(file, buffer, amount); }
+  CBDB_WRAP_END;
+}
+
+int cbdb::UFilePRead(UFile *file, char *buffer, int amount, off_t offset) {
+  CBDB_WRAP_START;
+  { return ::UFilePRead(file, buffer, amount, offset); }
+  CBDB_WRAP_END;
+}
+
+int cbdb::UFileWrite(UFile *file, char *buffer, int amount) {
+  CBDB_WRAP_START;
+  { return ::UFileWrite(file, buffer, amount); }
+  CBDB_WRAP_END;
+}
+
+int cbdb::UFilePWrite(UFile *file, char *buffer, int amount, off_t offset) {
+  CBDB_WRAP_START;
+  { return ::UFilePWrite(file, buffer, amount, offset); }
+  CBDB_WRAP_END;
+}
+
+int64_t cbdb::UFileSize(UFile *file) {
+  CBDB_WRAP_START;
+  { return ::UFileSize(file); }
+  CBDB_WRAP_END;
+}
+
+const char *cbdb::UFileName(UFile *file) {
+  CBDB_WRAP_START;
+  { return ::UFileName(file); }
+  CBDB_WRAP_END;
+}
+
+int cbdb::UFileUnlink(Oid spcId, const char *fileName) {
+  CBDB_WRAP_START;
+  { return ::UFileUnlink(spcId, fileName); }
+  CBDB_WRAP_END;
+}
+
+int cbdb::UFileRmdir(Oid spcId, const char *dirName) {
+  CBDB_WRAP_START;
+  { return ::UFileRmdir(spcId, dirName); }
+  CBDB_WRAP_END;
+}
+
+char *cbdb::UFileFormatPathName(RelFileNode *relFileNode) {
+  CBDB_WRAP_START;
+  { return ::UFileFormatPathName(relFileNode); }
+  CBDB_WRAP_END;
+}
+
+bool cbdb::UFileEnsurePath(Oid spcId, const char *pathName) {
+  CBDB_WRAP_START;
+  { return ::UFileEnsurePath(spcId, pathName); }
+  CBDB_WRAP_END;
+}
+
+bool cbdb::UFileExists(Oid spcId, const char *fileName) {
+  CBDB_WRAP_START;
+  { return ::UFileExists(spcId, fileName); }
+  CBDB_WRAP_END;
+}
+
+const char *cbdb::UFileGetLastError(UFile *file) {
+  CBDB_WRAP_START;
+  { return ::UFileGetLastError(file); }
+  CBDB_WRAP_END;
+}
+
+void cbdb::PaxAddPendingDelete(Relation rel, RelFileNode rn_node,
+                               bool atCommit) {
+  CBDB_WRAP_START;
+  { paxc::PaxAddPendingDelete(rel, rn_node, atCommit); }
   CBDB_WRAP_END;
 }

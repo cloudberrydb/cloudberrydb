@@ -65,7 +65,9 @@ MicroPartitionInfoIterator::New(Relation pax_rel, Snapshot snapshot) {
   MicroPartitionInfoIterator *it;
   it = PAX_NEW<MicroPartitionInfoIterator>(
       pax_rel, snapshot,
-      cbdb::BuildPaxDirectoryPath(pax_rel->rd_node, pax_rel->rd_backend));
+      cbdb::BuildPaxDirectoryPath(
+          pax_rel->rd_node, pax_rel->rd_backend,
+          cbdb::IsDfsTablespaceById(pax_rel->rd_rel->reltablespace)));
   it->Begin();
   return std::unique_ptr<IteratorBase<MicroPartitionMetadata>>(it);
 }

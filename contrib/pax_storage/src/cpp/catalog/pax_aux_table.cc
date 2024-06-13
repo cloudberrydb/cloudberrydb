@@ -12,6 +12,7 @@
 #include "storage/file_system.h"
 #include "storage/local_file_system.h"
 #include "storage/micro_partition_metadata.h"
+#include "storage/remote_file_system.h"
 
 namespace paxc {
 
@@ -547,7 +548,9 @@ static void FetchMicroPartitionAuxRowCallback(Datum *values, bool *isnull,
                                               void *arg) {
   auto ctx = reinterpret_cast<struct FetchMicroPartitionAuxRowContext *>(arg);
   auto rel = ctx->rel;
-  auto rel_path = cbdb::BuildPaxDirectoryPath(rel->rd_node, rel->rd_backend);
+  auto rel_path = cbdb::BuildPaxDirectoryPath(
+      rel->rd_node, rel->rd_backend,
+      cbdb::IsDfsTablespaceById(rel->rd_rel->reltablespace));
 
   Assert(!isnull[ANUM_PG_PAX_BLOCK_TABLES_PTBLOCKNAME]);
   {
@@ -665,7 +668,6 @@ static void PaxCopyPaxBlockEntry(Relation old_relation, Relation new_relation) {
 }  // namespace cbdb
 
 namespace pax {
-
 void CCPaxAuxTable::PaxAuxRelationNontransactionalTruncate(Relation rel) {
   cbdb::PaxNontransactionalTruncateTable(rel);
 
@@ -683,12 +685,18 @@ void CCPaxAuxTable::PaxAuxRelationCopyData(Relation rel,
 
   Assert(rel && newrnode);
 
-  FileSystem *fs = pax::Singleton<LocalFileSystem>::GetInstance();
+  bool is_dfs_tblspace = cbdb::IsDfsTablespaceById(rel->rd_rel->reltablespace);
+  CBDB_CHECK(!cbdb::IsDfsTablespaceById(is_dfs_tblspace),
+             cbdb::CException::kExTypeUnImplements,
+             "remote filesystem not support copy data");
 
-  src_path = cbdb::BuildPaxDirectoryPath(rel->rd_node, rel->rd_backend);
+  FileSystem *fs = pax::Singleton<LocalFileSystem>::GetInstance();
+  src_path = cbdb::BuildPaxDirectoryPath(rel->rd_node, rel->rd_backend,
+                                         is_dfs_tblspace);
   Assert(!src_path.empty());
 
-  dst_path = cbdb::BuildPaxDirectoryPath(*newrnode, rel->rd_backend);
+  dst_path =
+      cbdb::BuildPaxDirectoryPath(*newrnode, rel->rd_backend, is_dfs_tblspace);
   Assert(!dst_path.empty());
 
   if (src_path.empty() || dst_path.empty())
@@ -725,11 +733,12 @@ void CCPaxAuxTable::PaxAuxRelationCopyData(Relation rel,
     src_file.append(iter);
     dst_file.append("/");
     dst_file.append(iter);
-    fs->CopyFile(src_file, dst_file);
+    auto file1 = fs->Open(src_file, pax::fs::kReadMode);
+    auto file2 = fs->Open(dst_file, pax::fs::kWriteMode);
+    fs->CopyFile(file1, file2);
+    file1->Close();
+    file2->Close();
   }
-
-  // TODO(Tony) : here need to implement pending delete srcPath after set new
-  // tablespace.
 }
 
 void CCPaxAuxTable::PaxAuxRelationCopyDataForCluster(Relation old_rel,
@@ -743,10 +752,20 @@ void CCPaxAuxTable::PaxAuxRelationFileUnlink(RelFileNode node,
                                              BackendId backend,
                                              bool delete_topleveldir) {
   std::string relpath;
-  FileSystem *fs = pax::Singleton<LocalFileSystem>::GetInstance();
-  // Delete all micro partition file directory.
-  relpath = cbdb::BuildPaxDirectoryPath(node, backend);
-  fs->DeleteDirectory(relpath, delete_topleveldir);
+  FileSystem *fs;
+  bool is_dfs_tablespace;
+
+  is_dfs_tablespace = cbdb::IsDfsTablespaceById(node.spcNode);
+  relpath = cbdb::BuildPaxDirectoryPath(node, backend, is_dfs_tablespace);
+
+  if (is_dfs_tablespace) {
+    fs = pax::Singleton<RemoteFileSystem>::GetInstance();
+    RemoteFileSystemOptions options(node.spcNode);
+    fs->DeleteDirectory(relpath, delete_topleveldir, &options);
+  } else {
+    fs = pax::Singleton<LocalFileSystem>::GetInstance();
+    fs->DeleteDirectory(relpath, delete_topleveldir);
+  }
 }
 
 }  // namespace pax

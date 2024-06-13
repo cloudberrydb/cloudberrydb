@@ -160,8 +160,6 @@ class CCPaxAccessMethod final {
   static void ExtDmlInit(Relation rel, CmdType operation);
   static void ExtDmlFini(Relation rel, CmdType operation);
 
-  // MicroPartition File cleanup hook
-  static void RelationFileUnlink(RelFileNodeBackend rnode);
 };
 
 }  // namespace pax

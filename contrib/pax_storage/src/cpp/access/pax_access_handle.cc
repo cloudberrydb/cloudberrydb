@@ -13,8 +13,10 @@
 #include "catalog/pg_pax_tables.h"
 #include "comm/guc.h"
 #include "comm/pax_memory.h"
+#include "comm/paxc_wrappers.h"
 #include "comm/vec_numeric.h"
 #include "exceptions/CException.h"
+#include "storage/file_system_helper.h"
 #include "storage/local_file_system.h"
 
 #define NOT_IMPLEMENTED_YET                        \
@@ -73,7 +75,7 @@ TableScanDesc CCPaxAccessMethod::ScanExtractColumns(
 }
 
 bool CCPaxAccessMethod::IndexUniqueCheck(Relation rel, ItemPointer tid,
-                                       Snapshot snapshot, bool *all_dead) {
+                                         Snapshot snapshot, bool *all_dead) {
   CBDB_TRY();
   {
     auto dsl = pax::CPaxDmlStateLocal::Instance();
@@ -180,6 +182,14 @@ void CCPaxAccessMethod::RelationSetNewFilenode(Relation rel,
   systable_endscan(scan);
   table_close(pax_tables_rel, NoLock);
 
+  // add pending delete for pax
+  paxc::PaxAddPendingDelete(rel, *newrnode, false);
+
+  // if table in dfs_tablespace, need not create relfilenode file on s3
+  if (paxc::IsDfsTablespaceById(rel->rd_rel->reltablespace)) {
+    return;
+  }
+
   // create relfilenode file for pax table
   auto srel = RelationCreateStorage(*newrnode, persistence, SMGR_MD, rel);
   smgrclose(srel);
@@ -188,7 +198,7 @@ void CCPaxAccessMethod::RelationSetNewFilenode(Relation rel,
   CBDB_TRY();
   {
     FileSystem *fs = pax::Singleton<LocalFileSystem>::GetInstance();
-    auto path = cbdb::BuildPaxDirectoryPath(*newrnode, rel->rd_backend);
+    auto path = cbdb::BuildPaxDirectoryPath(*newrnode, rel->rd_backend, false);
     Assert(!path.empty());
     CBDB_CHECK((fs->CreateDirectory(path) == 0),
                cbdb::CException::ExType::kExTypeIOError);
@@ -219,6 +229,7 @@ void CCPaxAccessMethod::RelationCopyData(Relation rel,
     pax::CCPaxAuxTable::PaxAuxRelationCopyData(rel, newrnode, true);
     cbdb::RelCloseSmgr(rel);
     cbdb::RelDropStorage(rel);
+    cbdb::PaxAddPendingDelete(rel, rel->rd_node, true);
   }
   CBDB_CATCH_DEFAULT();
   CBDB_FINALLY({});
@@ -244,17 +255,6 @@ void CCPaxAccessMethod::RelationCopyForCluster(
   Assert(RELATION_IS_PAX(new_heap));
   CBDB_TRY();
   { pax::CCPaxAuxTable::PaxAuxRelationCopyDataForCluster(old_heap, new_heap); }
-  CBDB_CATCH_DEFAULT();
-  CBDB_FINALLY({});
-  CBDB_END_TRY();
-}
-
-void CCPaxAccessMethod::RelationFileUnlink(RelFileNodeBackend rnode) {
-  CBDB_TRY();
-  {
-    pax::CCPaxAuxTable::PaxAuxRelationFileUnlink(rnode.node, rnode.backend,
-                                                 true);
-  }
   CBDB_CATCH_DEFAULT();
   CBDB_FINALLY({});
   CBDB_END_TRY();
@@ -1161,20 +1161,43 @@ static void PaxObjectAccessHook(ObjectAccessType access, Oid class_id,
   if (prev_object_access_hook)
     prev_object_access_hook(access, class_id, object_id, sub_id, arg);
 
-  if (access != OAT_POST_CREATE || class_id != RelationRelationId) return;
+  if (class_id != RelationRelationId) return;
+
+  // if not (OAT_POST_CREATE or OAT_TRUNCATE or OAT_DROP)
+  if (!(access == OAT_POST_CREATE || access == OAT_TRUNCATE ||
+        access == OAT_DROP))
+    return;
 
   CommandCounterIncrement();
   rel = relation_open(object_id, RowExclusiveLock);
   ok = ((rel->rd_rel->relkind == RELKIND_RELATION ||
          rel->rd_rel->relkind == RELKIND_MATVIEW) &&
-        rel->rd_options && RelationIsPAX(rel));
+        RelationIsPAX(rel));
   if (!ok) goto out;
 
-  options = reinterpret_cast<paxc::PaxOptions *>(rel->rd_options);
-  PaxCheckParitionOptions(rel, options->partition_by(),
-                          options->partition_ranges());
-  PaxCheckMinMaxColumns(rel, options->minmax_columns());
-  PaxCheckNumericOption(rel, options->storage_format);
+  switch (access) {
+    case OAT_POST_CREATE: {
+      options = reinterpret_cast<paxc::PaxOptions *>(rel->rd_options);
+      if (options == NULL) goto out;
+
+      PaxCheckParitionOptions(rel, options->partition_by(),
+                              options->partition_ranges());
+      PaxCheckMinMaxColumns(rel, options->minmax_columns());
+      PaxCheckNumericOption(rel, options->storage_format);
+    } break;
+
+    case OAT_TRUNCATE:
+    case OAT_DROP:
+      // not drop column
+      if (sub_id == 0) {
+        paxc::PaxAddPendingDelete(rel, rel->rd_node, true);
+      }
+
+      break;
+
+    default:
+      break;
+  }
 
 out:
   relation_close(rel, RowExclusiveLock);
@@ -1327,7 +1350,6 @@ void _PG_init(void) {  // NOLINT
 
   ext_dml_init_hook = pax::CCPaxAccessMethod::ExtDmlInit;
   ext_dml_finish_hook = pax::CCPaxAccessMethod::ExtDmlFini;
-  file_unlink_hook = pax::CCPaxAccessMethod::RelationFileUnlink;
 
   register_custom_object_class(&pax_fastsequence_coc);
   register_custom_object_class(&pax_tables_coc);

@@ -8,56 +8,9 @@
 
 #include "comm/pax_memory.h"
 #include "exceptions/CException.h"
+#include "storage/file_system_helper.h"
 
 namespace pax {
-
-struct pax_fd_handle_t {
-  int fd;
-  ResourceOwner owner;
-  struct pax_fd_handle_t *prev;
-  struct pax_fd_handle_t *next;
-};
-
-static struct pax_fd_handle_t *open_local_fd_handle = NULL;
-static std::mutex fd_resouce_owner_mutex;
-
-static inline struct pax_fd_handle_t *RememberFdHandle(int fd) {
-  struct pax_fd_handle_t *h;
-
-  h = (struct pax_fd_handle_t *)malloc(sizeof(struct pax_fd_handle_t));
-  if (!h) {
-    close(fd);
-    return h;
-  }
-
-  h->prev = NULL;
-  h->fd = fd;
-  h->owner = CurrentResourceOwner;
-
-  {
-    std::lock_guard<std::mutex> lock(fd_resouce_owner_mutex);
-    h->next = open_local_fd_handle;
-    if (open_local_fd_handle) open_local_fd_handle->prev = h;
-    open_local_fd_handle = h;
-  }
-
-  return h;
-}
-
-static inline void ForgetFdHandle(struct pax_fd_handle_t *h) {
-  {
-    std::lock_guard<std::mutex> lock(fd_resouce_owner_mutex);
-
-    // unlink from linked list first
-    if (h->prev)
-      h->prev->next = h->next;
-    else
-      open_local_fd_handle = h->next;
-    if (h->next) h->next->prev = h->prev;
-  }
-
-  free(h);
-}
 
 LocalFile::LocalFile(pax_fd_handle_t *ht, const std::string &file_path)
     : File(), fd_(ht->fd), handle_t_(ht), file_path_(file_path) {
@@ -65,7 +18,7 @@ LocalFile::LocalFile(pax_fd_handle_t *ht, const std::string &file_path)
   Assert(handle_t_);
 }
 
-ssize_t LocalFile::Read(void *ptr, size_t n) {
+ssize_t LocalFile::Read(void *ptr, size_t n) const {
   ssize_t num;
 
   do {
@@ -87,7 +40,7 @@ ssize_t LocalFile::Write(const void *ptr, size_t n) {
   return num;
 }
 
-ssize_t LocalFile::PRead(void *ptr, size_t n, off_t offset) {
+ssize_t LocalFile::PRead(void *ptr, size_t n, off_t offset) const {
   ssize_t num;
 
   do {
@@ -121,6 +74,13 @@ void LocalFile::Flush() {
   CBDB_CHECK(fsync(fd_) == 0, cbdb::CException::ExType::kExTypeIOError);
 }
 
+void LocalFile::Delete() {
+  int rc;
+  rc = remove(file_path_.c_str());
+  CBDB_CHECK(rc == 0 || errno == ENOENT,
+             cbdb::CException::ExType::kExTypeIOError);
+}
+
 void LocalFile::Close() {
   int rc;
 
@@ -135,7 +95,8 @@ void LocalFile::Close() {
 
 std::string LocalFile::GetPath() const { return file_path_; }
 
-File *LocalFileSystem::Open(const std::string &file_path, int flags) {
+File *LocalFileSystem::Open(const std::string &file_path, int flags,
+                            FileSystemOptions *options) {
   LocalFile *local_file;
   int fd;
   pax_fd_handle_t *ht;
@@ -148,14 +109,15 @@ File *LocalFileSystem::Open(const std::string &file_path, int flags) {
 
   CBDB_CHECK(fd >= 0, cbdb::CException::ExType::kExTypeIOError);
 
-  ht = RememberFdHandle(fd);
+  ht = RememberLocalFdHandle(fd);
   CBDB_CHECK(ht, cbdb::CException::ExType::kExTypeIOError);
 
   local_file = PAX_NEW<LocalFile>(ht, file_path);
   return local_file;
 }
 
-void LocalFileSystem::Delete(const std::string &file_path) const {
+void LocalFileSystem::Delete(const std::string &file_path,
+                             FileSystemOptions *options) const {
   int rc;
 
   rc = remove(file_path.c_str());
@@ -167,8 +129,24 @@ std::string LocalFileSystem::BuildPath(const File *file) const {
   return file->GetPath();
 }
 
+int LocalFileSystem::CopyFile(const File *src_file, File *dst_file) {
+  const size_t kBufSize = 32 * 1024;
+  char buf[kBufSize];
+  ssize_t num_write = 0;
+  ssize_t num_read = 0;
+
+  while ((num_read = src_file->Read(buf, kBufSize)) > 0) {
+    num_write = dst_file->Write(buf, num_read);
+    CBDB_CHECK(num_write == num_read, cbdb::CException::kExTypeIOError,
+               "write error");
+  }
+
+  CBDB_CHECK(num_read >= 0, cbdb::CException::kExTypeIOError, "read error");
+  return 0;
+}
+
 std::vector<std::string> LocalFileSystem::ListDirectory(
-    const std::string &path) const {
+    const std::string &path, FileSystemOptions *options) const {
   DIR *dir;
   std::vector<std::string> filelist;
   const char *filepath = path.c_str();
@@ -197,55 +175,22 @@ std::vector<std::string> LocalFileSystem::ListDirectory(
   return filelist;
 }
 
-void LocalFileSystem::CopyFile(const std::string &src_file_path,
-                               const std::string &dst_file_path) const {
-  cbdb::CopyFile(src_file_path.c_str(), dst_file_path.c_str());
-}
 
-int LocalFileSystem::CreateDirectory(const std::string &path) const {
+int LocalFileSystem::CreateDirectory(const std::string &path,
+                                     FileSystemOptions *options) const {
   return cbdb::PathNameCreateDir(path.c_str());
 }
 
 void LocalFileSystem::DeleteDirectory(const std::string &path,
-                                      bool delete_topleveldir) const {
+                                      bool delete_topleveldir,
+                                      FileSystemOptions *options) const {
   cbdb::PathNameDeleteDir(path.c_str(), delete_topleveldir);
 }
 
-bool LocalFileSystem::Exist(const std::string &file_path) {
+bool LocalFileSystem::Exist(const std::string &file_path,
+                            FileSystemOptions *options) {
   struct stat filestats;
   return stat(file_path.c_str(), &filestats) == 0;
 }
 
 }  // namespace pax
-
-namespace paxc {
-
-void FdHandleAbortCallback(ResourceReleasePhase phase, bool is_commit,
-                           bool /*isTopLevel*/, void * /*arg*/) {
-  struct pax::pax_fd_handle_t *curr;
-  struct pax::pax_fd_handle_t *temp;
-
-  if (phase != RESOURCE_RELEASE_AFTER_LOCKS) return;
-
-  // make sure all of thread have been finished before call this callback
-  curr = pax::open_local_fd_handle;
-  AssertImply(curr, !(curr->prev));
-  while (curr) {
-    temp = curr;
-    curr = curr->next;
-    // When executing sql containing spi logic, ReleaseCurrentSubTransaction
-    // will be called at the end of spi. At this time, FdHandleAbortCallback
-    // will be called, We cannot release the parent's resources at this time.
-    // so it need to check the owner of the resource.
-    if (temp->owner == CurrentResourceOwner) {
-      if (is_commit) elog(WARNING, "pax local fds reference leak");
-      Assert(temp->fd >= 0);
-      close(temp->fd);
-      free(temp);
-    }
-  }
-
-  pax::open_local_fd_handle = NULL;
-}
-
-}  // namespace paxc

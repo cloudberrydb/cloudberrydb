@@ -192,8 +192,10 @@ CException::CException(ExType extype)  // NOLINT
     : m_filename_(nullptr), m_lineno_(0), m_extype_(extype) {}
 
 CException::CException(const char *filename, int lineno,  // NOLINT
-                       ExType extype)
-    : m_filename_(filename), m_lineno_(lineno), m_extype_(extype) {}
+                       ExType extype, const char *message)
+    : m_filename_(filename), m_lineno_(lineno), m_extype_(extype) {
+  strncpy(m_errormsg_, message, sizeof(m_errormsg_) - 1);
+}
 
 const char *CException::Filename() const { return m_filename_; }
 
@@ -203,15 +205,20 @@ CException::ExType CException::EType() const { return m_extype_; }
 
 std::string CException::What() const {
   std::ostringstream buffer;
-  buffer << m_filename_ << ":" << m_lineno_ << " "
-         << exception_names[m_extype_];
+  buffer << m_filename_ << ":" << m_lineno_ << " " << exception_names[m_extype_]
+         << " detail:" << m_errormsg_;
   return buffer.str();
 }
 
 const char *CException::Stack() const { return stack_; }
 
 void CException::Raise(const char *filename, int lineno, ExType extype) {
-  Raise(CException(filename, lineno, extype), false);
+  Raise(CException(filename, lineno, extype, ""), false);
+}
+
+void CException::Raise(const char *filename, int lineno, ExType extype,
+                       const char *message) {
+  Raise(CException(filename, lineno, extype, message), false);
 }
 
 void CException::ReRaise(CException ex) { Raise(ex, true); }

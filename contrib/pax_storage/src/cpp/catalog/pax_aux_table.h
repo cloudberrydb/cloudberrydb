@@ -49,9 +49,9 @@ struct ScanAuxContext {
 void PaxAuxRelationSetNewFilenode(Oid aux_relid);
 bool IsMicroPartitionVisible(Relation pax_rel, BlockNumber block,
                              Snapshot snapshot);
-void FetchMicroPartitionAuxRow(Relation rel, Snapshot snapshot, const char *blockname,
-                               void (*callback)(Datum *values, bool *isnull, void *arg),
-															 void *arg);
+void FetchMicroPartitionAuxRow(
+    Relation rel, Snapshot snapshot, const char *blockname,
+    void (*callback)(Datum *values, bool *isnull, void *arg), void *arg);
 }  // namespace paxc
 
 namespace pax {

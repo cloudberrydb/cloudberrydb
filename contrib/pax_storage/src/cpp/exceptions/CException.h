@@ -124,7 +124,8 @@ class CException {
 
   explicit CException(ExType extype);
 
-  CException(const char *filename, int lineno, ExType extype);
+  CException(const char *filename, int lineno, ExType extype,
+             const char *message);
 
   const char *Filename() const;
 
@@ -138,6 +139,8 @@ class CException {
 
   static void Raise(const char *filename, int line, ExType extype)
       __attribute__((__noreturn__));
+  static void Raise(const char *filename, int line, ExType extype,
+                    const char *message) __attribute__((__noreturn__));
   static void Raise(CException ex, bool reraise) __attribute__((__noreturn__));
   static void ReRaise(CException ex) __attribute__((__noreturn__));
 
@@ -147,6 +150,7 @@ class CException {
   const char *m_filename_;
   int m_lineno_;
   ExType m_extype_;
+  char m_errormsg_[512] = {0};
 };
 
 }  // namespace cbdb

@@ -41,9 +41,9 @@ TM_Result CPaxDeleter::MarkDelete(ItemPointer tid) {
   if (block_bitmap_map_.find(block_id) == block_bitmap_map_.end()) {
     block_bitmap_map_[block_id] =
         pax_shared_ptr<Bitmap8>(PAX_NEW<Bitmap8>());  // NOLINT
-    if(!use_visimap_) {
+    if (!use_visimap_) {
       cbdb::DeleteMicroPartitionEntry(RelationGetRelid(rel_), snapshot_,
-                                    block_id);
+                                      block_id);
     }
   }
   auto bitmap = block_bitmap_map_[block_id].get();
@@ -91,7 +91,9 @@ void CPaxDeleter::ExecDelete() {
 pax_unique_ptr<IteratorBase<MicroPartitionMetadata>>
 CPaxDeleter::BuildDeleteIterator() {
   std::vector<pax::MicroPartitionMetadata> micro_partitions;
-  auto rel_path = cbdb::BuildPaxDirectoryPath(rel_->rd_node, rel_->rd_backend);
+  auto rel_path = cbdb::BuildPaxDirectoryPath(
+      rel_->rd_node, rel_->rd_backend,
+      cbdb::IsDfsTablespaceById(rel_->rd_rel->reltablespace));
   for (auto &it : block_bitmap_map_) {
     std::string block_id = it.first;
     {

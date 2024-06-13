@@ -34,6 +34,7 @@ set(pax_storage_src
     storage/oper/pax_oper.cc
     storage/oper/pax_stats.cc
     storage/file_system.cc
+    storage/file_system_helper.cc
     storage/local_file_system.cc
     storage/micro_partition.cc
     storage/micro_partition_file_factory.cc
@@ -49,6 +50,7 @@ set(pax_storage_src
     storage/pax_buffer.cc
     storage/pax_filter.cc
     storage/proto/protobuf_stream.cc
+    storage/remote_file_system.cc
     storage/toast/pax_toast.cc
    )
 

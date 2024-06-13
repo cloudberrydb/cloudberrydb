@@ -10,7 +10,6 @@
 #include "comm/bitmap.h"
 #include "comm/iterator.h"
 #include "storage/file_system.h"
-#include "storage/local_file_system.h"
 #include "storage/micro_partition.h"
 #include "storage/micro_partition_metadata.h"
 #include "storage/orc/porc.h"
@@ -68,7 +67,8 @@ class TableWriter {
   const FileSplitStrategy *strategy_ = nullptr;
   MicroPartitionStats *mp_stats_ = nullptr;
   WriteSummaryCallback summary_callback_;
-  const FileSystem *file_system_ = Singleton<LocalFileSystem>::GetInstance();
+  FileSystem *file_system_ = nullptr;
+  FileSystemOptions *file_system_options_ = nullptr;
 
   size_t num_tuples_ = 0;
   BlockNumber current_blockno_ = 0;
@@ -76,11 +76,14 @@ class TableWriter {
   PaxStorageFormat storage_format_ = PaxStorageFormat::kTypeStoragePorcNonVec;
   bool already_get_min_max_col_idx_ = false;
   std::vector<int> min_max_col_idx_;
+  bool is_dfs_table_space_;
 };
 
 class TableReader final {
  public:
   struct ReaderOptions {
+    Oid table_space_id = 0;
+
     DataBuffer<char> *reused_buffer = nullptr;
 
     // Will not used in TableReader
@@ -135,6 +138,9 @@ class TableReader final {
   MicroPartitionMetadata current_block_metadata_;
   // only for analyze scan
   size_t current_block_row_index_ = 0;
+  FileSystem *file_system_ = nullptr;
+  FileSystemOptions *file_system_options_ = nullptr;
+  bool is_dfs_table_space_;
 };
 
 class TableDeleter final {
@@ -162,6 +168,8 @@ class TableDeleter final {
   Snapshot snapshot_;
   TableReader *reader_;
   TableWriter *writer_;
+  FileSystem *file_system_ = nullptr;
+  FileSystemOptions *file_system_options_ = nullptr;
 };
 
 }  // namespace pax

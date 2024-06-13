@@ -143,16 +143,15 @@ HeapTuple SearchSysCache(Relation rel, SysCacheIdentifier id);
 
 void PathNameDeleteDir(const char *path, bool delete_topleveldir);
 
-void CopyFile(const char *srcsegpath, const char *dstsegpath);
-
 void MakedirRecursive(const char *path);
 
-std::string BuildPaxDirectoryPath(RelFileNode rd_node, BackendId rd_backend);
+// gopher file path must start with '/', so we need to add '/' to the path
+std::string BuildPaxDirectoryPath(RelFileNode rd_node, BackendId rd_backend,
+                                  bool is_dfs_path);
 
-std::string BuildPaxFilePath(const char *rel_path,
-                             const char *block_id);
+std::string BuildPaxFilePath(const char *rel_path, const char *block_id);
 static inline std::string BuildPaxFilePath(const std::string &rel_path,
-                             const std::string &block_id) {
+                                           const std::string &block_id) {
   return BuildPaxFilePath(rel_path.c_str(), block_id.c_str());
 }
 
@@ -205,6 +204,32 @@ void RelDropStorage(Relation rel);
 
 char *GetGUCConfigOptionByName(const char *name, const char **varname,
                                bool missing_ok);
+
+std::string GetDfsTablespaceServer(Oid id);
+
+std::string GetDfsTablespacePath(Oid id);
+
+bool IsDfsTablespaceById(Oid spcId);
+
+// ufile operator
+UFile *UFileOpen(Oid spcId, const char *fileName, int fileFlags,
+                 char *errorMessage, int errorMessageSize);
+int UFileClose(UFile *file);
+int UFileSync(UFile *fiLe);
+int UFileRead(UFile *file, char *buffer, int amount);
+int UFilePRead(UFile *file, char *buffer, int amount, off_t offset);
+int UFileWrite(UFile *file, char *buffer, int amount);
+int UFilePWrite(UFile *file, char *buffer, int amount, off_t offset);
+int64_t UFileSize(UFile *file);
+const char *UFileName(UFile *file);
+int UFileUnlink(Oid spcId, const char *fileName);
+int UFileRmdir(Oid spcId, const char *dirName);
+char *UFileFormatPathName(RelFileNode *relFileNode);
+bool UFileEnsurePath(Oid spcId, const char *pathName);
+bool UFileExists(Oid spcId, const char *fileName);
+const char *UFileGetLastError(UFile *file);
+
+void PaxAddPendingDelete(Relation rel, RelFileNode rn_node, bool atCommit);
 
 }  // namespace cbdb
 

@@ -96,27 +96,49 @@ TEST_F(LocalFileSystemTest, ListDirectory) {
 }
 
 TEST_F(LocalFileSystemTest, CopyFile) {
-  static const char *pax_copy_test_dir = "./copytest";
-  static const char *pax_copy_src_path = file_name_.c_str();
-  static const char *pax_copy_dst_path = "./copytest/test_dst";
+  CBDB_TRY();
+  {
+    static const char *pax_copy_test_dir = "./copytest";
+    static const char *pax_copy_src_path = file_name_.c_str();
+    static const char *pax_copy_dst_path = "./copytest/test_dst";
 
-  int result = 0;
-  FileSystem *fs = pax::Singleton<LocalFileSystem>::GetInstance();
+    int result = 0;
+    FileSystem *fs = pax::Singleton<LocalFileSystem>::GetInstance();
 
-  fs->DeleteDirectory(pax_copy_test_dir, true);
-  ASSERT_NE(access(pax_copy_test_dir, F_OK), 0);
+    fs->DeleteDirectory(pax_copy_test_dir, true);
+    ASSERT_NE(access(pax_copy_test_dir, F_OK), 0);
 
-  File *f = fs->Open(pax_copy_src_path, fs::kWriteMode);
-  f->Close();
+    cbdb::MakedirRecursive(pax_copy_test_dir);
+    File *src_file = fs->Open(pax_copy_src_path, pax::fs::kWriteMode);
 
-  cbdb::MakedirRecursive(pax_copy_test_dir);
+    src_file->Write("abc", 3);
+    src_file->Flush();
+    src_file->Close();
 
-  InitFileAccess();
-  fs->CopyFile(pax_copy_src_path, pax_copy_dst_path);
-  result = access(pax_copy_dst_path, F_OK);
-  ASSERT_NE(result, -1);
+    src_file = fs->Open(pax_copy_src_path, pax::fs::kReadMode);
 
-  fs->DeleteDirectory(pax_copy_test_dir, true);
+    File *dst_file = fs->Open(pax_copy_dst_path, pax::fs::kWriteMode);
+
+    InitFileAccess();
+    fs->CopyFile(src_file, dst_file);
+
+    src_file->Close();
+    dst_file->Close();
+
+    result = access(pax_copy_dst_path, F_OK);
+    ASSERT_NE(result, -1);
+
+    struct stat src_stat, dst_stat;
+
+    stat(pax_copy_src_path, &src_stat);
+    stat(pax_copy_dst_path, &dst_stat);
+    ASSERT_EQ(src_stat.st_size, dst_stat.st_size);
+
+    fs->DeleteDirectory(pax_copy_test_dir, true);
+  }
+  CBDB_CATCH_DEFAULT();
+  CBDB_FINALLY({});
+  CBDB_END_TRY();
 }
 
 TEST_F(LocalFileSystemTest, MakedirRecursive) {

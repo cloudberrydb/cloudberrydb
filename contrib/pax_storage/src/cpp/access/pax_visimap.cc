@@ -10,14 +10,13 @@
 #include "storage/file_system.h"
 #include "storage/local_file_system.h"
 #include "storage/pax_itemptr.h"
-
-#include <unordered_map>
+#include "storage/remote_file_system.h"
 
 namespace pax {
 
-template<typename K, typename V>
+template <typename K, typename V>
 class LruCache {
-public:
+ public:
   typedef typename std::pair<K, V> key_value_pair_t;
   typedef typename std::list<key_value_pair_t>::iterator list_iterator_t;
 
@@ -25,15 +24,11 @@ public:
     MemoryContextGuard(MemoryContext ctx) {
       saved = MemoryContextSwitchTo(ctx);
     }
-    ~MemoryContextGuard() {
-      MemoryContextSwitchTo(saved);
-    }
+    ~MemoryContextGuard() { MemoryContextSwitchTo(saved); }
     MemoryContext saved;
   };
 
-  LruCache(size_t max_size) :
-    max_size_(max_size) {
-  }
+  LruCache(size_t max_size) : max_size_(max_size) {}
 
   void Put(const K &key, const V &value) {
     auto it = cache_items_map_.find(key);
@@ -55,8 +50,8 @@ public:
   const V Get(const K &key, const std::function<V(const K &)> &load_func) {
     auto it = cache_items_map_.find(key);
 
-// FIXME: The memory of c++ objects is allocated from memory context
-// We'll remove the memory context later
+    // FIXME: The memory of c++ objects is allocated from memory context
+    // We'll remove the memory context later
     MemoryContextGuard guard(TopMemoryContext);
     if (it == cache_items_map_.end()) {
       CBDB_CHECK(load_func, cbdb::CException::kExTypeLogicError);
@@ -65,7 +60,8 @@ public:
       Put(key, value);
       return value;
     } else {
-      cache_items_list_.splice(cache_items_list_.begin(), cache_items_list_, it->second);
+      cache_items_list_.splice(cache_items_list_.begin(), cache_items_list_,
+                               it->second);
       return it->second->second;
     }
   }
@@ -74,21 +70,21 @@ public:
     return cache_items_map_.find(key) != cache_items_map_.end();
   }
 
-  size_t Size() const {
-    return cache_items_map_.size();
-  }
+  size_t Size() const { return cache_items_map_.size(); }
 
-private:
+ private:
   std::list<key_value_pair_t> cache_items_list_;
   std::unordered_map<K, list_iterator_t> cache_items_map_;
   size_t max_size_;
 };
 
-static LruCache<std::string, std::shared_ptr<std::vector<uint8>>> visimap_cache(16);
+static LruCache<std::string, std::shared_ptr<std::vector<uint8>>> visimap_cache(
+    16);
 
-std::shared_ptr<std::vector<uint8>> LoadVisimapInternal(const std::string &visimap_file_path) {
-  auto fs = pax::Singleton<LocalFileSystem>::GetInstance();
-  auto file = fs->Open(visimap_file_path, fs::kReadMode);
+std::shared_ptr<std::vector<uint8>> LoadVisimapInternal(
+    FileSystem *file_system, FileSystemOptions *options,
+    const std::string &visimap_file_path) {
+  auto file = file_system->Open(visimap_file_path, pax::fs::kReadMode, options);
   Assert(file);
   size_t file_size = file->FileLength();
 
@@ -102,21 +98,38 @@ std::shared_ptr<std::vector<uint8>> LoadVisimapInternal(const std::string &visim
   return std::make_shared<std::vector<uint8>>(std::move(buffer));
 }
 
-std::shared_ptr<std::vector<uint8>> LoadVisimap(const std::string &visimap_file_path) {
-  return visimap_cache.Get(visimap_file_path,
-                           [](const std::string &key) {
-                              return LoadVisimapInternal(key);
-                            });
+std::shared_ptr<std::vector<uint8>> LoadVisimap(
+    FileSystem *fs, FileSystemOptions* options,
+    const std::string &visimap_file_path) {
+  return visimap_cache.Get(visimap_file_path, [&](const std::string &key) {
+    return LoadVisimapInternal(fs, options, key);
+  });
 }
 
 // true: visible
 // false: invisible
 bool TestVisimap(Relation rel, const char *visimap_name, int offset) {
-  auto rel_path = cbdb::BuildPaxDirectoryPath(rel->rd_node, rel->rd_backend);
+  FileSystem *fs;
+  FileSystemOptions *options = nullptr;
+  static RemoteFileSystemOptions remote_options;
+  // FIXME(gongxun): mount the is_dfs_tablespace in the PaxIndexScanDesc
+  bool is_dfs_tablespace = cbdb::IsDfsTablespaceById(rel->rd_rel->reltablespace);
+  auto rel_path = cbdb::BuildPaxDirectoryPath(rel->rd_node, rel->rd_backend,
+                                              is_dfs_tablespace);
   auto file_path = cbdb::BuildPaxFilePath(rel_path, visimap_name);
-  auto visimap = LoadVisimap(file_path);
-  auto bm = Bitmap8(BitmapRaw<uint8>(visimap->data(), visimap->size()), Bitmap8::ReadOnlyOwnBitmap);
+
+  if (is_dfs_tablespace) {
+    fs = Singleton<RemoteFileSystem>::GetInstance();
+    remote_options.tablespace_id_ = rel->rd_rel->reltablespace;
+    options = &remote_options;
+  } else {
+    fs = Singleton<LocalFileSystem>::GetInstance();
+  }
+
+  auto visimap = LoadVisimap(fs, options, file_path);
+  auto bm = Bitmap8(BitmapRaw<uint8>(visimap->data(), visimap->size()),
+                    Bitmap8::ReadOnlyOwnBitmap);
   auto is_set = bm.Test(offset);
   return !is_set;
 }
-}
+}  // namespace pax

@@ -638,15 +638,14 @@ void OrcWriter::MergeGroup(OrcWriter *orc_writer, int group_index,
 }
 
 void OrcWriter::DeleteUnstateFile() {
-  auto fs = Singleton<LocalFileSystem>::GetInstance();
-  auto file_path = file_->GetPath();
   file_->Close();
-  fs->Delete(file_path);
+  // FIXME(gongxun): refactor into `filesystem::Delete(file);` to support
+  // multiple filesystem.
+  file_->Delete();
 
   if (toast_file_) {
-    auto toast_file_path = toast_file_->GetPath();
     toast_file_->Close();
-    fs->Delete(toast_file_path);
+    toast_file_->Delete();
   }
 
   is_closed_ = true;
@@ -825,12 +824,11 @@ void OrcWriter::Close() {
 
   // Close toast_file before origin file
   if (toast_file_) {
-    auto toast_file_path = toast_file_->GetPath();
     toast_file_->Flush();
     toast_file_->Close();
     // no toast happend
     if (current_toast_file_offset_ == 0) {
-      Singleton<LocalFileSystem>::GetInstance()->Delete(toast_file_path);
+      toast_file_->Delete();
     }
   }
 

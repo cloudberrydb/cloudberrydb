@@ -1,8 +1,9 @@
 #include "comm/paxc_wrappers.h"
+
 #include "comm/cbdb_api.h"
 
-#include <unistd.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #define PAX_MICROPARTITION_NAME_LENGTH 2048
 #define PAX_MICROPARTITION_DIR_POSTFIX "_pax"
@@ -42,82 +43,6 @@ void MakedirRecursive(const char *path) {
   }
 }
 
-// CopyFile: function used to copy all files from specified directory path to
-// another specified directory. parameter srcsegpath IN source directory path.
-// parameter dstsegpath IN destination directory path.
-// parameter dst IN destination relfilenode information.
-// return void.
-void CopyFile(const char *srcsegpath, const char *dstsegpath) {
-  char *buffer = NULL;
-  int64 left;
-  off_t offset;
-  int dstflags;
-  //  Note: here File type is defined in PG instead of pax::File class.
-  ::File srcfile;
-  ::File dstfile;
-
-  Assert(srcsegpath != NULL && srcsegpath[0] != '\0');
-  Assert(dstsegpath != NULL && dstsegpath[0] != '\0');
-
-  // TODO(Tony): needs to adjust BLCKSZ for pax storage.
-  buffer = reinterpret_cast<char *>(palloc0(BLCKSZ));
-
-  // FIXME(Tony): need to verify if there exits fd leakage problem here.
-  srcfile = PathNameOpenFile(srcsegpath, O_RDONLY | PG_BINARY);
-  if (srcfile < 0)
-    ereport(ERROR, (errcode_for_file_access(),
-                    errmsg("CopyFile could not open file %s: %m", srcsegpath)));
-
-  // TODO(Tony): need to understand if O_DIRECT flag could be optimzed for data
-  // copying in PAX.
-  dstflags = O_CREAT | O_WRONLY | O_EXCL | PG_BINARY;
-
-  dstfile = PathNameOpenFile(dstsegpath, dstflags);
-  if (dstfile < 0)
-    ereport(ERROR, (errcode_for_file_access(),
-                    errmsg("CopyFile could not create destination file %s: %m",
-                           dstsegpath)));
-
-  // TODO(Tony): here needs to implement exception handling for pg function call
-  // such as FileDiskSize failure.
-  left = FileDiskSize(srcfile);
-  if (left < 0)
-    ereport(ERROR, (errcode_for_file_access(),
-                    errmsg("CopyFile could not seek to end of file %s: %m",
-                           srcsegpath)));
-
-  offset = 0;
-  while (left > 0) {
-    int len;
-    CHECK_FOR_INTERRUPTS();
-    len = Min(left, BLCKSZ);
-    if (FileRead(srcfile, buffer, len, offset, WAIT_EVENT_DATA_FILE_READ) !=
-        len)
-      ereport(ERROR,
-              (errcode_for_file_access(),
-               errmsg("CopyFile could not read %d bytes from file \"%s\": %m",
-                      len, srcsegpath)));
-
-    if (FileWrite(dstfile, buffer, len, offset, WAIT_EVENT_DATA_FILE_WRITE) !=
-        len)
-      ereport(ERROR,
-              (errcode_for_file_access(),
-               errmsg("CopyFile could not write %d bytes to file \"%s\": %m",
-                      len, dstsegpath)));
-
-    offset += len;
-    left -= len;
-  }
-
-  if (FileSync(dstfile, WAIT_EVENT_DATA_FILE_IMMEDIATE_SYNC) != 0)
-    ereport(ERROR,
-            (errcode_for_file_access(),
-             errmsg("CopyFile could not fsync file \"%s\": %m", dstsegpath)));
-  FileClose(srcfile);
-  FileClose(dstfile);
-  pfree(buffer);
-}
-
 // DeletePaxDirectoryPath: Delete a directory and everything in it, if it
 // exists. parameter dirname IN directory to delete recursively. parameter
 // reserve_topdir IN flag indicate if reserve top level directory.
@@ -145,12 +70,18 @@ void DeletePaxDirectoryPath(const char *dirname, bool delete_topleveldir) {
 // parameter rd_node IN relfilenode information.
 // parameter rd_backend IN backend transaction id.
 // return palloc'd pax storage directory path.
-char *BuildPaxDirectoryPath(RelFileNode rd_node, BackendId rd_backend) {
+char *BuildPaxDirectoryPath(RelFileNode rd_node, BackendId rd_backend,
+                            bool is_dfs_path) {
   char *relpath = NULL;
   char *paxrelpath = NULL;
   relpath = relpathbackend(rd_node, rd_backend, MAIN_FORKNUM);
   Assert(relpath[0] != '\0');
-  paxrelpath = psprintf("%s%s", relpath, PAX_MICROPARTITION_DIR_POSTFIX);
+  if (is_dfs_path) {
+    paxrelpath = psprintf("/%s%s/%d", relpath, PAX_MICROPARTITION_DIR_POSTFIX,
+                          GpIdentity.segindex);
+  } else {
+    paxrelpath = psprintf("%s%s", relpath, PAX_MICROPARTITION_DIR_POSTFIX);
+  }
   pfree(relpath);
   return paxrelpath;
 }
@@ -209,8 +140,8 @@ static void DeletePaxDirectoryPathRecursive(
   }
 }
 
-bool MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily, FmgrInfo *finfo, StrategyNumber strategynum)
-{
+bool MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily,
+                               FmgrInfo *finfo, StrategyNumber strategynum) {
   FmgrInfo dummy;
   HeapTuple tuple;
   Oid opclass;
@@ -219,29 +150,112 @@ bool MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily, FmgrInf
   bool isNull;
 
   opclass = GetDefaultOpClass(atttypid, BRIN_AM_OID);
-  if (!OidIsValid(opclass))
-    return false;
+  if (!OidIsValid(opclass)) return false;
 
   *opfamily = get_opclass_family(opclass);
   tuple = SearchSysCache4(AMOPSTRATEGY, ObjectIdGetDatum(*opfamily),
-                           ObjectIdGetDatum(atttypid),
-                           ObjectIdGetDatum(subtype),
-                           Int16GetDatum(strategynum));
+                          ObjectIdGetDatum(atttypid), ObjectIdGetDatum(subtype),
+                          Int16GetDatum(strategynum));
 
-  if (!HeapTupleIsValid(tuple))
-    return false; // not found operator
+  if (!HeapTupleIsValid(tuple)) return false;  // not found operator
 
-  oprid = DatumGetObjectId(SysCacheGetAttr(AMOPSTRATEGY, tuple,
-                                            Anum_pg_amop_amopopr, &isNull));
+  oprid = DatumGetObjectId(
+      SysCacheGetAttr(AMOPSTRATEGY, tuple, Anum_pg_amop_amopopr, &isNull));
   ReleaseSysCache(tuple);
   Assert(!isNull && RegProcedureIsValid(oprid));
 
   opcode = get_opcode(oprid);
-  if (!RegProcedureIsValid(opcode))
-    return false;
+  if (!RegProcedureIsValid(opcode)) return false;
 
   fmgr_info_cxt(opcode, finfo ? finfo : &dummy, CurrentMemoryContext);
   return true;
+}
+
+// can't use dfs-tablespace-ext directly, copy it
+const char *GetDfsTablespaceServer(Oid spcId) {
+  TableSpaceCacheEntry *spc = get_tablespace(spcId);
+
+  if (!spc->opts) return NULL;
+
+  if (spc->opts->serverOffset == 0) return NULL;
+
+  return (const char *)spc->opts + spc->opts->serverOffset;
+}
+
+const char *GetDfsTablespacePath(Oid spcId) {
+  TableSpaceCacheEntry *spc = get_tablespace(spcId);
+
+  if (!spc->opts) return NULL;
+
+  if (spc->opts->pathOffset == 0) return NULL;
+
+  return (const char *)spc->opts + spc->opts->pathOffset;
+}
+
+FileAm *GetDfsTablespaceFileHandler(Oid spcId) {
+  return ::GetTablespaceFileHandler(spcId);
+}
+
+bool IsDfsTablespaceById(Oid spcId) {
+  if (spcId == InvalidOid) return false;
+
+  TableSpaceCacheEntry *spc = get_tablespace(spcId);
+  return spc->opts && (spc->opts->pathOffset != 0);
+}
+
+static void PaxFileDestroyPendingRelDelete(PendingRelDelete *reldelete) {
+  PendingRelDeletePaxFile *filedelete;
+
+  Assert(reldelete);
+  filedelete = (PendingRelDeletePaxFile *)reldelete;
+
+  pfree(filedelete->filenode.relativePath);
+  pfree(filedelete);
+}
+
+static void PaxFileDoPendingRelDelete(PendingRelDelete *reldelete) {
+  PendingRelDeletePaxFile *filedelete;
+  Assert(reldelete);
+  filedelete = (PendingRelDeletePaxFile *)reldelete;
+  paxc::DeletePaxDirectoryPath(filedelete->filenode.relativePath, true);
+}
+
+static struct PendingRelDeleteAction pax_file_pending_rel_deletes_action = {
+    .flags = PENDING_REL_DELETE_DEFAULT_FLAG,
+    .destroy_pending_rel_delete = PaxFileDestroyPendingRelDelete,
+    .do_pending_rel_delete = PaxFileDoPendingRelDelete};
+
+void PaxAddPendingDelete(Relation rel, RelFileNode rn_node, bool atCommit) {
+  // UFile
+  bool is_dfs_tablespace =
+      paxc::IsDfsTablespaceById(rel->rd_rel->reltablespace);
+  char *relativePath =
+      paxc::BuildPaxDirectoryPath(rn_node, rel->rd_backend, is_dfs_tablespace);
+  if (is_dfs_tablespace) {
+    UFileAddPendingDelete(rel, rel->rd_rel->reltablespace, relativePath,
+                          atCommit);
+  } else {
+    // LocalFile
+    PendingRelDeletePaxFile *pending;
+    /* Add the relation to the list of stuff to delete at abort */
+    pending = (PendingRelDeletePaxFile *)MemoryContextAlloc(
+        TopMemoryContext, sizeof(PendingRelDeletePaxFile));
+    pending->filenode.relkind = rel->rd_rel->relkind;
+    pending->filenode.relativePath =
+        MemoryContextStrdup(TopMemoryContext, relativePath);
+
+    pending->reldelete.atCommit = atCommit; /* delete if abort */
+    pending->reldelete.nestLevel = GetCurrentTransactionNestLevel();
+
+    pending->reldelete.relnode.node = rn_node;
+    pending->reldelete.relnode.isTempRelation =
+        rel->rd_backend == TempRelBackendId;
+    pending->reldelete.relnode.smgr_which = SMGR_INVALID;
+
+    pending->reldelete.action = &pax_file_pending_rel_deletes_action;
+    RegisterPendingDelete(&pending->reldelete);
+  }
+  pfree(relativePath);
 }
 
 }  // namespace paxc

@@ -78,7 +78,9 @@ static inline bool CheckExists(Relation rel, ItemPointer tid, Snapshot snapshot,
 PaxIndexScanDesc::PaxIndexScanDesc(Relation rel) : base_{.rel = rel} {
   Assert(rel);
   Assert(&base_ == reinterpret_cast<IndexFetchTableData *>(this));
-  rel_path_ = cbdb::BuildPaxDirectoryPath(rel->rd_node, rel->rd_backend);
+  rel_path_ = cbdb::BuildPaxDirectoryPath(
+      rel->rd_node, rel->rd_backend,
+      cbdb::IsDfsTablespaceById(rel->rd_rel->reltablespace));
 }
 
 PaxIndexScanDesc::~PaxIndexScanDesc() {
@@ -117,6 +119,10 @@ bool PaxIndexScanDesc::OpenMicroPartition(BlockNumber block,
   bool ok;
 
   Assert(block != current_block_);
+
+  CBDB_CHECK(!cbdb::IsDfsTablespaceById(base_.rel->rd_rel->reltablespace),
+             cbdb::CException::kExTypeUnImplements,
+             "remote filesystem not support index scan");
 
   ok = cbdb::IsMicroPartitionVisible(base_.rel, block, snapshot);
   if (ok) {
@@ -245,6 +251,7 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
 
   // build reader
   reader_options.reused_buffer = desc->reused_buffer_;
+  reader_options.table_space_id = relation->rd_rel->reltablespace;
   reader_options.filter = filter;
 
   auto iter = MicroPartitionInfoIterator::New(relation, snapshot);
