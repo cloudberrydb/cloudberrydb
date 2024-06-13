@@ -189,10 +189,13 @@ class PaxColumn {
   inline Bitmap8 *GetBitmap() const { return null_bitmap_; }
 
   // Set the column kv attributes
-  void SetAttributes(std::map<std::string, std::string> attrs);
+  void SetAttributes(const std::map<std::string, std::string> &attrs);
 
   // Get the column kv attributes
-  const std::map<std::string, std::string> &GetAttributes();
+  const std::map<std::string, std::string> &GetAttributes() const;
+
+  // Has setting the attributes
+  inline bool HasAttributes() { return !attrs_map_.empty(); }
 
   // Set the total rows of current column
   inline void SetRows(size_t total_rows) { total_rows_ = total_rows; }

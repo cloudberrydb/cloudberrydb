@@ -227,11 +227,10 @@ static std::pair<Datum, Datum> GetDatumWithNonNull(PaxColumn *column,
       datum = PointerGetDatum(buffer);
       if (column->IsToast(row_offset)) {
         auto external_buffer = column->GetExternalToastDataBuffer();
-        Datum d = pax_detoast(
+        ref = pax_detoast(
             datum, external_buffer ? external_buffer->Start() : nullptr,
             external_buffer ? external_buffer->Used() : 0);
-        datum = d;
-        ref = datum;
+        datum = ref;
       }
       break;
     }

@@ -242,6 +242,7 @@ OrcWriter::~OrcWriter() {
 void OrcWriter::Flush() {
   BufferedOutputStream buffer_mem_stream(2048);
   DataBuffer<char> toast_mem(nullptr, 0, true, false);
+  PaxColumns *new_columns;
   if (WriteStripe(&buffer_mem_stream, &toast_mem)) {
     current_written_phy_size_ += pax_columns_->PhysicalSize();
     Assert(current_offset_ >= buffer_mem_stream.GetDataBuffer()->Used());
@@ -255,10 +256,24 @@ void OrcWriter::Flush() {
       toast_file_->PWriteN(toast_mem.GetBuffer(), toast_mem.Used(),
                            current_toast_file_offset_ - toast_mem.Used());
     }
+
+    new_columns = BuildColumns(column_types_, writer_options_.encoding_opts,
+                               writer_options_.lengths_encoding_opts,
+                               writer_options_.storage_format);
+
+    for (size_t i = 0; i < column_types_.size(); ++i) {
+      auto old_column = (*pax_columns_)[i];
+      auto new_column = (*new_columns)[i];
+
+      Assert(old_column && new_column);
+      if (old_column->HasAttributes()) {
+        // TODO(jiaqizho): consider use std::map::swap here
+        new_column->SetAttributes(old_column->GetAttributes());
+      }
+    }
+
     PAX_DELETE(pax_columns_);
-    pax_columns_ = BuildColumns(column_types_, writer_options_.encoding_opts,
-                                writer_options_.lengths_encoding_opts,
-                                writer_options_.storage_format);
+    pax_columns_ = new_columns;
   }
 }
 
@@ -848,8 +863,8 @@ void OrcWriter::WriteFileFooter(BufferedOutputStream *buffer_mem_stream) {
     auto sub_proto_type = file_footer_.add_types();
     sub_proto_type->set_kind(orc_type);
     auto pax_column = (*pax_columns_)[i];
-    if (pax_column) {
-      auto column_attrs = pax_column->GetAttributes();
+    if (pax_column && pax_column->HasAttributes()) {
+      const auto &column_attrs = pax_column->GetAttributes();
       for (const auto &kv : column_attrs) {
         auto attr_pair = sub_proto_type->add_attributes();
         attr_pair->set_key(kv.first);

@@ -21,20 +21,20 @@ static std::pair<Datum, Datum> GetDatumWithNonNull(PaxColumn *column,
   switch (column->GetPaxColumnTypeInMem()) {
     case kTypeVecBpChar:
     case kTypeNonFixed:
+      datum = PointerGetDatum(buffer);
       if (column->IsToast(row_index)) {
         auto external_buffer = column->GetExternalToastDataBuffer();
-        Datum d = pax_detoast(
+        ref = pax_detoast(
             datum, external_buffer ? external_buffer->Start() : nullptr,
             external_buffer ? external_buffer->Used() : 0);
-        datum = d;
-        ref = datum;
+        datum = ref;
         break;
       }
 
       CBDB_WRAP_START;
       {
         ref = PointerGetDatum(
-            palloc(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len + VARHDRSZ)));
+          PAX_NEW_ARRAY<char>(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len + VARHDRSZ)));
         SET_VARSIZE(ref, buffer_len + VARHDRSZ);
         memcpy(VARDATA(ref), buffer, buffer_len);
         datum = ref;

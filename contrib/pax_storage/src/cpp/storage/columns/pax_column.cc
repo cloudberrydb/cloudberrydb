@@ -38,11 +38,11 @@ PaxColumnTypeInMem PaxColumn::GetPaxColumnTypeInMem() const {
   return PaxColumnTypeInMem::kTypeInvalid;
 }
 
-void PaxColumn::SetAttributes(std::map<std::string, std::string> attrs) {
+void PaxColumn::SetAttributes(const std::map<std::string, std::string> &attrs) {
   attrs_map_ = attrs;
 }
 
-const std::map<std::string, std::string> &PaxColumn::GetAttributes() {
+const std::map<std::string, std::string> &PaxColumn::GetAttributes() const {
   return attrs_map_;
 }
 

@@ -1066,14 +1066,16 @@ static std::pair<bool, size_t> ColumnTransMemory(PaxColumn *column) {
 
   auto vec_column = dynamic_cast<T *>(column);
   auto data_buffer = vec_column->GetDataBuffer();
-  if (!data_buffer->IsMemTakeOver()) {
-    return {false, 0};
-  } else {
-    Assert(data_buffer->Capacity() % MEMORY_ALIGN_SIZE == 0);
+  auto data_cap = data_buffer->Capacity();
+
+  if (data_buffer->IsMemTakeOver() && data_cap != 0) {
+    Assert(data_cap % MEMORY_ALIGN_SIZE == 0);
 
     data_buffer->SetMemTakeOver(false);
-    return {true, data_buffer->Capacity()};
+    return {true, data_cap};
   }
+
+  return {false, 0};
 }
 
 int VecAdapter::AppendVecFormat() {

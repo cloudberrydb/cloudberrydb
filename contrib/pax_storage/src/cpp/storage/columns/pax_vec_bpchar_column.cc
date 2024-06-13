@@ -25,12 +25,20 @@ PaxVecBpCharColumn::~PaxVecBpCharColumn() {
 
 void PaxVecBpCharColumn::Append(char *buffer, size_t size) {
   if (number_of_char_ == NUMBER_OF_CHAR_UNINIT) {
+#ifdef ENABLE_DEBUG
+    if (HasAttributes()) {
+      auto ret = GetAttribute(NUMBER_OF_CHAR_KEY);
+      if (ret.second) {
+        auto value = atoll(ret.first.c_str());
+        Assert(size == (size_t)value);
+      }
+    }
+#endif
+
     // no need pass the n (which from `char(n)`)
     // we can direct get n from size
     number_of_char_ = size;
-    [[maybe_unused]] auto ret =
-        PutAttribute(NUMBER_OF_CHAR_KEY, std::to_string(number_of_char_));
-    Assert(ret);
+    PutAttribute(NUMBER_OF_CHAR_KEY, std::to_string(number_of_char_));
   }
   Assert(size == (size_t)number_of_char_);
   auto real_len = bpchartruelen(buffer, size);
