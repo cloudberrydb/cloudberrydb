@@ -1792,10 +1792,10 @@ RemoveRelations(DropStmt *drop)
 			if (HeapTupleIsValid(indexTuple))
 			{
 				index = (Form_pg_index) GETSTRUCT(indexTuple);
-				if (RelationIsDirectoryTable(index->indrelid))
+				if (RelationIsDirectoryTable(index->indrelid) && index->indisprimary)
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-							 errmsg("Disallowed to drop index \"%s\" on directory table \"%s\"",
+							 errmsg("Disallowed to drop primary index \"%s\" on directory table \"%s\"",
 							 get_rel_name(index->indexrelid), get_rel_name(index->indrelid))));
 				ReleaseSysCache(indexTuple);
 			}

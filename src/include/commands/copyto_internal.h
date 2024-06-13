@@ -52,6 +52,7 @@ typedef struct CopyToStateData
 	List	   *attnumlist;		/* integer list of attnums to copy */
 	List	   *attnamelist;    /* list of attributes by name */
 	char	   *filename;		/* filename, or NULL for STDOUT */
+	char	   *dirfilename;	/* filename of directory table, not NULL for copy directory table to */
 	bool		is_program;		/* is 'filename' a program to popen? */
 
 	CopyFormatOptions opts;

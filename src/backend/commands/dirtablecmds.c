@@ -168,6 +168,9 @@ CreateDirectoryTable(CreateDirectoryTableStmt *stmt, Oid relId)
 
 	CatalogTupleInsert(dirRelation, tuple);
 
+	/* Add dependency with tablespace */
+	recordDependencyOnTablespace(RelationRelationId, relId, spcId);
+
 	heap_freetuple(tuple);
 
 	table_close(dirRelation, RowExclusiveLock);
@@ -185,7 +188,7 @@ getFileContent(Oid spcId, char *scopedFileUrl)
 	int		bytesRead;
 	bytea 	*content;
 	UFile	*file;
-	int64 	fileSize;
+	int64_t 	fileSize;
 
 	file = UFileOpen(spcId,
 					 scopedFileUrl,

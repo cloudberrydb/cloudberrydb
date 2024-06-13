@@ -472,9 +472,18 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 		 */
 		PG_TRY();
 		{
-			cstate = BeginCopyTo(pstate, rel, query, relid,
-								 stmt->filename, stmt->is_program,
-								 stmt->attlist, options);
+			if (rel && rel->rd_rel->relkind == RELKIND_DIRECTORY_TABLE)
+			{
+				cstate = BeginCopyToDirectoryTable(pstate, stmt->filename, stmt->dirfilename,
+												   rel, stmt->is_program, options);
+			}
+
+			else
+			{
+				cstate = BeginCopyTo(pstate, rel, query, relid,
+									 stmt->filename, stmt->is_program,
+									 stmt->attlist, options);
+			}
 
 			/*
 			 * "copy t to file on segment"					CopyDispatchOnSegment

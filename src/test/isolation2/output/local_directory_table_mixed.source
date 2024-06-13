@@ -370,12 +370,16 @@ COMMIT
 2: COMMIT;
 COMMIT
 
-DROP DIRECTORY TABLE IF EXISTS dir_table1;
+DROP TABLESPACE directory_tblspc;
+ERROR:  tablespace "directory_tblspc" cannot be dropped because some objects depend on it
+DETAIL:  tablespace for directory table dir_table1
+tablespace for directory table dir_table3
+tablespace for directory table dir_table2
+DROP DIRECTORY TABLE dir_table1;
 DROP
-DROP DIRECTORY TABLE IF EXISTS dir_table2;
+DROP DIRECTORY TABLE dir_table2;
 DROP
-DROP DIRECTORY TABLE IF EXISTS dir_table3;
+DROP DIRECTORY TABLE dir_table3;
 DROP
-
 DROP TABLESPACE directory_tblspc;
 DROP
