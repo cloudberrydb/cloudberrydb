@@ -130,3 +130,7 @@ CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 
 ! rm -rf '@testtablespace@';
 DROP TABLESPACE directory_tblspc;
+DROP DIRECTORY TABLE dir_table1;
+DROP DIRECTORY TABLE dir_table2;
+DROP DIRECTORY TABLE dir_table3;
+DROP TABLESPACE directory_tblspc;
