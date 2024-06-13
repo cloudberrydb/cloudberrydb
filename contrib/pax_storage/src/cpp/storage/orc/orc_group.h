@@ -35,12 +35,11 @@ class OrcGroup : public MicroPartitionReader::Group {
   }
 
  protected:
-  // Used to direct get datum from columns
-  virtual std::pair<Datum, bool> GetColumnValue(size_t column_index,
-                                                size_t row_index);
+  void CalcNullShuffle(PaxColumn *column, size_t column_index);
 
-  virtual std::pair<Datum, bool> GetColumnValue(PaxColumn *column,
-                                                size_t row_index);
+  // Used to get the no missing column
+  std::pair<Datum, bool> GetColumnValueNoMissing(size_t column_index,
+                                                 size_t row_index);
 
   // Used in `ReadTuple`
   // Different from the other `GetColumnValue` function, in this function, if a
@@ -64,6 +63,7 @@ class OrcGroup : public MicroPartitionReader::Group {
  private:
   friend class tools::PaxDumpReader;
   uint32 *current_nulls_ = nullptr;
+  uint32 **nulls_shuffle_ = nullptr;
   // only a reference, owner by pax_filter
   const std::vector<int> *proj_col_index_;
 };
@@ -74,12 +74,6 @@ class OrcVecGroup final : public OrcGroup {
               const std::vector<int> *proj_col_index);
 
  private:
-  std::pair<Datum, bool> GetColumnValue(size_t column_index,
-                                        size_t row_index) override;
-
-  std::pair<Datum, bool> GetColumnValue(PaxColumn *column,
-                                        size_t row_index) override;
-
   std::pair<Datum, bool> GetColumnValue(PaxColumn *column, size_t row_index,
                                         uint32 *null_counts) override;
 };

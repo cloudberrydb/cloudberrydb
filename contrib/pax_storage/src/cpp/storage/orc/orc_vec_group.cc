@@ -10,39 +10,6 @@ OrcVecGroup::OrcVecGroup(PaxColumns *pax_column, size_t row_offset,
 }
 
 static std::pair<Datum, Datum> GetDatumWithNonNull(PaxColumn *column,
-                                                   size_t row_index);
-
-std::pair<Datum, bool> OrcVecGroup::GetColumnValue(size_t column_index,
-                                                   size_t row_index) {
-  Assert(column_index < pax_columns_->GetColumns());
-
-  auto column = (*pax_columns_)[column_index];
-  Assert(column);
-
-  return GetColumnValue(column, row_index);
-}
-
-std::pair<Datum, bool> OrcVecGroup::GetColumnValue(PaxColumn *column,
-                                                   size_t row_index) {
-  Assert(column);
-  Assert(row_index < column->GetRows());
-  Datum datum, ref;
-
-  if (column->HasNull()) {
-    auto bm = column->GetBitmap();
-    Assert(bm);
-    if (!bm->Test(row_index)) {
-      return {0, true};
-    }
-  }
-
-  std::tie(datum, ref) = GetDatumWithNonNull(column, row_index);
-  if (ref) buffer_holder_.emplace_back(ref);
-
-  return {datum, false};
-}
-
-static std::pair<Datum, Datum> GetDatumWithNonNull(PaxColumn *column,
                                                    size_t row_index) {
   Datum datum = 0, ref = 0;
   char *buffer;

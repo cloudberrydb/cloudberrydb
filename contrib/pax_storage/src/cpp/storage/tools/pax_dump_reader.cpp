@@ -461,7 +461,8 @@ void PaxDumpReader::DumpGroupFooter() {
           {"Stream type", std::to_string(n_stream->kind())});
       stream_desc_table.add_row({"Column", std::to_string(n_stream->column())});
       stream_desc_table.add_row({"Length", std::to_string(n_stream->length())});
-      stream_desc_table.add_row({"Padding", std::to_string(n_stream->padding())});
+      stream_desc_table.add_row(
+          {"Padding", std::to_string(n_stream->padding())});
 
       if (n_stream->kind() ==
           ::pax::porc::proto::Stream_Kind::Stream_Kind_DATA) {
@@ -590,7 +591,8 @@ void PaxDumpReader::DumpAllData() {
       bool null;
       PaxColumn *column = (*columns)[column_index];
 
-      std::tie(d, null) = group->GetColumnValue(column_index, row_index);
+      std::tie(d, null) = group->GetColumnValueNoMissing((size_t)column_index,
+                                                         (size_t)row_index);
       if (null) {
         current_row.emplace_back("");
       } else {
