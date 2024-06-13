@@ -25,9 +25,12 @@
 #include "access/xact.h"
 #include "access/xlog.h"
 #include "catalog/namespace.h"
+#include "catalog/pg_directory_table.h"
 #include "commands/copy.h"
 #include "commands/copyto_internal.h"
 #include "commands/progress.h"
+#include "common/cryptohash.h"
+#include "common/md5.h"
 #include "executor/execdesc.h"
 #include "executor/executor.h"
 #include "executor/tuptable.h"
@@ -70,6 +73,8 @@ static uint64 CopyToDispatch(CopyToState cstate);
 static void CopyToDispatchFlush(CopyToState cstate);
 static uint64 CopyTo(CopyToState cstate);
 static void CopySendChar(CopyToState cstate, char c);
+static uint64 CopyToDispatchDirectoryTable(CopyToState cstate);
+static uint64 CopyToDirectoryTable(CopyToState cstate);
 
 /* Low-level communications functions */
 static void SendCopyBegin(CopyToState cstate);
@@ -1644,6 +1649,9 @@ CopyToDispatch(CopyToState cstate)
 	CdbCopy    *cdbCopy;
 	uint64		processed = 0;
 
+	if (cstate->rel->rd_rel->relkind == RELKIND_DIRECTORY_TABLE)
+		return CopyToDispatchDirectoryTable(cstate);
+
 	tupDesc = cstate->rel->rd_att;
 	num_phys_attrs = tupDesc->natts;
 	attr_count = list_length(cstate->attnumlist);
@@ -1787,6 +1795,93 @@ CopyToDispatch(CopyToState cstate)
 }
 
 /*
+ * Copy FROM directory table TO file, in the dispatcher. Starts a COPY TO command
+ * on each of the executors and gathers all the results and writes it out.
+ */
+static uint64
+CopyToDispatchDirectoryTable(CopyToState cstate)
+{
+	CopyStmt	*stmt = glob_copystmt;
+	TupleDesc	tupDesc;
+	CdbCopy		*cdbCopy;
+	uint64		processed = 0;
+
+	tupDesc = cstate->rel->rd_att;
+
+	cstate->fe_msgbuf = makeStringInfo();
+	cdbCopy = makeCdbCopyTo(cstate);
+
+	/*
+	 * Start a COPY command in every db of every segment in Cloudberry Database.
+	 *
+	 * From this point in the code we need to be extra careful
+	 * about error handling. ereport() must not be called until
+	 * the COPY command sessions are closed on the executors.
+	 * Calling ereport() will leave the executors hanging in
+	 * COPY state.
+	 */
+	elog(DEBUG5, "COPY command sent to segdbs");
+	
+	PG_TRY();
+	{
+		bool		done;
+
+		cdbCopyStart(cdbCopy, stmt, cstate->file_encoding);
+
+		if (!cstate->opts.binary)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("Only support copy binary to directory table.")));
+
+		/*
+		 * This is the main work-loop. In here we keep collecting data from the
+		 * COPY commands on the segdbs, until no more data is available. We
+		 * keep writing data out a chunk at a time.
+		 */
+		do
+		{
+			bool	copy_cancel = (QueryCancelPending ? true : false);
+
+			/* get a chunk of data rows from the QE's */
+			done = cdbCopyGetData(cdbCopy, copy_cancel, &processed);
+
+			/* send the chunk of data rows to destination (file or stdout) */
+			if (cdbCopy->copy_out_buf.len > 0) /* conditional is important! */
+			{
+				/*
+				 * in the dispatcher we receive chunks of file and flush it.
+				 */
+				CopySendData(cstate, (void *) cdbCopy->copy_out_buf.data, cdbCopy->copy_out_buf.len);
+				CopyToDispatchFlush(cstate);
+			}
+		} while (!done);
+
+		cdbCopyEnd(cdbCopy, NULL, NULL);
+
+		/* now it's safe to destroy the whole dispatcher state */
+		CdbDispatchCopyEnd(cdbCopy);
+	}
+	/* catch error */
+	PG_CATCH();
+	{
+		MemoryContext oldcontext = MemoryContextSwitchTo(cstate->copycontext);
+
+		cdbCopyAbort(cdbCopy);
+
+		MemoryContextSwitchTo(oldcontext);
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
+
+	/* we can throw the error now if QueryCancelPending was set previously */
+	CHECK_FOR_INTERRUPTS();
+
+	pfree(cdbCopy);
+
+	return 1;
+}
+
+/*
  * Copy from relation or query TO file.
  */
 static uint64
@@ -1796,6 +1891,9 @@ CopyTo(CopyToState cstate)
 	int			num_phys_attrs;
 	ListCell   *cur;
 	uint64		processed = 0;
+
+	if (cstate->rel && cstate->rel->rd_rel->relkind == RELKIND_DIRECTORY_TABLE)
+		return CopyToDirectoryTable(cstate);
 
 	if (cstate->rel)
 		tupDesc = RelationGetDescr(cstate->rel);
@@ -1955,6 +2053,139 @@ CopyTo(CopyToState cstate)
 	return processed;
 }
 
+/*
+ * Copy directory table To QD.
+ */
+static uint64
+CopyToDirectoryTable(CopyToState cstate)
+{
+	uint64		processed = 0;
+	TupleTableSlot *slot;
+	TableScanDesc scandesc;
+	ScanKeyData skey;
+	Datum		datum;
+	bool		isnull;
+	char	   *relative_path;
+	char	   *scopedFileUrl;
+	DirectoryTable	*dirTable;
+	UFile	   *file;
+	int64_t		file_size;
+	pg_cryptohash_ctx	*hashCtx;
+	char		hexMd5Sum[256];
+	uint8 md5Sum[MD5_DIGEST_LENGTH];
+	char	   *md5;
+
+	Assert(cstate->rel);
+
+	dirTable = GetDirectoryTable(RelationGetRelid(cstate->rel));
+
+	/* We use fe_msgbuf as a per-row buffer regardless of copy_dest */
+	cstate->fe_msgbuf = makeStringInfo();
+
+	/*
+	 * Create a temporary memory context that we can reset once per row to
+	 * recover palloc'd memory.  This avoids any problems with leaks inside
+	 * datatype output routines, and should be faster than retail pfree's
+	 * anyway.  (We don't need a whole econtext as CopyFrom does.)
+	 */
+	cstate->rowcontext = AllocSetContextCreate(CurrentMemoryContext,
+											   "COPY TO",
+											   ALLOCSET_DEFAULT_SIZES);
+
+	ScanKeyInit(&skey,
+				(AttrNumber) 1,
+				BTEqualStrategyNumber, F_TEXTEQ,
+				CStringGetTextDatum(cstate->dirfilename));
+	scandesc = table_beginscan(cstate->rel, GetActiveSnapshot(), 1, &skey);
+	slot = table_slot_create(cstate->rel, NULL);
+
+	processed = 0;
+	if (table_scan_getnextslot(scandesc, ForwardScanDirection, slot))
+	{
+		char 	buffer[4096];
+		char	errorMessage[256];
+		int		bytesRead;
+
+		/* Deconstruct the tuple ... */
+		slot_getallattrs(slot);
+
+		datum = slot_getattr(slot, 1, &isnull);
+		Assert(isnull == false);
+		relative_path = TextDatumGetCString(datum);
+		scopedFileUrl = psprintf("%s/%s", dirTable->location, relative_path);
+
+		hashCtx = pg_cryptohash_create(PG_MD5);
+		if (hashCtx == NULL)
+			ereport(ERROR,
+						(errcode(ERRCODE_OUT_OF_MEMORY),
+						 errmsg("failed to create md5hash context: out of memory")));
+		pg_cryptohash_init(hashCtx);
+
+		file = UFileOpen(dirTable->spcId,
+						 scopedFileUrl,
+						 O_RDONLY,
+						 errorMessage,
+						 sizeof(errorMessage));
+		if (file == NULL)
+			ereport(ERROR,
+						(errcode(ERRCODE_IO_ERROR),
+						 errmsg("failed to open file \"%s\": %s",
+								scopedFileUrl, errorMessage)));
+
+		file_size = UFileSize(file);
+		if (file_size > MaxAllocSize - VARHDRSZ)
+			ereport(ERROR,
+						(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+						 errmsg("out of memory")));
+
+		while (true)
+		{
+			bytesRead = UFileRead(file, buffer, sizeof(buffer));
+			if (bytesRead == -1)
+				ereport(ERROR,
+						(errcode(ERRCODE_INTERNAL_ERROR),
+						 errmsg("failed to read file \"%s\": %s", scopedFileUrl, UFileGetLastError(file))));
+
+			if (bytesRead == 0)
+				break;
+
+			CopySendData(cstate, buffer, bytesRead);
+			pg_cryptohash_update(hashCtx, (const uint8 *) buffer, bytesRead);
+			CopySendEndOfRow(cstate);
+		}
+
+		pg_cryptohash_final(hashCtx, md5Sum, sizeof(md5Sum));
+		pg_cryptohash_free(hashCtx);
+		bytesToHex(md5Sum, hexMd5Sum);
+
+		/* Get md5 from schema table */
+		datum = slot_getattr(slot, 4, &isnull);
+		Assert(isnull == false);
+		md5 = TextDatumGetCString(datum);
+
+		if (strcmp(md5, hexMd5Sum) != 0)
+			ereport(ERROR,
+						(errcode(ERRCODE_IO_ERROR),
+						 errmsg("Copy directory table to file failed, as file content is not consistent.")));
+
+		UFileClose(file);
+
+		/*
+		 * Increment the number of processed tuples, and report the
+		 * progress.
+		 */
+		pgstat_progress_update_param(PROGRESS_COPY_TUPLES_PROCESSED,
+									 ++processed);
+	}
+
+	ExecDropSingleTupleTableSlot(slot);
+	table_endscan(scandesc);
+
+	MemoryContextDelete(cstate->rowcontext);
+
+	return processed;
+}
+
 void
 CopyOneCustomRowTo(CopyToState cstate, bytea *value)
 {
@@ -1999,3 +2230,182 @@ CopySendChar(CopyToState cstate, char c)
 {
 	appendStringInfoCharMacro(cstate->fe_msgbuf, c);
 }
+
+CopyToState
+BeginCopyToDirectoryTable(ParseState *pstate,
+						  const char *filename,
+						  const char *dirfilename,
+						  Relation rel,
+						  bool	is_program,
+						  List *options)
+{
+	CopyToState	cstate;
+	bool		pipe;
+	MemoryContext oldcontext;
+	const int	progress_cols[] = {
+		PROGRESS_COPY_COMMAND,
+		PROGRESS_COPY_TYPE
+	};
+	int64		progress_vals[] = {
+		PROGRESS_COPY_COMMAND_TO,
+		0
+	};
+
+	if (!glob_copystmt->dirfilename)
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("COPY to directory table must specify the relative_path name.")));
+
+	/* Allocate workspace and zero all fields */
+	cstate = (CopyToStateData *) palloc0(sizeof(CopyToStateData));
+
+	glob_cstate = cstate;
+	
+	/*
+	 * We allocate everying used by a cstate in a new memory context. This
+	 * avoids memory leaks during repeated use of COPY in a query.
+	 */
+	cstate->copycontext = AllocSetContextCreate(CurrentMemoryContext,
+											 	"COPY",
+											 	ALLOCSET_DEFAULT_SIZES);
+
+	oldcontext = MemoryContextSwitchTo(cstate->copycontext);
+
+	/* Process the target relation */
+	Assert(rel);
+	cstate->rel = rel;
+
+	/* Check whether copy directory table options allowed */
+	ProcessCopyDirectoryTableOptions(pstate, &cstate->opts, true, options, rel->rd_id);
+
+	if (Gp_role == GP_ROLE_DISPATCH && !cstate->opts.binary)
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("Only support copy binary directory table to.")));
+
+	cstate->file_encoding = GetDatabaseEncoding();
+	cstate->need_transcoding = false;
+
+	/* See Multibyte encoding comment above */
+	cstate->encoding_embeds_ascii = PG_ENCODING_IS_CLIENT_ONLY(cstate->file_encoding);
+	
+	cstate->copy_dest = COPY_FILE;	/* default */
+
+	pipe = (filename == NULL || Gp_role == GP_ROLE_EXECUTE);
+
+	/* Determine the mode */
+	if (Gp_role == GP_ROLE_DISPATCH && cstate->opts.on_segment &&
+		cstate->rel && cstate->rel->rd_cdbpolicy)
+	{
+		cstate->dispatch_mode = COPY_DISPATCH;
+	}
+	else
+		cstate->dispatch_mode = COPY_DIRECT;
+
+	if (cstate->opts.on_segment && Gp_role == GP_ROLE_DISPATCH)
+	{
+		/* in On SEGMENT mode, we don't open anything on the dispatcher. */
+
+		if (filename == NULL)
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("STDOUT is not supported by 'COPY ON SEGMENT'")));
+	}
+	else if (pipe)
+	{
+		progress_vals[1] = PROGRESS_COPY_TYPE_PIPE;
+		cstate->dirfilename = pstrdup(dirfilename);
+		
+		/*
+		 * the grammar does not allow this on QD.
+		 * on QE, this could happen
+		 */
+		Assert(!is_program || Gp_role == GP_ROLE_EXECUTE);
+		if (whereToSendOutput != DestRemote)
+			cstate->copy_file = stdout;
+	}
+	else
+	{
+		cstate->filename = pstrdup(filename);
+		cstate->dirfilename = pstrdup(dirfilename);
+		cstate->is_program = is_program;
+
+		if (is_program)
+		{
+			progress_vals[1] = PROGRESS_COPY_TYPE_PROGRAM;
+			cstate->program_pipes = open_program_pipes(cstate->filename, true);
+			cstate->copy_file = fdopen(cstate->program_pipes->pipes[EXEC_DATA_P], PG_BINARY_W);
+			if (cstate->copy_file == NULL)
+				ereport(ERROR,
+						(errcode_for_file_access(),
+						 errmsg("could not execute command \"%s\": %m",
+								cstate->filename)));
+		}
+		else
+		{
+			mode_t		oumask;	/* Pre-existing umask value */
+			struct stat st;
+
+			progress_vals[1] = PROGRESS_COPY_TYPE_FILE;
+
+			/*
+			 * Prevent write to relative path ... too easy to shoot oneself in
+			 * the foot by overwriting a database file ...
+			 */
+			if (!is_absolute_path(cstate->filename))
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_NAME),
+						 errmsg("relative path not allowed for COPY to file")));
+
+			oumask = umask(S_IWGRP | S_IWOTH);
+			PG_TRY();
+			{
+				cstate->copy_file = AllocateFile(cstate->filename, PG_BINARY_W);
+			}
+			PG_FINALLY();
+			{
+				umask(oumask);
+			}
+			PG_END_TRY();
+			if (cstate->copy_file == NULL)
+			{
+				/* copy errno because ereport subfunctions might change it */
+				int		save_errno = errno;
+
+				ereport(ERROR,
+						(errcode_for_file_access(),
+						 errmsg("could not open file \"%s\" for writing: %m",
+								cstate->filename),
+						 (save_errno == ENOENT || save_errno == EACCES) ?
+						 errhint("COPY TO instructs the PostgreSQL server process to write a file. "
+								 "You may want a client-side facility such as psql's \\copy.") : 0));
+			}
+
+			// Increase buffer size to improve performance  (cmcdevitt)
+			/* GPDB_14_MERGE_FIXME: Ret value process. */
+			setvbuf(cstate->copy_file, NULL, _IOFBF, 393216);	// 384 Kbytes
+
+			if (fstat(fileno(cstate->copy_file), &st))
+				ereport(ERROR,
+						(errcode_for_file_access(),
+						 errmsg("could not stat file \"%s\": %m",
+								cstate->filename)));
+
+			if (S_ISDIR(st.st_mode))
+				ereport(ERROR,
+						(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+						 errmsg("\"%s\" is a directory", cstate->filename)));
+		}
+	}
+	/* initialize progress */
+	pgstat_progress_start_command(PROGRESS_COMMAND_COPY,
+							      cstate->rel ? RelationGetRelid(cstate->rel) :InvalidOid);
+	pgstat_progress_update_multi_param(2, progress_cols, progress_vals);
+
+	cstate->bytes_processed = 0;
+
+	MemoryContextSwitchTo(oldcontext);
+
+	return cstate;
+}
+
