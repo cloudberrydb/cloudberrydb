@@ -171,6 +171,8 @@ extern void CopyOneRowTo(CopyToState cstate, TupleTableSlot *slot);
 extern void CopySendEndOfRow(CopyToState cstate);
 extern void truncateEol(StringInfo buf, EolType	eol_type);
 extern void truncateEolStr(char *str, EolType eol_type);
+extern CopyToState BeginCopyToDirectoryTable(ParseState *pstate, const char *filename, const char *dirfilename,
+											 Relation rel, bool is_program, List *options);
 
 /*
  * This is used to hold information about the target's distribution policy,

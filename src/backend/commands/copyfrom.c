@@ -216,8 +216,8 @@ static void InitCopyFromDispatchSplit(CopyFromState cstate, GpDistributionData *
 static unsigned int GetTargetSeg(GpDistributionData *distData, TupleTableSlot *slot);
 
 static uint64 CopyFromDirectoryTable(CopyFromState cstate);
-static CopyFromState BeginCopyFromDirectoryTable(ParseState *pstate, const char *fileName,
-						 				Relation rel, List *options);
+static CopyFromState BeginCopyFromDirectoryTable(ParseState *pstate, Relation rel,
+												 const char *filename, bool is_program, List *options);
 
 /*
  * No more than this many tuples per CopyMultiInsertBuffer
@@ -1220,8 +1220,9 @@ CopyFromDirectoryTable(CopyFromState cstate)
  */
 static CopyFromState
 BeginCopyFromDirectoryTable(ParseState *pstate,
-							const char *filename,
 							Relation rel,
+							const char *filename,
+							bool is_program,
 							List *options)
 {
 	CopyFromState cstate;
@@ -1356,13 +1357,14 @@ BeginCopyFromDirectoryTable(ParseState *pstate,
 	/* We keep those variables in cstate. */
 	cstate->in_functions = in_functions;
 	cstate->typioparams = typioparams;
-	cstate->is_program = false;
+	cstate->is_program = is_program;
 
 	pipe = (filename == NULL || cstate->dispatch_mode == COPY_EXECUTOR);
 
 	if (pipe)
 	{
 		progress_vals[1] = PROGRESS_COPY_TYPE_PIPE;
+		Assert(!is_program || cstate->dispatch_mode == COPY_EXECUTOR);	/* the grammar does not allow this */
 		if (whereToSendOutput == DestRemote)
 			ReceiveCopyBegin(cstate);
 		else
@@ -1370,42 +1372,56 @@ BeginCopyFromDirectoryTable(ParseState *pstate,
 	}
 	else
 	{
-		struct stat st;
-
 		cstate->filename = pstrdup(filename);
 
-		progress_vals[1] = PROGRESS_COPY_TYPE_FILE;
-		cstate->copy_file = AllocateFile(cstate->filename, PG_BINARY_R);
-		if (cstate->copy_file == NULL)
+		if (cstate->is_program)
 		{
-			/* copy errno because ereport subfunctions might change it */
-			int			save_errno = errno;
-
-			ereport(ERROR,
-					(errcode_for_file_access(),
-						errmsg("could not open file \"%s\" for reading: %m",
-							   cstate->filename),
-						(save_errno == ENOENT || save_errno == EACCES) ?
-						errhint("COPY FROM instructs the PostgreSQL server process to read a file. "
-								"You may want a client-side facility such as psql's \\copy.") : 0));
+			progress_vals[1] = PROGRESS_COPY_TYPE_PROGRAM;
+			cstate->program_pipes = open_program_pipes(cstate->filename, false);
+			cstate->copy_file = fdopen(cstate->program_pipes->pipes[0], PG_BINARY_R);
+			if (cstate->copy_file == NULL)
+				ereport(ERROR,
+						(errcode_for_file_access(),
+						 errmsg("could not execute command \"%s\": %m",
+								cstate->filename)));
 		}
+		else
+		{
+			struct stat st;
 
-		// Increase buffer size to improve performance  (cmcdevitt)
-		/* GPDB_14_MERGE_FIXME: Ret value process. */
-		setvbuf(cstate->copy_file, NULL, _IOFBF, 393216); // 384 Kbytes
+			progress_vals[1] = PROGRESS_COPY_TYPE_FILE;
+			cstate->copy_file = AllocateFile(cstate->filename, PG_BINARY_R);
+			if (cstate->copy_file == NULL)
+			{
+				/* copy errno because ereport subfunctions might change it */
+				int		save_error = errno;
 
-		if (fstat(fileno(cstate->copy_file), &st))
-			ereport(ERROR,
-					(errcode_for_file_access(),
-						errmsg("could not stat file \"%s\": %m",
-							   cstate->filename)));
+				ereport(ERROR,
+						(errcode_for_file_access(),
+						 errmsg("could not open file \"%s\" for reading: %m",
+								cstate->filename),
+						 (save_error == ENOENT || save_error == EACCES) ?
+						 errhint("COPY FROM instructs the PostgreSQL server process to read a file. "
+								 "You may want a client-side facility such as psql's \\copy.") : 0));
+			}
 
-		if (S_ISDIR(st.st_mode))
-			ereport(ERROR,
-					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-						errmsg("\"%s\" is a directory", cstate->filename)));
+			// Increase buffer size to improve performance  (cmcdevitt)
+			/* GPDB_14_MERGE_FIXME: Ret value process. */
+			setvbuf(cstate->copy_file, NULL, _IOFBF, 393216); // 384 Kbytes
 
-		progress_vals[2] = st.st_size;
+			if (fstat(fileno(cstate->copy_file), &st))
+				ereport(ERROR,
+						(errcode_for_file_access(),
+						 errmsg("could not stat file \"%s\": %m",
+							    cstate->filename)));
+
+			if (S_ISDIR(st.st_mode))
+				ereport(ERROR,
+						(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+						 errmsg("\"%s\" is a directory", cstate->filename)));
+
+			progress_vals[2] = st.st_size;
+		}
 	}
 
 	pgstat_progress_update_multi_param(3, progress_cols, progress_vals);
@@ -2465,7 +2481,7 @@ BeginCopyFrom(ParseState *pstate,
 	};
 
 	if (rel->rd_rel->relkind == RELKIND_DIRECTORY_TABLE)
-		return BeginCopyFromDirectoryTable(pstate, filename, rel, options);
+		return BeginCopyFromDirectoryTable(pstate, rel, filename, is_program, options);
 
 	/* Allocate workspace and zero all fields */
 	cstate = (CopyFromStateData *) palloc0(sizeof(CopyFromStateData));
@@ -2880,8 +2896,11 @@ BeginCopyFrom(ParseState *pstate,
 	}
 	else if (cstate->opts.binary)
 	{
-		/* Read and verify binary header */
-		ReceiveCopyBinaryHeader(cstate);
+		if (cstate->rel->rd_rel->relkind != RELKIND_DIRECTORY_TABLE)
+		{
+			/* Read and verify binary header */
+			ReceiveCopyBinaryHeader(cstate);
+		}
 	}
 
 	/* create workspace for CopyReadAttributes results */
@@ -3930,12 +3949,19 @@ static void
 EndCopyFromDirectoryTable(CopyFromState cstate)
 {
 	/* No COPY FROM related resources except memory. */
-	if (cstate->copy_file && FreeFile(cstate->copy_file))
+	if (cstate->is_program)
 	{
-		ereport(ERROR,
-					(errcode_for_file_access(),
-					 errmsg("could not close file \"%s\": %m",
-						   cstate->filename)));
+		close_program_pipes(cstate->program_pipes, true);
+	}
+	else
+	{
+		if (cstate->copy_file && FreeFile(cstate->copy_file))
+		{
+			ereport(ERROR,
+						(errcode_for_file_access(),
+						 errmsg("could not close file \"%s\": %m",
+							    cstate->filename)));
+		}
 	}
 
 	/* Clean up single row error handling related memory */

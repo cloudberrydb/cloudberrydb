@@ -238,11 +238,11 @@ SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname
 
 -- Test CREATE/DROP/REINDEX on DIRECTORY SCHEMA TABLE
 -- Test CREATE INDEX on DIRECTORY SCHEMA TABLE
-CREATE INDEX dirtable1_relative_path_idx on dir_table1(relative_path);    -- fail
-CREATE INDEX dirtable1_size_idx on dir_table1(size);  -- fail
-CREATE INDEX dirtable1_last_modified_idx on dir_table1(last_modified);    -- fail
-CREATE INDEX dirtable1_md5_idx on dir_table1(md5);    -- fail
-CREATE INDEX dirtable1_tag_idx on dir_table1(tag);    -- fail
+CREATE INDEX dirtable1_relative_path_idx on dir_table1(relative_path);
+CREATE INDEX dirtable1_size_idx on dir_table1(size);
+CREATE INDEX dirtable1_last_modified_idx on dir_table1(last_modified);
+CREATE INDEX dirtable1_md5_idx on dir_table1(md5);
+CREATE INDEX dirtable1_tag_idx on dir_table1(tag);
 \d+ dir_table1;
 
 -- Test DROP INDEX on DIRECTORY SCHEMA TABLE
@@ -252,6 +252,12 @@ DROP INDEX dir_table3_pkey; -- fail
 DROP INDEX dir_table4_pkey; -- fail
 DROP INDEX dir_table5_pkey; -- fail
 DROP INDEX dir_table6_pkey; -- fail
+DROP INDEX dirtable1_relative_path_idx; -- OK
+DROP INDEX dirtable1_size_idx;  -- OK
+DROP INDEX dirtable1_last_modified_idx; -- OK
+DROP INDEX dirtable1_md5_idx;   -- OK
+DROP INDEX dirtable1_tag_idx;   -- OK
+\d+ dir_table1;
 
 -- Test REINDEX on DIRECTORY SCHEMA TABLE
 REINDEX INDEX dir_table1_pkey;
@@ -269,21 +275,20 @@ REINDEX TABLE dir_table5;
 REINDEX TABLE dir_table6;
 
 -- Test triggers
-DROP FUNCTION IF EXISTS trigtest;
-create function trigtest() returns trigger as $$
+create function triggertest() returns trigger as $$
 begin
 	raise notice '% % % %', TG_TABLE_NAME, TG_OP, TG_WHEN, TG_LEVEL;
 	return new;
 end;$$ language plpgsql;
 
 create trigger trigtest_b_row_tg_dirtable_1 before insert or update or delete on dir_table1
-for each row execute procedure trigtest();
+for each row execute procedure triggertest();
 create trigger trigtest_a_row_tg_dirtable_1 after insert or update or delete on dir_table1
-for each row execute procedure trigtest();
+for each row execute procedure triggertest();
 create trigger trigtest_b_stmt_tg_dirtable_1 before insert or update or delete on dir_table1
-for each statement execute procedure trigtest();
+for each statement execute procedure triggertest();
 create trigger trigtest_a_stmt_tg_dirtable_1 after insert or update or delete on dir_table1
-for each statement execute procedure trigtest();
+for each statement execute procedure triggertest();
 
 -- Test COPY DIRECTORY TABLE syntax
 SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
@@ -304,17 +309,16 @@ SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
 SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
 SELECT relative_path, content FROM directory_table('dir_table1') ORDER BY 1;
 
-COPY dir_table2 FROM '@abs_srcdir@/data/nation.csv';     -- fail
-COPY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation';  -- fail
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv';     -- fail
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation1';
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation1'; -- fail
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation2';
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';    -- fail
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation2';    -- fail
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation4' WITH TAG 'nation';
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation5' WITH TAG 'nation' WITH TAG 'nation2';    -- fail
+COPY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv';     -- fail
+COPY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation';  -- fail
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation1';
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation1'; -- fail
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation2';
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';    -- fail
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation2';    -- fail
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation4' WITH TAG 'nation';
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation5' WITH TAG 'nation' WITH TAG 'nation2';    -- fail
 SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
 SELECT relative_path, content FROM directory_table('dir_table2') ORDER BY 1;
 
@@ -371,7 +375,7 @@ SELECT md5_equal('dir_table2', 'nation2');
 SELECT md5_equal('dir_table2', 'nation3');
 SELECT md5_equal('dir_table2', 'nation4');
 
--- Does not support copy to
+-- Test Copy To directory table
 \COPY dir_table1 TO '@abs_srcdir@/data/dir_table1';  -- fail
 \COPY BINARY dir_table1 TO '@abs_srcdir@/data/dir_table1';  -- fail
 COPY dir_table1 TO '@abs_srcdir@/data/dir_table1';  -- fail
@@ -380,6 +384,17 @@ COPY BINARY dir_table1 TO '@abs_srcdir@/data/dir_table1';  -- fail
 \COPY BINARY dir_table2 TO '@abs_srcdir@/data/dir_table2';  -- fail
 COPY dir_table2 TO '@abs_srcdir@/data/dir_table2';  -- fail
 COPY BINARY dir_table2 TO '@abs_srcdir@/data/dir_table2';  -- fail
+\COPY BINARY dir_table1 TO '@abs_srcdir@/data/dir_table1';   -- fail
+COPY BINARY dir_table1 TO '@abs_srcdir@/data/dir_table1';   -- fail
+\COPY BINARY DIRECTORY TABLE dir_table1 'nation1' TO '@abs_srcdir@/data/nation1';   -- OK
+COPY BINARY DIRECTORY TABLE dir_table1 'nation1' TO '@abs_srcdir@/data/nation1';   -- OK
+\COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdin; -- OK
+COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdin; -- OK
+\COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdout; -- OK
+COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdout; -- OK
+\COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO PROGRAM 'gzip -c -1 > @abs_srcdir@/data/nation2.gz';   -- OK
+COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO PROGRAM 'gzip -c -1 > @abs_srcdir@/data/nation2.gz';   -- OK
+
 SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
 SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
 
@@ -596,7 +611,7 @@ DROP DIRECTORY TABLE IF EXISTS dir_table4;
 DROP DIRECTORY TABLE IF EXISTS dir_table5;
 DROP DIRECTORY TABLE IF EXISTS dir_table6;
 
-DROP FUNCTION IF EXISTS trigtest;
+DROP FUNCTION IF EXISTS triggertest;
 
 DROP STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER oss_server1;
 DROP STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER oss_server2;
