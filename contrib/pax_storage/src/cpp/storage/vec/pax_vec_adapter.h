@@ -32,8 +32,6 @@ class VecAdapter final {
 
   bool IsInitialized() const;
 
-  bool IsEnd() const;
-
   // return -1,0 or batch_cache_lens
   // value -1 means: no remaining tuples in pax_columns
   // value 0 means: all this batch of data have been skipped and FlushVecBuffer
@@ -57,9 +55,12 @@ class VecAdapter final {
 
  private:
   void FullWithCTID(TupleTableSlot *slot, VecBatchBuffer *batch_buffer);
-
   void FillMissColumn(int attr_index);
-  int AppendVecFormat();
+
+  std::pair<size_t, size_t> AppendPorcFormat(PaxColumns *columns,
+                                             size_t range_begin,
+                                             size_t range_lens);
+  std::pair<size_t, size_t> AppendPorcVecFormat(PaxColumns *columns);
 
   inline size_t GetInvisibleNumber(size_t range_begin, size_t range_lens) {
     if (micro_partition_visibility_bitmap_ == nullptr) {
@@ -83,7 +84,7 @@ class VecAdapter final {
   int vec_cache_buffer_lens_;
 
   PaxColumns *process_columns_;
-  size_t current_cached_pax_columns_index_;
+  size_t current_index_;
   bool build_ctid_;
 
   int group_base_offset_;
@@ -93,7 +94,6 @@ class VecAdapter final {
   // ctid offset in current batch range
   DataBuffer<int32> *ctid_offset_in_current_range_;
 };
-
 }  // namespace pax
 
 #endif  // #ifdef VEC_BUILD

@@ -27,11 +27,11 @@
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 
-#include <arrow/array/array_decimal.h>
-#include <arrow/array/data.h>
 #include <arrow/array/array_binary.h>
+#include <arrow/array/array_decimal.h>
 #include <arrow/array/array_nested.h>
 #include <arrow/array/array_primitive.h>
+#include <arrow/array/data.h>
 #include <arrow/c/abi.h>
 #include <arrow/c/bridge.h>
 #include <arrow/util/bit_util.h>
@@ -56,5 +56,12 @@
 
 // NOLINTNEXTLINE
 #define IsPowerOf2(x) (x > 0 && ((x) & ((x)-1)) == 0)
+
+namespace arrow {
+
+void ExportArrayRelease(ArrowArray *array);
+void ExportArrayRoot(const std::shared_ptr<ArrayData> &data,
+                     ArrowArray *export_array);
+}  // namespace arrow
 
 #endif  // VEC_BUILD

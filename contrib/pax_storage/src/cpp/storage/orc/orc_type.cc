@@ -1,6 +1,8 @@
+#include "storage/orc/orc_type.h"
+
 #include "comm/cbdb_api.h"
 
-#include "storage/orc/porc.h"
+#include "exceptions/CException.h"
 
 namespace pax {
 pax::porc::proto::Type_Kind ConvertPgTypeToPorcType(FormData_pg_attribute *attr,

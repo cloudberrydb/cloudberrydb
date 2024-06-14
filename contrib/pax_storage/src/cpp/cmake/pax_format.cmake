@@ -55,8 +55,12 @@ set(pax_storage_src
    )
 
 set(pax_vec_src
-storage/vec/pax_vec_adapter.cc
-storage/vec/pax_vec_reader.cc
+  storage/vec/arrow_wrapper.cc
+  storage/vec/pax_porc_adpater.cc
+  storage/vec/pax_porc_vec_adpater.cc
+  storage/vec/pax_vec_adapter.cc
+  storage/vec/pax_vec_comm.cc
+  storage/vec/pax_vec_reader.cc
 )
 
 set(pax_target_include ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
