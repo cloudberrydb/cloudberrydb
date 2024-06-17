@@ -102,11 +102,6 @@ class PaxScanDesc {
   // filter used to do column projection
   PaxFilter *filter_ = nullptr;
 
-#ifdef ENABLE_PLASMA
-  const std::string plasma_socket_path_prefix_ = "/tmp/.s.plasma.";
-  PaxCache *pax_cache_ = nullptr;
-#endif
-
   // used only by bitmap index scan
   PaxIndexScanDesc *index_desc_ = nullptr;
   int cindex_ = 0;

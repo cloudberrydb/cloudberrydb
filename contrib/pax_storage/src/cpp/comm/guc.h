@@ -22,10 +22,6 @@ extern int pax_min_size_of_external_toast;
 #define VECTOR_MAX_BATCH_SIZE_GUC_NAME "vector.max_batch_size"
 #endif
 
-#ifdef ENABLE_PLASMA
-extern bool pax_enable_plasma_in_mem;
-#endif
-
 }  // namespace pax
 
 namespace paxc {

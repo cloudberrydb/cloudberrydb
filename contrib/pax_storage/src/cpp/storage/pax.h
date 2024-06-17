@@ -95,10 +95,6 @@ class TableReader final {
     TupleDesc tuple_desc = nullptr;
     bool vec_build_ctid = false;
 #endif
-
-#ifdef ENABLE_PLASMA
-    PaxCache *pax_cache = nullptr;
-#endif  // ENABLE_PLASMA
   };
 
   TableReader(std::unique_ptr<IteratorBase<MicroPartitionMetadata>> &&iterator,

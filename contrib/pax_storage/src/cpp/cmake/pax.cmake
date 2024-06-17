@@ -25,9 +25,6 @@ set(pax_exceptions_src
     exceptions/CException.cc)
 
 set(pax_storage_src
-    storage/cache/pax_cache.cc
-    storage/cache/pax_plasma_cache.cc
-    storage/columns/pax_column_cache.cc
     storage/columns/pax_column_traits.cc
     storage/columns/pax_column.cc
     storage/columns/pax_compress.cc

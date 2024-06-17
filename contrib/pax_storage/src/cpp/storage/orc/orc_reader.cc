@@ -6,7 +6,6 @@
 
 #include "comm/cbdb_wrappers.h"
 #include "exceptions/CException.h"
-#include "storage/columns/pax_column_cache.h"
 #include "storage/orc/orc_defined.h"
 #include "storage/orc/orc_group.h"
 #include "storage/orc/porc.h"
@@ -71,46 +70,8 @@ MicroPartitionReader::Group *OrcReader::ReadGroup(size_t group_index) {
   PaxColumns *pax_columns = nullptr;
 
   Assert(group_index < GetGroupNums());
-#ifdef ENABLE_PLASMA
-  if (pax_column_cache_) {
-    PaxColumns *columns_readed = nullptr;
-    bool *proj_copy = nullptr;
-    bool still_remain = false;
-    std::tie(pax_columns, release_key_, proj_copy) =
-        pax_column_cache_->ReadCache(group_index);
 
-    for (size_t i = 0; i < proj_len_; i++) {
-      if (proj_copy[i]) {
-        still_remain = true;
-        break;
-      }
-    }
-
-    if (still_remain) {
-      columns_readed =
-          format_reader_.ReadStripe(group_index, proj_copy, proj_len_);
-      pax_column_cache_->WriteCache(columns_readed, group_index);
-    }
-
-    PAX_DELETE_ARRAY(proj_copy);
-
-    // No get the cache columns
-    if (pax_columns->GetRows() == 0) {
-      Assert(columns_readed);
-      PAX_DELETE(pax_columns);
-      pax_columns = columns_readed;
-    } else if (still_remain) {
-      Assert(columns_readed);
-      pax_columns->MergeTo(columns_readed);
-    }
-
-  } else {
-    pax_columns = format_reader_.ReadStripe(group_index, proj_map_, proj_len_);
-  }
-#else  // ENABLE_PLASMA
   pax_columns = format_reader_.ReadStripe(group_index, proj_map_, proj_len_);
-
-#endif  // ENABLE_PLASMA
 
 #ifdef ENABLE_DEBUG
   for (size_t i = 0; i < pax_columns->GetColumns(); i++) {
@@ -155,13 +116,7 @@ void OrcReader::Open(const ReaderOptions &options) {
     SetProjColumnIndex(options.filter->GetColumnProjectionIndex());
   }
 
-#ifdef ENABLE_PLASMA
-  if (options.pax_cache)
-    pax_column_cache_ = PAX_NEW<PaxColumnCache>(
-        options.pax_cache, options.block_id, proj_map_, proj_len_);
-#endif
   format_reader_.Open();
-
   is_closed_ = false;
 
   // only referenced, owner by caller who constructed ReadOptions
@@ -182,13 +137,6 @@ void OrcReader::Close() {
   if (is_closed_) {
     return;
   }
-
-#ifdef ENABLE_PLASMA
-  if (pax_column_cache_) {
-    pax_column_cache_->ReleaseCache(release_key_);
-    PAX_DELETE(pax_column_cache_);
-  }
-#endif
 
   ResetCurrentReading();
   format_reader_.Close();

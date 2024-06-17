@@ -428,9 +428,6 @@ bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
   options.block_id = current_block_metadata_.GetMicroPartitionId();
   options.filter = reader_options_.filter;
   options.reused_buffer = reader_options_.reused_buffer;
-#ifdef ENABLE_PLASMA
-  options.pax_cache = reader_options_.pax_cache;
-#endif
 
   // load visibility map
   // TODO(jiaqizho): PAX should not do read/pread in table layer
@@ -482,10 +479,6 @@ void TableReader::OpenFile() {
 
   options.filter = reader_options_.filter;
   options.reused_buffer = reader_options_.reused_buffer;
-
-#ifdef ENABLE_PLASMA
-  options.pax_cache = reader_options_.pax_cache;
-#endif
 
   PAX_DELETE(reader_);
 

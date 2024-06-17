@@ -42,14 +42,6 @@ if (BUILD_GTEST)
   SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-access-control -fno-inline -Wno-pmf-conversions -Wl,--allow-multiple-definition -no-pie -fno-stack-protector")
 endif(BUILD_GTEST)
 
-# Plasma options
-option (ENABLE_PLASMA "Enable plasma cache" OFF)
-if (ENABLE_PLASMA)
-ADD_DEFINITIONS(-DENABLE_PLASMA)
-# plasma need use CXX_STANDARD 17
-set(CMAKE_CXX_STANDARD 17)
-endif()
-
 # Vec options
 CHECK_SYMBOL_EXISTS(USE_VECTORIZATION "${PG_CONFIG_HEADER_FILE}" VEC_BUILD)
 if (VEC_BUILD)

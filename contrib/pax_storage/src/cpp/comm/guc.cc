@@ -37,10 +37,6 @@ bool pax_enable_toast = true;
 int pax_min_size_of_compress_toast = PAX_MIN_SIZE_MAKE_COMPRESSED_TOAST;
 int pax_min_size_of_external_toast = PAX_MIN_SIZE_MAKE_EXTERNAL_TOAST;
 
-#ifdef ENABLE_PLASMA
-bool pax_enable_plasma_in_mem = true;
-#endif
-
 }  // namespace pax
 
 namespace paxc {
@@ -95,13 +91,6 @@ void DefineGUCs() {
   DefineCustomBoolVariable("pax_enable_filter", "enable pax filter", NULL,
                            &pax::pax_enable_filter, true, PGC_USERSET, 0, NULL,
                            NULL, NULL);
-
-#ifdef ENABLE_PLASMA
-  DefineCustomBoolVariable("pax_enable_plasma",
-                           "Enable plasma cache the set of columns", NULL,
-                           &pax::pax_enable_plasma_in_mem, true, PGC_USERSET,
-                           GUC_GPDB_NEED_SYNC, NULL, NULL, NULL);
-#endif
 
   DefineCustomIntVariable(
       "pax_scan_reuse_buffer_size", "set the reuse buffer size", NULL,

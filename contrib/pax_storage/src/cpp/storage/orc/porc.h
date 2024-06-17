@@ -107,10 +107,6 @@ class OrcWriter : public MicroPartitionWriter {
   ::pax::MicroPartitionStats group_stats_;
 };
 
-#ifdef ENABLE_PLASMA
-class PaxColumnCache;
-#endif  // ENABLE_PLASMA
-
 class OrcReader : public MicroPartitionReader {
  public:
   explicit OrcReader(File *file, File *toast_file = nullptr);
@@ -161,10 +157,6 @@ class OrcReader : public MicroPartitionReader {
   OrcFormatReader format_reader_;
   bool is_closed_;
 
-#ifdef ENABLE_PLASMA
-  PaxColumnCache *pax_column_cache_ = nullptr;
-  std::vector<std::string> release_key_;
-#endif  // ENABLE_PLASMA
   // only reference
   std::shared_ptr<Bitmap8> visibility_bitmap_ = nullptr;
 };

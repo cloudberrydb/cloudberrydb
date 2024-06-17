@@ -16,10 +16,6 @@
 #include "storage/pax_buffer.h"
 #include "storage/pax_defined.h"
 
-#ifdef ENABLE_PLASMA
-#include "storage/cache/pax_plasma_cache.h"
-#endif
-
 #ifdef VEC_BUILD
 #include "utils/am_vec.h"
 #endif
@@ -222,31 +218,6 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
   }
 #endif  // VEC_BUILD
 
-#ifdef ENABLE_PLASMA
-  if (pax_enable_plasma_in_mem) {
-    std::string plasma_socket_path =
-        std::string(desc->plasma_socket_path_prefix_);
-    plasma_socket_path.append(std::to_string(PostPortNumber));
-    plasma_socket_path.append("\0");
-    PaxPlasmaCache::CacheOptions cache_options;
-    cache_options.domain_socket = plasma_socket_path;
-    cache_options.memory_quota = 0;
-    cache_options.waitting_ms = 0;
-
-    desc->pax_cache_ = PAX_NEW<PaxPlasmaCache>(std::move(cache_options));
-    auto status = desc->pax_cache_->Initialize();
-    if (!status.Ok()) {
-      elog(WARNING, "Plasma cache client init failed, message: %s",
-           status.Error().c_str());
-      PAX_DELETE(desc->pax_cache_);
-      desc->pax_cache_ = nullptr;
-    }
-
-    reader_options.pax_cache = desc->pax_cache_;
-  }
-
-#endif  // ENABLE_PLASMA
-
   old_ctx = MemoryContextSwitchTo(desc->memory_context_);
 
   // build reader
@@ -284,13 +255,6 @@ void PaxScanDesc::EndScan() {
   PAX_DELETE(reused_buffer_);
   PAX_DELETE(reader_);
   PAX_DELETE(filter_);
-
-#ifdef ENABLE_PLASMA
-  if (pax_cache_) {
-    pax_cache_->Destroy();
-    PAX_DELETE(pax_cache_);
-  }
-#endif
 
   PAX_DELETE(index_desc_);
 
