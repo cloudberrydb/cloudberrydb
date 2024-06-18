@@ -15,7 +15,11 @@ use warnings;
 
 use PostgresNode;
 use TestLib;
-use Test::More tests => 38;
+
+# GPDB: Effectively disable some of these tests. We cannot run
+# PREPARE TRANSACTION in utility-mode.
+# use Test::More tests => 38;
+use Test::More tests => 36;
 
 sub check_orphan_relfilenodes
 {
@@ -115,22 +119,23 @@ wal_skip_threshold = 0
 		"SELECT count(*), min(id) FROM trunc_ins;");
 	is($result, qq(1|2), "wal_level = $wal_level, TRUNCATE INSERT");
 
-	# Same for prepared transaction.
-	# Tuples inserted after the truncation should be seen.
-	$node->safe_psql(
-		'postgres', "
-		BEGIN;
-		CREATE TABLE twophase (id serial PRIMARY KEY);
-		INSERT INTO twophase VALUES (DEFAULT);
-		TRUNCATE twophase;
-		INSERT INTO twophase VALUES (DEFAULT);
-		PREPARE TRANSACTION 't';
-		COMMIT PREPARED 't';");
-	$node->stop('immediate');
-	$node->start;
-	$result = $node->safe_psql('postgres',
-		"SELECT count(*), min(id) FROM trunc_ins;");
-	is($result, qq(1|2), "wal_level = $wal_level, TRUNCATE INSERT PREPARE");
+	# GPDB: Disable this test.
+	# # Same for prepared transaction.
+	# # Tuples inserted after the truncation should be seen.
+	# $node->safe_psql(
+	# 	'postgres', "
+	# 	BEGIN;
+	# 	CREATE TABLE twophase (id serial PRIMARY KEY);
+	# 	INSERT INTO twophase VALUES (DEFAULT);
+	# 	TRUNCATE twophase;
+	# 	INSERT INTO twophase VALUES (DEFAULT);
+	# 	PREPARE TRANSACTION 't';
+	# 	COMMIT PREPARED 't';");
+	# $node->stop('immediate');
+	# $node->start;
+	# $result = $node->safe_psql('postgres',
+	# 	"SELECT count(*), min(id) FROM trunc_ins;");
+	# is($result, qq(1|2), "wal_level = $wal_level, TRUNCATE INSERT PREPARE");
 
 	# Writing WAL at end of xact, instead of syncing.
 	$node->safe_psql(
