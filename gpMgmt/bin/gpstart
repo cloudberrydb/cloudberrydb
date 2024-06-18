@@ -98,7 +98,7 @@ class GpStart:
 
         etcd_config_tmp_file = "/tmp/cbdb_etcd.conf"
         coordinator_data_directory = os.environ.get("COORDINATOR_DATA_DIRECTORY")
-        copy_etcd_config_file_cmd = f"gpscp -f {self.fts_hosts} {coordinator_data_directory + '/config' + '/cbdb_etcd.conf'} =:{etcd_config_tmp_file}"
+        copy_etcd_config_file_cmd = f"gpsync -f {self.fts_hosts} {coordinator_data_directory + '/config' + '/cbdb_etcd.conf'} =:{etcd_config_tmp_file}"
         subprocess.check_output(copy_etcd_config_file_cmd, shell=True)
         logger.info("Begin to start all FTS process.")
         isdemo = (len(fts_host_machine_list) == 1)

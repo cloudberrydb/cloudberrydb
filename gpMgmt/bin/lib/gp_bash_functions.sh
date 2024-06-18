@@ -1301,9 +1301,9 @@ SETUP_FTS() {
     FTS_LOG_DIR=$2
     FTS_START_MODE=$3
     if [ "$FTS_START_MODE" = "DEMO" ];then
-        nohup $GPHOME/bin/gpfts -F $GPHOME/bin/config/cbdb_etcd_default.conf -d ${FTS_LOG_DIR}/log/fts -D -C -a >/dev/null 2>&1 &
+        nohup $GPHOME/bin/gpsync -F $GPHOME/bin/config/cbdb_etcd_default.conf -d ${FTS_LOG_DIR}/log/fts -D -C -a >/dev/null 2>&1 &
     else
-        gpscp -h ${FTS_HOST} $ETCD_CONFIG_FILE_PATH =:${ETCD_CONFIG_TMP_FILE}
+        gpsync -h ${FTS_HOST} $ETCD_CONFIG_FILE_PATH =:${ETCD_CONFIG_TMP_FILE}
         FTS_CMD="mkdir -p ${FTS_LOG_DIR}/log/fts;nohup ${GPHOME}/bin/gpfts -F ${ETCD_CONFIG_TMP_FILE} -d ${FTS_LOG_DIR}/log/fts >/dev/null 2>&1 &"
         gpssh -h ${FTS_HOST} -e "${FTS_CMD}"
     fi
