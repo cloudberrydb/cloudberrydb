@@ -972,13 +972,13 @@ backend_type(SegmentDatabaseDescriptor *segdb)
 }
 
 /*
- * qsort comparator for SegmentDatabaseDescriptors. Sorts by descriptor ID.
+ * sort comparator for SegmentDatabaseDescriptors. Sorts by descriptor ID.
  */
 static int
-compare_segdb_id(const void *v1, const void *v2)
+compare_segdb_id(const ListCell *a, const ListCell *b)
 {
-	SegmentDatabaseDescriptor *d1 = (SegmentDatabaseDescriptor *) lfirst(*(ListCell **) v1);
-	SegmentDatabaseDescriptor *d2 = (SegmentDatabaseDescriptor *) lfirst(*(ListCell **) v2);
+	SegmentDatabaseDescriptor *d1 = (SegmentDatabaseDescriptor *) lfirst(a);
+	SegmentDatabaseDescriptor *d2 = (SegmentDatabaseDescriptor *) lfirst(b);
 
 	return d1->identifier - d2->identifier;
 }
@@ -1060,7 +1060,7 @@ gp_backend_info(PG_FUNCTION_ARGS)
 		 * For a slightly better default user experience, sort by descriptor ID.
 		 * Users may of course specify their own ORDER BY if they don't like it.
 		 */
-		user_fctx->segdbs = list_qsort(user_fctx->segdbs, compare_segdb_id);
+		list_sort(user_fctx->segdbs, compare_segdb_id);
 		user_fctx->curpos = list_head(user_fctx->segdbs);
 
 		/* Create a descriptor for the records we'll be returning. */
@@ -1095,7 +1095,7 @@ gp_backend_info(PG_FUNCTION_ARGS)
 
 		/* Get the next descriptor. */
 		dbdesc = lfirst(user_fctx->curpos);
-		user_fctx->curpos = lnext(user_fctx->curpos);
+		user_fctx->curpos = lnext(user_fctx->segdbs, user_fctx->curpos);
 
 		/* Fill in the row attributes. */
 		dbinfo = dbdesc->segment_database_info;

@@ -53,8 +53,7 @@ CREATE
 1<:  <... completed>
 ERROR:  fault triggered, fault name:'start_prepare' fault type:'panic'
 2<:  <... completed>
-DETAIL:  Segments are in reset/recovery mode.
-ERROR:  failed to acquire resources on one or more segments
+CREATE
 
 -- We shouldn't see failover to mirror
 select gp_request_fts_probe_scan();
