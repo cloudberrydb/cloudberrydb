@@ -1965,7 +1965,7 @@ gp_get_suboverflowed_backends(PG_FUNCTION_ARGS)
 	LWLockAcquire(ProcArrayLock, LW_SHARED);
 	for (i = 0; i < ProcGlobal->allProcCount; i++)
 	{
-		if (ProcGlobal->allPgXact[i].overflowed)
+		if (ProcGlobal->subxidStates[i].overflowed)
 			astate = accumArrayResult(astate,
 									  Int32GetDatum(ProcGlobal->allProcs[i].pid),
 									  false, INT4OID, CurrentMemoryContext);
@@ -4181,7 +4181,7 @@ gp_get_suboverflowed_backends(PG_FUNCTION_ARGS)
 	LWLockAcquire(ProcArrayLock, LW_SHARED);
 	for (i = 0; i < ProcGlobal->allProcCount; i++)
 	{
-		if (ProcGlobal->allPgXact[i].overflowed)
+		if (ProcGlobal->subxidStates[i].overflowed)
 			astate = accumArrayResult(astate,
 									  Int32GetDatum(ProcGlobal->allProcs[i].pid),
 									  false, INT4OID, CurrentMemoryContext);

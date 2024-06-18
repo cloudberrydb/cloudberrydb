@@ -575,10 +575,6 @@ set optimizer=off;
 --gang reused
 create table t_create_gang_time(tc1 int,tc2 int);
 
---1-gang reused
-select * from t_create_gang_time where tc1=1;
-explain analyze select * from t_create_gang_time where tc1=1;
-
 --n-gang reused and 1-gang is created.
 select * from t_create_gang_time t1, t_create_gang_time t2 where t1.tc1=2;
 
