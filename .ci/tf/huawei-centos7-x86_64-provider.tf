@@ -1,9 +1,9 @@
-variable "huawei_access_key" {
+variable "huawei_access_key_2" {
   sensitive = true
   type      = string
 }
 
-variable "huawei_secret_key" {
+variable "huawei_secret_key_2" {
   sensitive = true
   type      = string
 }
@@ -17,7 +17,8 @@ variable "instance_name" {
 }
 
 variable "instance_image" {
-  default = "28206e92-09b3-4997-8588-ab4cdba122e6"
+  # releng-base-cbdb-build-centos7-x86_64-20240527
+  default = "2efb1afa-a01f-4ce0-8bbc-ad16afd97e72"
 }
 
 variable "flavor_id" {
@@ -26,7 +27,7 @@ variable "flavor_id" {
 
 variable "instance_securitygroup" {
   default = [
-    "62555a74-5dcb-4fe3-8763-2c4d835b73c8"
+    "653629ee-805e-431e-827d-349de18dc767"
   ]
 }
 
@@ -39,7 +40,7 @@ variable "instance_os_disk_size" {
 }
 
 variable "instance_vxnet" {
-  default = "eb86da07-01a2-40d5-8c45-6f38ae389592"
+  default = "95c77d8f-3291-4db3-86c2-30e02e1eab9b"
 }
 
 variable "instance_keypair" {
@@ -62,10 +63,15 @@ terraform {
   }
 }
 
+variable "enterprise_project_id" {
+  default = "1bba1faa-f3fe-438c-b3fd-073e4044f924"
+}
+
 provider "huaweicloud" {
-  access_key = var.huawei_access_key
-  secret_key = var.huawei_secret_key
+  access_key = var.huawei_access_key_2
+  secret_key = var.huawei_secret_key_2
   region     = var.huawei_region
+  enterprise_project_id = var.enterprise_project_id
 }
 
 resource "huaweicloud_compute_instance" "ci" {

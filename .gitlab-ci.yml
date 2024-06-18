@@ -172,13 +172,13 @@ variables:
   TF_VAR_instance_name: "hashdata-lightning-pipeline-${CI_PIPELINE_ID}-job-${CI_JOB_ID}"
   TF_VAR_qingcloud_access_key: "key"
   TF_VAR_qingcloud_secret_key: "secret"
-  TF_VAR_huawei_access_key: "key"
-  TF_VAR_huawei_secret_key: "secret"
+  TF_VAR_huawei_access_key_2: "key"
+  TF_VAR_huawei_secret_key_2: "secret"
   ARTIFACTORY_USERNAME: "admin"
   ARTIFACTORY_PASSWORD: "token"
   
-  AWS_ACCESS_KEY_ID: "${TF_VAR_huawei_access_key}"
-  AWS_SECRET_ACCESS_KEY: "${TF_VAR_huawei_secret_key}"
+  AWS_ACCESS_KEY_ID: "${TF_VAR_huawei_access_key_2}"
+  AWS_SECRET_ACCESS_KEY: "${TF_VAR_huawei_secret_key_2}"
 
   GIT_CLONE_PATH: "/code/cbdb_src"
   ROOT_PATH: "/code"
