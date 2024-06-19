@@ -128,5 +128,8 @@ CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 1: COMMIT;
 2: COMMIT;
 
-! rm -rf '@testtablespace@';
+DROP DIRECTORY TABLE IF EXISTS dir_table1;
+DROP DIRECTORY TABLE IF EXISTS dir_table2;
+DROP DIRECTORY TABLE IF EXISTS dir_table3;
+
 DROP TABLESPACE directory_tblspc;
