@@ -282,7 +282,8 @@ static void cdbexplain_depositSliceStats(CdbExplain_StatHdr *hdr,
 static void cdbexplain_collectStatsFromNode(PlanState *planstate,
 											CdbExplain_SendStatCtx *ctx);
 static void cdbexplain_depositStatsToNode(PlanState *planstate,
-										  CdbExplain_RecvStatCtx *ctx);
+										  CdbExplain_RecvStatCtx *ctx,
+										  bool isMotionSender);
 static int cdbexplain_collectExtraText(PlanState *planstate,
 									   StringInfo notebuf);
 
@@ -362,7 +363,7 @@ cdbexplain_localStatWalker(PlanState *planstate, void *context)
 	cdbexplain_collectStatsFromNode(planstate, &ctx->send);
 
 	/* Redeposit stats back into Instrumentation, and attach a NodeSummary. */
-	cdbexplain_depositStatsToNode(planstate, &ctx->recv);
+	cdbexplain_depositStatsToNode(planstate, &ctx->recv, false);
 
 	/* Don't descend across a slice boundary. */
 	if (IsA(planstate, MotionState))
@@ -407,7 +408,6 @@ cdbexplain_sendExecStats(QueryDesc *queryDesc)
 		Assert(planstate &&
 			   IsA(planstate, MotionState) &&
 			   planstate->lefttree);
-		planstate = planstate->lefttree;
 	}
 
 	if (planstate == NULL)
@@ -483,7 +483,15 @@ cdbexplain_sendStatWalker(PlanState *planstate, void *context)
 
 	/* Don't descend across a slice boundary. */
 	if (IsA(planstate, MotionState))
-		return CdbVisit_Skip;
+	{
+		Motion *motion = (Motion *) planstate->plan;
+
+		/* On QEs, MotionID of sender motion is always equal to current slice id.
+		 * So we stop walk when reaching receiving motion of this slice. */
+		if (motion->motionID != LocallyExecutingSliceIndex(planstate->state))
+			return CdbVisit_Skip;
+
+	}
 
 	return CdbVisit_Walk;
 }								/* cdbexplain_sendStatWalker */
@@ -632,8 +640,18 @@ cdbexplain_recvExecStats(struct PlanState *planstate,
 		ctx.nmsgptr++;
 	}
 
+	/* If slice was dispatched to qExecs, and stats came back, grab 'em. */
+	if (ctx.nmsgptr > 0)
+	{
+		/* Transfer received stats to Instrumentation, NodeSummary, etc. */
+		cdbexplain_depositStatsToNode(planstate, &ctx, true);
+
+		/* Advance to next node's entry in all of the StatInst arrays. */
+		ctx.iStatInst++;
+	}
+
 	/* Attach NodeSummary to each PlanState node's Instrumentation node. */
-	planstate_walk_node(planstate, cdbexplain_recvStatWalker, &ctx);
+	planstate_walk_node(planstate->lefttree, cdbexplain_recvStatWalker, &ctx);
 
 	/* Make sure we visited the right number of PlanState nodes. */
 	Assert(ctx.iStatInst == ctx.nStatInst);
@@ -677,7 +695,7 @@ cdbexplain_recvStatWalker(PlanState *planstate, void *context)
 	if (ctx->nmsgptr > 0)
 	{
 		/* Transfer received stats to Instrumentation, NodeSummary, etc. */
-		cdbexplain_depositStatsToNode(planstate, ctx);
+		cdbexplain_depositStatsToNode(planstate, ctx, false);
 
 		/* Advance to next node's entry in all of the StatInst arrays. */
 		ctx->iStatInst++;
@@ -686,7 +704,7 @@ cdbexplain_recvStatWalker(PlanState *planstate, void *context)
 	/* Motion operator?  Descend to next slice. */
 	if (IsA(planstate, MotionState))
 	{
-		cdbexplain_recvExecStats(planstate->lefttree,
+		cdbexplain_recvExecStats(planstate,
 								 ctx->dispatchResults,
 								 ((Motion *) planstate->plan)->motionID,
 								 ctx->showstatctx);
@@ -982,7 +1000,9 @@ cdbexplain_depStatAcc_saveText(CdbExplain_DepStatAcc *acc,
  * statistics are transferred from the StatHdr to the SliceSummary.
  */
 static void
-cdbexplain_depositStatsToNode(PlanState *planstate, CdbExplain_RecvStatCtx *ctx)
+cdbexplain_depositStatsToNode(PlanState *planstate,
+							  CdbExplain_RecvStatCtx *ctx,
+							  bool isMotionSender)
 {
 	Instrumentation *instr = planstate->instrument;
 	CdbExplain_StatHdr *rsh;	/* The header (which includes StatInst) */
@@ -1015,6 +1035,12 @@ cdbexplain_depositStatsToNode(PlanState *planstate, CdbExplain_RecvStatCtx *ctx)
 
 	Assert(instr &&
 		   ctx->iStatInst < ctx->nStatInst);
+
+	/*
+	 * MotionState received two instruments, the second one is for sender.
+	 */
+	if (isMotionSender)
+		instr = &(planstate->instrument[1]);
 
 	/* Allocate NodeSummary block. */
 	nInst = ctx->segindexMax + 1 - ctx->segindexMin;
