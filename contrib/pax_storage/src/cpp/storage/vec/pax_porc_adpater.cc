@@ -233,7 +233,7 @@ static void CopyDecimalBuffer(PaxColumn *column,
 
 void CopyBitPackedBuffer(PaxColumn *column,
                          std::shared_ptr<Bitmap8> visibility_map_bitset,
-                         size_t bitset_index_begin, size_t range_begin,
+                         size_t group_base_offset, size_t range_begin,
                          size_t range_lens, size_t data_index_begin,
                          size_t data_range_lens, Bitmap8 *out_data_buffer) {
   char *buffer;
@@ -245,14 +245,14 @@ void CopyBitPackedBuffer(PaxColumn *column,
   size_t bit_index = 0;
   size_t non_null_offset = 0;
   size_t type_len = column->GetTypeLength();
+  size_t tuple_offset = group_base_offset + range_begin;
 
-  for (size_t i = range_begin; i < (range_begin + range_lens); i++) {
-    bool is_visible =
-        !visibility_map_bitset ||
-        !visibility_map_bitset->Test(i - range_begin + bitset_index_begin);
+  for (size_t i = 0; i < range_lens; i++) {
+    bool is_visible = !visibility_map_bitset ||
+                      !visibility_map_bitset->Test(tuple_offset + i);
     bool has_null = column->HasNull();
     AssertImply(has_null, null_bitmap != nullptr);
-    bool is_null = has_null && !null_bitmap->Test(i);
+    bool is_null = has_null && !null_bitmap->Test(range_begin + i);
 
     if (is_visible) {
       if (!is_null) {
@@ -424,8 +424,8 @@ std::pair<size_t, size_t> VecAdapter::AppendPorcFormat(PaxColumns *columns,
             BitmapTpl<uint8>::ReadOnlyRefBitmap);
 
         CopyBitPackedBuffer(column, micro_partition_visibility_bitmap_,
-                            range_begin + group_base_offset_, range_begin,
-                            range_lens, data_index_begin, num_of_not_nulls,
+                            group_base_offset_, range_begin, range_lens,
+                            data_index_begin, num_of_not_nulls,
                             &vec_bool_bitmap);
         break;
       }

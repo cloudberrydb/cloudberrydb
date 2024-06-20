@@ -87,9 +87,7 @@ std::shared_ptr<std::vector<uint8>> LoadVisimapInternal(
   auto file = file_system->Open(visimap_file_path, pax::fs::kReadMode, options);
   Assert(file);
   size_t file_size = file->FileLength();
-
-  CBDB_CHECK(file_size <= PAX_MAX_NUM_TUPLES_PER_FILE / 8,
-             cbdb::CException::kExTypeLogicError);
+  // TODO: check the limit of file size, to avoid OOM
 
   std::vector<uint8> buffer(file_size, 0);
   file->ReadN((void *)&buffer[0], file_size);

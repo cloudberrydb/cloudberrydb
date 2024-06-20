@@ -463,7 +463,7 @@ Datum pax_detoast(Datum d, char *ext_buff, size_t ext_buff_size) {
     Assert((ToastCompressionId)(TOAST_COMPRESS_METHOD(d)) !=
            TOAST_INVALID_COMPRESSION_ID);
 
-    [[maybe_unused]] auto decompress_size =
+    auto pg_attribute_unused() decompress_size =
         pax_decompress_datum(d, result + VARHDRSZ, raw_size);
     Assert(decompress_size == raw_size);
 
@@ -483,7 +483,7 @@ Datum pax_detoast(Datum d, char *ext_buff, size_t ext_buff_size) {
     // allocate memory for the uncompressed data
     result = PAX_NEW_ARRAY<char>(origin_size + VARHDRSZ);
 
-    [[maybe_unused]] auto decompress_size =
+    auto pg_attribute_unused() decompress_size =
         pax_decompress_buffer(PAX_VARATT_EXTERNAL_CMID(d), result + VARHDRSZ,
                               origin_size, ext_buff + offset, raw_size);
 

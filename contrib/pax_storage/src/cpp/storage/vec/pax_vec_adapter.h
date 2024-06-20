@@ -33,10 +33,9 @@ class VecAdapter final {
   bool IsInitialized() const;
 
   // return -1,0 or batch_cache_lens
-  // value -1 means: no remaining tuples in pax_columns
-  // value 0 means: all this batch of data have been skipped and FlushVecBuffer
-  // is not required, but pax_columns still has unprocessed data.
-  // value n > 0 means: this batch of data has N tuples that need to be
+  // return -1: no tuples left in the current working group
+  // return 0: no tuples left in the current batch, should process remaining tuples in the current group
+  // return > 0: this batch of data has N tuples that need to be
   // converted into vec record batch
   int AppendToVecBuffer();
 
