@@ -7,7 +7,14 @@ use warnings;
 
 use PostgresNode;
 use TestLib;
-use Test::More tests => 12;
+
+# GPDB: Effectively disable this TAP test. We cannot run PREPARE
+# TRANSACTION in utility-mode. We need at least 1 test so create a
+# dummy one.
+#use Test::More tests => 12;
+use Test::More tests => 1;
+is(-1, -1, "Disable this TAP test");
+exit;
 
 # Setup primary node
 my $node_primary = get_new_node("primary");

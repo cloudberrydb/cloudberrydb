@@ -11789,16 +11789,6 @@
 { oid => 7154, descr => 'terminate a server process',
    proname => 'pg_terminate_backend', provolatile => 'v', prorettype => 'bool', proargtypes => 'int4 text', prosrc => 'pg_terminate_backend_msg' },
 
-
-{ oid => 6053, descr => 'get the memory used by a session and the available memory of the destination group',
-   proname => 'pg_resgroup_check_move_query', prorows => '1000', proisstrict => 'f',
-   proretset => 't', provolatile => 'v', proparallel => 'r', prorettype => 'record',
-   proargtypes => 'int4 oid',
-   proallargtypes => 'int4,oid,int4,int4',
-   proargmodes => '{i,i,o,o}',
-   proargnames => '{session_id,group_id,session_mem,available_mem}',
-   prosrc => 'pg_resgroup_check_move_query' },
-
 { oid => 6064, descr => 'move query to a resource group',
    proname => 'pg_resgroup_move_query', provolatile => 'v', proparallel => 'r',
    prorettype => 'bool',
@@ -11806,11 +11796,11 @@
    prosrc => 'pg_resgroup_move_query' },
 
 { oid => 6065, descr => 'statistics: information about resource groups in key-value style',
-   proexeclocation => 'c',
+   proexeclocation => 'i',
    proname => 'pg_resgroup_get_status_kv', prorows => '1000', proisstrict => 'f', proretset => 't', provolatile => 'v', proparallel => 'r', prorettype => 'record', proargtypes => 'text', proallargtypes => 'text,oid,text,text', proargmodes => '{i,o,o,o}', proargnames => '{prop_in,rsgid,prop,value}', prosrc => 'pg_resgroup_get_status_kv' },
 
 { oid => 6066, descr => 'statistics: information about resource groups',
-   proexeclocation => 'c',
+   proexeclocation => 'i',
    proname => 'pg_resgroup_get_status', prorows => '1000', proisstrict => 'f', proretset => 't', provolatile => 'v', proparallel => 'r', prorettype => 'record', proargtypes => 'oid', proallargtypes => 'oid,oid,int4,int4,int8,int8,interval,json,json', proargmodes => '{i,o,o,o,o,o,o,o,o}', proargnames => '{groupid,groupid,num_running,num_queueing,num_queued,num_executed,total_queue_duration,cpu_usage,memory_usage}', prosrc => 'pg_resgroup_get_status' },
 
 { oid => 6036, descr => 'waiting relation information',
@@ -11821,6 +11811,8 @@
    proargmodes => '{o,o,o,o,o,o,o,o,o,o}',
    proargnames => '{segid,waiter_dxid,holder_dxid,holdTillEndXact,waiter_lpid,holder_lpid,waiter_lockmode,waiter_locktype,waiter_sessionid,holder_sessionid}',
    prosrc => 'gp_dist_wait_status' },
+{ oid => 6464, descr => 'get backends of overflowed subtransaction',
+   proname => 'gp_get_suboverflowed_backends', provolatile => 'v', prorettype => '_int4', proargtypes => '', prosrc => 'gp_get_suboverflowed_backends' },
 
 { oid => 6040, descr => 'get gp all segments pg_snapshot',
    proname => 'gp_current_snapshot', proisstrict => 'f',
@@ -11963,13 +11955,17 @@
    proname => 'get_ao_compression_ratio', provolatile => 'v', proparallel => 'u', prorettype => 'float8', proargtypes => 'regclass', prosrc => 'get_ao_compression_ratio', prodataaccess => 'r', proexeclocation => 'i' },
 
 { oid => 7180, descr => 'endpoints information on the cluster visible to the user',
-   proname => 'gp_endpoints', prorows => '1000', proretset => 't', provolatile => 'v', proparallel => 'u', prorettype => 'record', proargtypes => '', proallargtypes => '{int4,text,text,int4,text,int4,oid,text,text}', proargmodes => '{o,o,o,o,o,o,o,o,o}', proargnames => '{dbid,auth_token,cursorname,sessionid,hostname,port,userid,state,endpointname}', prosrc => 'gp_endpoints', proexeclocation => 'c' },
+   proname => 'gp_get_endpoints', prorows => '1000', proretset => 't', provolatile => 'v', proparallel => 'u', prorettype => 'record', proargtypes => '', proallargtypes => '{int4,text,text,int4,varchar,int4,text,text,text}', proargmodes => '{o,o,o,o,o,o,o,o,o}', proargnames => '{gp_segment_id,auth_token,cursorname,sessionid,hostname,port,username,state,endpointname}', prosrc => 'gp_get_endpoints', proexeclocation => 'c' },
 
 { oid => 7181, descr => 'endpoints information on the segment visible to the user',
-   proname => 'gp_segment_endpoints', prorows => '1000', proretset => 't', provolatile => 'v', proparallel => 'u', prorettype => 'record', proargtypes => '', proallargtypes => '{text,int4,int4,int4,text,int4,int4,oid,text,text}', proargmodes => '{o,o,o,o,o,o,o,o,o,o}', proargnames => '{auth_token,databaseid,senderpid,receiverpid,state,dbid,sessionid,userid,endpointname,cursorname}', prosrc => 'gp_segment_endpoints' },
+   proname => 'gp_get_segment_endpoints', prorows => '1000', proretset => 't', provolatile => 'v', proparallel => 'u', prorettype => 'record', proargtypes => '', proallargtypes => '{text,oid,int4,int4,text,int4,int4,text,text,text}', proargmodes => '{o,o,o,o,o,o,o,o,o,o}', proargnames => '{auth_token,databaseid,senderpid,receiverpid,state,gp_segment_id,sessionid,username,endpointname,cursorname}', prosrc => 'gp_get_segment_endpoints' },
 
 { oid => 7182, descr => 'wait until all endpoint of this parallel retrieve cursor has been retrieved finished',
    proname => 'gp_wait_parallel_retrieve_cursor', provolatile => 'v', proparallel => 'u', prorettype => 'bool', proargtypes => 'text int4', proallargtypes => '{text,int4,bool}', proargmodes => '{i,i,o}', proargnames => '{cursorname,timeout_sec,finished}', prosrc => 'gp_wait_parallel_retrieve_cursor', proexeclocation => 'c' },
+
+{ oid => 7146, descr => 'debugging information for segment backends',
+   proname => 'gp_backend_info', prorettype => 'record', prorows => '1', proretset => 't', proargtypes => '', proallargtypes => '{int4,char,int4,text,int4,int4}', prosrc => 'gp_backend_info', pronargs => 6,
+   proargnames => '{id,type,content,host,port,pid}', proargmodes => '{o,o,o,o,o,o}', proexeclocation => 'c'}
 
 { oid => 7050, descr => 'bitmap(internal)',
    proname => 'bmhandler', provolatile => 'v', prorettype => 'index_am_handler', proargtypes => 'internal', prosrc => 'bmhandler' },
@@ -12437,7 +12433,6 @@
 
 { oid => 7145, descr => 'Legacy cdbhash function',
    proname => 'cdblegacyhash_anyenum', prorettype => 'int4', proargtypes => 'anyenum', prosrc => 'cdblegacyhash_anyenum' },
-
 
 { oid => 6998, descr => 'Create a named restore point on all segments',
    proname => 'gp_create_restore_point', prorows => '1000', proretset => 't', proparallel => 'u', provolatile => 'v', prorettype => 'record', proargtypes => 'text', prosrc => 'gp_create_restore_point' },

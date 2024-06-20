@@ -214,13 +214,13 @@ REVOKE ALL ON TABLE gp_toolkit.__gp_log_segment_ext FROM public;
 
 --------------------------------------------------------------------------------
 -- @table:
---        gp_toolkit.gp_log_master
+--        gp_toolkit.gp_log_coordinator
 --
 -- @doc:
---        External table to read the master log; requires superuser privilege
+--        External table to read the coordinator log; requires superuser privilege
 --
 --------------------------------------------------------------------------------
-CREATE EXTERNAL WEB TABLE gp_toolkit.__gp_log_master_ext
+CREATE EXTERNAL WEB TABLE gp_toolkit.__gp_log_coordinator_ext
 (
     logtime timestamp with time zone,
     loguser text,
@@ -256,6 +256,13 @@ CREATE EXTERNAL WEB TABLE gp_toolkit.__gp_log_master_ext
 EXECUTE E'cat $GP_SEG_DATADIR/log/*.csv' ON COORDINATOR
 FORMAT 'CSV' (DELIMITER AS ',' NULL AS '' QUOTE AS '"');
 
+REVOKE ALL ON TABLE gp_toolkit.__gp_log_coordinator_ext FROM public;
+
+-- keep a view with the legacy name for backwards compatibility
+CREATE VIEW gp_toolkit.__gp_log_master_ext
+AS
+    SELECT * FROM gp_toolkit.__gp_log_coordinator_ext;
+
 REVOKE ALL ON TABLE gp_toolkit.__gp_log_master_ext FROM public;
 
 
@@ -264,14 +271,14 @@ REVOKE ALL ON TABLE gp_toolkit.__gp_log_master_ext FROM public;
 --        gp_toolkit.gp_log_system
 --
 -- @doc:
---        View of segment and master logs
+--        View of segment and coordinator logs
 --
 --------------------------------------------------------------------------------
 CREATE VIEW gp_toolkit.gp_log_system
 AS
     SELECT * FROM gp_toolkit.__gp_log_segment_ext
     UNION ALL
-    SELECT * FROM gp_toolkit.__gp_log_master_ext
+    SELECT * FROM gp_toolkit.__gp_log_coordinator_ext
     ORDER BY logtime;
 
 REVOKE ALL ON TABLE gp_toolkit.gp_log_system FROM public;
@@ -296,14 +303,14 @@ REVOKE ALL ON TABLE gp_toolkit.gp_log_database FROM public;
 
 --------------------------------------------------------------------------------
 -- @view:
---        gp_toolkit.gp_log_master_concise
+--        gp_toolkit.gp_log_coordinator_concise
 --
 -- @doc:
---        Shorthand to view most important columns of master log only;
+--        Shorthand to view most important columns of coordinator log only;
 --        requires superuser privilege
 --
 --------------------------------------------------------------------------------
-CREATE VIEW gp_toolkit.gp_log_master_concise
+CREATE VIEW gp_toolkit.gp_log_coordinator_concise
 AS
     SELECT
         logtime
@@ -336,10 +343,17 @@ AS
 --        ,logfile
 --        ,logline
 --        ,logstack
-    FROM gp_toolkit.__gp_log_master_ext;
+    FROM gp_toolkit.__gp_log_coordinator_ext;
+
+REVOKE ALL ON TABLE gp_toolkit.gp_log_coordinator_concise FROM public;
+
+
+-- keep a view with the legacy name for backwards compatibility
+CREATE VIEW gp_toolkit.gp_log_master_concise
+AS
+    SELECT * FROM gp_toolkit.gp_log_coordinator_concise;
 
 REVOKE ALL ON TABLE gp_toolkit.gp_log_master_concise FROM public;
-
 
 --------------------------------------------------------------------------------
 -- @view:
@@ -362,7 +376,7 @@ AS
         MAX(logtime) AS logtimemax,
         MAX(logtime) - MIN(logtime) AS logduration
     FROM
-        gp_toolkit.__gp_log_master_ext
+        gp_toolkit.__gp_log_coordinator_ext
     WHERE
         logsession IS NOT NULL
         AND logcmdcount IS NOT NULL
@@ -404,7 +418,7 @@ AS
 --        text - value of PARAM
 --
 -- @doc:
---        Collect value of a PARAM from master and all segments
+--        Collect value of a PARAM from coordinator and all segments
 --
 --------------------------------------------------------------------------------
 CREATE FUNCTION gp_toolkit.__gp_param_setting_on_segments(varchar)
@@ -418,6 +432,18 @@ VOLATILE CONTAINS SQL EXECUTE ON ALL SEGMENTS;
 
 GRANT EXECUTE ON FUNCTION gp_toolkit.__gp_param_setting_on_segments(varchar) TO public;
 
+CREATE FUNCTION gp_toolkit.__gp_param_setting_on_coordinator(varchar)
+RETURNS SETOF gp_toolkit.gp_param_setting_t
+AS
+$$
+    SELECT gp_execution_segment(), $1, current_setting($1);
+$$
+LANGUAGE SQL
+VOLATILE CONTAINS SQL EXECUTE ON COORDINATOR;
+
+GRANT EXECUTE ON FUNCTION gp_toolkit.__gp_param_setting_on_coordinator(varchar) TO public;
+
+-- prefer the *_coordinator function, but keep this for backwards compatibility
 CREATE FUNCTION gp_toolkit.__gp_param_setting_on_master(varchar)
 RETURNS SETOF gp_toolkit.gp_param_setting_t
 AS
@@ -433,7 +459,7 @@ CREATE FUNCTION gp_toolkit.gp_param_setting(varchar)
 RETURNS SETOF gp_toolkit.gp_param_setting_t
 AS
 $$
-  SELECT * FROM gp_toolkit.__gp_param_setting_on_master($1)
+  SELECT * FROM gp_toolkit.__gp_param_setting_on_coordinator($1)
   UNION ALL
   SELECT * FROM gp_toolkit.__gp_param_setting_on_segments($1);
 $$
@@ -1708,24 +1734,18 @@ CREATE VIEW gp_toolkit.gp_resgroup_config AS
     SELECT G.oid       AS groupid
          , G.rsgname   AS groupname
          , T1.value    AS concurrency
-         , T2.value    AS cpu_rate_limit
-         , T3.value    AS memory_limit
-         , T4.value    AS memory_shared_quota
-         , T5.value    AS memory_spill_ratio
-         , CASE WHEN T6.value IS NULL THEN 'vmtracker'
-                WHEN T6.value='0'     THEN 'vmtracker'
-                WHEN T6.value='1'     THEN 'cgroup'
-                ELSE 'unknown'
-           END         AS memory_auditor
-         , T7.value    AS cpuset
+         , T2.value    AS cpu_hard_quota_limit
+         , T3.value    AS cpu_soft_priority
+         , T4.value    AS cpuset
+         , T5.value    AS memory_limit
+         , T6.value    AS min_cost
     FROM pg_resgroup G
          JOIN pg_resgroupcapability T1 ON G.oid = T1.resgroupid AND T1.reslimittype = 1
          JOIN pg_resgroupcapability T2 ON G.oid = T2.resgroupid AND T2.reslimittype = 2
          JOIN pg_resgroupcapability T3 ON G.oid = T3.resgroupid AND T3.reslimittype = 3
-         JOIN pg_resgroupcapability T4 ON G.oid = T4.resgroupid AND T4.reslimittype = 4
          JOIN pg_resgroupcapability T5 ON G.oid = T5.resgroupid AND T5.reslimittype = 5
-    LEFT JOIN pg_resgroupcapability T6 ON G.oid = T6.resgroupid AND T6.reslimittype = 6
-    LEFT JOIN pg_resgroupcapability T7 ON G.oid = T7.resgroupid AND T7.reslimittype = 7
+         JOIN pg_resgroupcapability T6 ON G.oid = T6.resgroupid AND T6.reslimittype = 6
+         LEFT JOIN pg_resgroupcapability T4 ON G.oid = T4.resgroupid AND T4.reslimittype = 4
     ;
 
 GRANT SELECT ON gp_toolkit.gp_resgroup_config TO public;
@@ -1740,7 +1760,8 @@ GRANT SELECT ON gp_toolkit.gp_resgroup_config TO public;
 --------------------------------------------------------------------------------
 
 CREATE VIEW gp_toolkit.gp_resgroup_status AS
-    SELECT r.rsgname, s.*
+    SELECT r.rsgname, s.groupid, s.num_running, s.num_queueing,
+           s.num_queued, s.num_executed, s.total_queue_duration
     FROM pg_resgroup_get_status(null) AS s,
          pg_resgroup AS r
     WHERE s.groupid = r.oid;
@@ -1757,33 +1778,30 @@ GRANT SELECT ON gp_toolkit.gp_resgroup_status TO public;
 --------------------------------------------------------------------------------
 
 CREATE VIEW gp_toolkit.gp_resgroup_status_per_host AS
-    WITH s AS (
+    WITH es AS (
         SELECT
             rsgname
           , groupid
           , (json_each(cpu_usage)).key::smallint AS segment_id
-          , (json_each(cpu_usage)).value AS cpu
-          , (json_each(memory_usage)).value AS memory
-        FROM gp_toolkit.gp_resgroup_status
+          , (json_each(cpu_usage)).value AS cpu_usage
+          , (json_each(memory_usage)).value AS memory_usage
+        FROM pg_resgroup_get_status(null) as s,
+             pg_resgroup AS r
+        WHERE s.groupid = r.oid
     )
     SELECT
-        s.rsgname
-      , s.groupid
+        es.rsgname
+      , es.groupid
       , c.hostname
-      , round(avg((s.cpu)::text::numeric), 2) AS cpu
-      , sum((s.memory->'used'            )::text::integer) AS memory_used
-      , sum((s.memory->'available'       )::text::integer) AS memory_available
-      , sum((s.memory->'quota_used'      )::text::integer) AS memory_quota_used
-      , sum((s.memory->'quota_available' )::text::integer) AS memory_quota_available
-      , sum((s.memory->'shared_used'     )::text::integer) AS memory_shared_used
-      , sum((s.memory->'shared_available')::text::integer) AS memory_shared_available
-    FROM s
+      , round(avg((es.cpu_usage)::text::numeric), 2) AS cpu_usage
+      , round(avg((es.memory_usage)::text::numeric), 2) AS memory_usage
+    FROM es
     INNER JOIN pg_catalog.gp_segment_configuration AS c
-        ON s.segment_id = c.content
+        ON es.segment_id = c.content
         AND c.role = 'p'
     GROUP BY
-        s.rsgname
-      , s.groupid
+        es.rsgname
+      , es.groupid
       , c.hostname
     ;
 
@@ -1791,47 +1809,27 @@ GRANT SELECT ON gp_toolkit.gp_resgroup_status_per_host TO public;
 
 --------------------------------------------------------------------------------
 -- @view:
---              gp_toolkit.gp_resgroup_status_per_segment
+--        gp_toolkit.gp_resgroup_role
 --
 -- @doc:
---              Resource group runtime status information grouped by segment
+--        Assigned resource group to roles
 --
 --------------------------------------------------------------------------------
 
-CREATE VIEW gp_toolkit.gp_resgroup_status_per_segment AS
-    WITH s AS (
-        SELECT
-            rsgname
-          , groupid
-          , (json_each(cpu_usage)).key::smallint AS segment_id
-          , (json_each(cpu_usage)).value AS cpu
-          , (json_each(memory_usage)).value AS memory
-        FROM gp_toolkit.gp_resgroup_status
-    )
+CREATE VIEW gp_toolkit.gp_resgroup_role
+AS
     SELECT
-        s.rsgname
-      , s.groupid
-      , c.hostname
-      , s.segment_id
-      , sum((s.cpu                       )::text::numeric) AS cpu
-      , sum((s.memory->'used'            )::text::integer) AS memory_used
-      , sum((s.memory->'available'       )::text::integer) AS memory_available
-      , sum((s.memory->'quota_used'      )::text::integer) AS memory_quota_used
-      , sum((s.memory->'quota_available' )::text::integer) AS memory_quota_available
-      , sum((s.memory->'shared_used'     )::text::integer) AS memory_shared_used
-      , sum((s.memory->'shared_available')::text::integer) AS memory_shared_available
-    FROM s
-    INNER JOIN pg_catalog.gp_segment_configuration AS c
-        ON s.segment_id = c.content
-        AND c.role = 'p'
-    GROUP BY
-        s.rsgname
-      , s.groupid
-      , c.hostname
-      , s.segment_id
-    ;
+        pgr.rolname AS rrrolname,
+		pgrg.rsgname AS rrrsgname
+	FROM
+		pg_catalog.pg_roles pgr
+	JOIN
+		pg_catalog.pg_resgroup pgrg
+	ON
+		pgr.rolresgroup = pgrg.oid
+	;
 
-GRANT SELECT ON gp_toolkit.gp_resgroup_status_per_segment TO public;
+GRANT SELECT ON gp_toolkit.gp_resgroup_role TO public;
 
 --------------------------------------------------------------------------------
 -- AO/CO diagnostics functions
@@ -1991,6 +1989,14 @@ LANGUAGE plpgsql;
 --
 --------------------------------------------------------------------------------
 
+CREATE FUNCTION gp_toolkit.__gp_workfile_entries_f_on_coordinator()
+RETURNS SETOF record
+AS '$libdir/gp_workfile_mgr', 'gp_workfile_mgr_cache_entries'
+LANGUAGE C VOLATILE EXECUTE ON COORDINATOR;
+
+GRANT EXECUTE ON FUNCTION gp_toolkit.__gp_workfile_entries_f_on_coordinator() TO public;
+
+-- prefer the *_coordinator function, but keep this for backwards compatibility
 CREATE FUNCTION gp_toolkit.__gp_workfile_entries_f_on_master()
 RETURNS SETOF record
 AS '$libdir/gp_workfile_mgr', 'gp_workfile_mgr_cache_entries'
@@ -2018,7 +2024,7 @@ GRANT EXECUTE ON FUNCTION gp_toolkit.__gp_workfile_entries_f_on_segments() TO pu
 CREATE VIEW gp_toolkit.gp_workfile_entries AS
 WITH all_entries AS (
    SELECT C.*
-          FROM gp_toolkit.__gp_workfile_entries_f_on_master() AS C (
+          FROM gp_toolkit.__gp_workfile_entries_f_on_coordinator() AS C (
             segid int,
             prefix text,
             size bigint,
@@ -2112,6 +2118,14 @@ GRANT SELECT ON gp_toolkit.gp_workfile_usage_per_query TO public;
 --
 --------------------------------------------------------------------------------
 
+CREATE FUNCTION gp_toolkit.__gp_workfile_mgr_used_diskspace_f_on_coordinator()
+RETURNS SETOF record
+AS '$libdir/gp_workfile_mgr', 'gp_workfile_mgr_used_diskspace'
+LANGUAGE C VOLATILE EXECUTE ON COORDINATOR;
+
+GRANT EXECUTE ON FUNCTION gp_toolkit.__gp_workfile_mgr_used_diskspace_f_on_coordinator() TO public;
+
+-- prefer the *_coordinator function, but keep this for backwards compatibility
 CREATE FUNCTION gp_toolkit.__gp_workfile_mgr_used_diskspace_f_on_master()
 RETURNS SETOF record
 AS '$libdir/gp_workfile_mgr', 'gp_workfile_mgr_used_diskspace'
@@ -2136,7 +2150,7 @@ GRANT EXECUTE ON FUNCTION gp_toolkit.__gp_workfile_mgr_used_diskspace_f_on_segme
 --------------------------------------------------------------------------------
 CREATE VIEW gp_toolkit.gp_workfile_mgr_used_diskspace AS
   SELECT C.*
-	FROM gp_toolkit.__gp_workfile_mgr_used_diskspace_f_on_master() as C (
+	FROM gp_toolkit.__gp_workfile_mgr_used_diskspace_f_on_coordinator() as C (
 	  segid int,
 	  bytes bigint
 	)

@@ -24,8 +24,7 @@ select gp_inject_fault('execsort_sort_mergeruns', 'finish_pending', 1);
 select DISTINCT S from (select row_number() over(partition by i1 order by i2) AS T, count(*) over (partition by i1) AS S from _tmp_table) AS TMP;
  s 
 ---
- 1
-(1 row)
+(0 rows)
 
 -- In single node, merge run won't be triggered.
 -- start_ignore
@@ -53,8 +52,7 @@ select gp_inject_fault('execsort_dumptuples', 'finish_pending', 1);
 select DISTINCT S from (select row_number() over(partition by i1 order by i2) AS T, count(*) over (partition by i1) AS S from _tmp_table) AS TMP;
  s 
 ---
- 1
-(1 row)
+(0 rows)
 
 -- In single node, merge run won't be triggered.
 -- start_ignore

@@ -95,9 +95,11 @@ static GpSegConfigEntry * readGpSegConfigFromCatalog(int *total_dbs);
 static GpSegConfigEntry * readGpSegConfigFromFTSFiles(int *total_dbs);
 
 static void getAddressesForDBid(GpSegConfigEntry *c, int elevel);
-static HTAB *hostSegsHashTableInit(void);
+static HTAB *hostPrimaryCountHashTableInit(void);
 
 static int nextQEIdentifer(CdbComponentDatabases *cdbs);
+
+Datum gp_get_suboverflowed_backends(PG_FUNCTION_ARGS);
 
 static HTAB *segment_ip_cache_htab = NULL;
 
@@ -109,11 +111,11 @@ typedef struct SegIpEntry
 	char		hostinfo[NI_MAXHOST];
 } SegIpEntry;
 
-typedef struct HostSegsEntry
+typedef struct HostPrimaryCountEntry
 {
-	char		hostip[INET6_ADDRSTRLEN];
+	char		hostname[MAXHOSTNAMELEN];
 	int			segmentCount;
-} HostSegsEntry;
+} HostPrimaryCountEntry;
 
 /*
  * Helper functions for fetching latest gp_segment_configuration outside of
@@ -359,7 +361,7 @@ getCdbComponentInfo(void)
 	int			total_dbs = 0;
 
 	bool		found;
-	HostSegsEntry *hsEntry;
+	HostPrimaryCountEntry *hsEntry;
 
 	if (!CdbComponentsContext)
 		CdbComponentsContext = AllocSetContextCreate(TopMemoryContext, "cdb components Context",
@@ -369,7 +371,7 @@ getCdbComponentInfo(void)
 
 	oldContext = MemoryContextSwitchTo(CdbComponentsContext);
 
-	HTAB	   *hostSegsHash = hostSegsHashTableInit();
+	HTAB	   *hostPrimaryCountHash = hostPrimaryCountHashTableInit();
 
 	if (IsTransactionState())
 		configs = readGpSegConfigFromCatalog(&total_dbs);
@@ -393,6 +395,19 @@ getCdbComponentInfo(void)
 	{
 		CdbComponentDatabaseInfo	*pRow;
 		GpSegConfigEntry	*config = &configs[i];
+
+		if (config->hostname == NULL || strlen(config->hostname) > MAXHOSTNAMELEN)
+		{
+			/*
+			 * We should never reach here, but add sanity check
+			 * The reason we check length is we find MAXHOSTNAMELEN might be
+			 * smaller than the ones defined in /etc/hosts. Those are rare cases.
+			 */
+			elog(ERROR,
+				 "Invalid length (%d) of hostname (%s)",
+				 config->hostname == NULL ? 0 : (int) strlen(config->hostname),
+				 config->hostname == NULL ? "" : config->hostname);
+		}
 
 		/* lookup hostip/hostaddrs cache */
 		config->hostip= NULL;
@@ -430,13 +445,14 @@ getCdbComponentInfo(void)
 		pRow->cdbs = component_databases;
 		pRow->config = config;
 		pRow->freelist = NIL;
+		pRow->activelist = NIL;
 		pRow->numIdleQEs = 0;
 		pRow->numActiveQEs = 0;
 
-		if (config->role != GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY || config->hostip == NULL)
+		if (config->role != GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY)
 			continue;
 
-		hsEntry = (HostSegsEntry *) hash_search(hostSegsHash, config->hostip, HASH_ENTER, &found);
+		hsEntry = (HostPrimaryCountEntry *) hash_search(hostPrimaryCountHash, config->hostname, HASH_ENTER, &found);
 		if (found)
 			hsEntry->segmentCount++;
 		else
@@ -550,27 +566,27 @@ getCdbComponentInfo(void)
 	{
 		cdbInfo = &component_databases->segment_db_info[i];
 
-		if (cdbInfo->config->role != GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY || cdbInfo->config->hostip == NULL)
+		if (cdbInfo->config->role != GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY)
 			continue;
 
-		hsEntry = (HostSegsEntry *) hash_search(hostSegsHash, cdbInfo->config->hostip, HASH_FIND, &found);
+		hsEntry = (HostPrimaryCountEntry *) hash_search(hostPrimaryCountHash, cdbInfo->config->hostname, HASH_FIND, &found);
 		Assert(found);
-		cdbInfo->hostSegs = hsEntry->segmentCount;
+		cdbInfo->hostPrimaryCount = hsEntry->segmentCount;
 	}
 
 	for (i = 0; i < component_databases->total_entry_dbs; i++)
 	{
 		cdbInfo = &component_databases->entry_db_info[i];
 
-		if (cdbInfo->config->role != GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY || cdbInfo->config->hostip == NULL)
+		if (cdbInfo->config->role != GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY)
 			continue;
 
-		hsEntry = (HostSegsEntry *) hash_search(hostSegsHash, cdbInfo->config->hostip, HASH_FIND, &found);
+		hsEntry = (HostPrimaryCountEntry *) hash_search(hostPrimaryCountHash, cdbInfo->config->hostname, HASH_FIND, &found);
 		Assert(found);
-		cdbInfo->hostSegs = hsEntry->segmentCount;
+		cdbInfo->hostPrimaryCount = hsEntry->segmentCount;
 	}
 
-	hash_destroy(hostSegsHash);
+	hash_destroy(hostPrimaryCountHash);
 
 	MemoryContextSwitchTo(oldContext);
 
@@ -816,6 +832,7 @@ cdbcomponent_allocateIdleQE(int contentId, SegmentType segmentType)
 
 	cdbconn_setQEIdentifier(segdbDesc, -1);
 
+	cdbinfo->activelist = lcons(segdbDesc, cdbinfo->activelist);
 	INCR_COUNT(cdbinfo, numActiveQEs);
 
 	MemoryContextSwitchTo(oldContext);
@@ -881,6 +898,8 @@ cdbcomponent_recycleIdleQE(SegmentDatabaseDescriptor *segdbDesc, bool forceDestr
 	isWriter = segdbDesc->isWriter;
 
 	/* update num of active QEs */
+	Assert(list_member_ptr(cdbinfo->activelist, segdbDesc));
+	cdbinfo->activelist = list_delete_ptr(cdbinfo->activelist, segdbDesc);
 	DECR_COUNT(cdbinfo, numActiveQEs);
 
 	oldContext = MemoryContextSwitchTo(CdbComponentsContext);
@@ -1018,13 +1037,30 @@ cdbcomponent_getComponentInfo(int contentId)
 static void
 ensureInterconnectAddress(void)
 {
+	/*
+	 * If the address type is wildcard, there is no need to populate an unicast
+	 * address in interconnect_address.
+	 */
+	if (Gp_interconnect_address_type == INTERCONNECT_ADDRESS_TYPE_WILDCARD)
+	{
+		interconnect_address = NULL;
+		return;
+	}
+
+	Assert(Gp_interconnect_address_type == INTERCONNECT_ADDRESS_TYPE_UNICAST);
+
+	/* If the unicast address has already been assigned, exit early. */
 	if (interconnect_address)
 		return;
+
+	/*
+	 * Retrieve the segment's gp_segment_configuration.address value, in order
+	 * to setup interconnect_address
+	 */
 
 	if (GpIdentity.segindex >= 0)
 	{
 		Assert(Gp_role == GP_ROLE_EXECUTE);
-		Assert(MyProcPort != NULL);
 		Assert(MyProcPort->laddr.addr.ss_family == AF_INET
 				|| MyProcPort->laddr.addr.ss_family == AF_INET6);
 		/*
@@ -1058,8 +1094,7 @@ ensureInterconnectAddress(void)
 		 */
 		interconnect_address = qdHostname;
 	}
-	else
-		Assert(false);
+	Assert(interconnect_address && strlen(interconnect_address) > 0);
 }
 /*
  * performs all necessary setup required for Cloudberry Database mode.
@@ -1393,18 +1428,18 @@ getAddressesForDBid(GpSegConfigEntry *c, int elevel)
 }
 
 /*
- * hostSegsHashTableInit()
- *    Construct a hash table of HostSegsEntry
+ * hostPrimaryCountHashTableInit()
+ *    Construct a hash table of HostPrimaryCountEntry
  */
 static HTAB *
-hostSegsHashTableInit(void)
+hostPrimaryCountHashTableInit(void)
 {
 	HASHCTL		info;
 
 	/* Set key and entry sizes. */
 	MemSet(&info, 0, sizeof(info));
-	info.keysize = INET6_ADDRSTRLEN;
-	info.entrysize = sizeof(HostSegsEntry);
+	info.keysize = MAXHOSTNAMELEN;
+	info.entrysize = sizeof(HostPrimaryCountEntry);
 
 	return hash_create("HostSegs", 32, &info, HASH_ELEM | HASH_STRINGS);
 }
@@ -1915,6 +1950,33 @@ AvoidCorefileGeneration()
 			 save_errno);
 	}
 #endif
+}
+
+PG_FUNCTION_INFO_V1(gp_get_suboverflowed_backends);
+/*
+ * Find the backends where subtransaction overflowed.
+ */
+Datum
+gp_get_suboverflowed_backends(PG_FUNCTION_ARGS)
+{
+	int 			i;
+	ArrayBuildState *astate = NULL;
+
+	LWLockAcquire(ProcArrayLock, LW_SHARED);
+	for (i = 0; i < ProcGlobal->allProcCount; i++)
+	{
+		if (ProcGlobal->subxidStates[i].overflowed)
+			astate = accumArrayResult(astate,
+									  Int32GetDatum(ProcGlobal->allProcs[i].pid),
+									  false, INT4OID, CurrentMemoryContext);
+	}
+	LWLockRelease(ProcArrayLock);
+
+	if (astate)
+		PG_RETURN_DATUM(makeArrayResult(astate,
+											CurrentMemoryContext));
+	else
+		PG_RETURN_NULL();
 }
 
 #else 
@@ -2928,7 +2990,7 @@ getCdbComponentInfo(void)
 
 		hsEntry = (HostSegsEntry *) hash_search(hostSegsHash, cdbInfo->config->hostip, HASH_FIND, &found);
 		Assert(found);
-		cdbInfo->hostSegs = hsEntry->segmentCount;
+		cdbInfo->hostPrimaryCount = hsEntry->segmentCount;
 	}
 
 	for (i = 0; i < component_databases->total_entry_dbs; i++)
@@ -2940,7 +3002,7 @@ getCdbComponentInfo(void)
 
 		hsEntry = (HostSegsEntry *) hash_search(hostSegsHash, cdbInfo->config->hostip, HASH_FIND, &found);
 		Assert(found);
-		cdbInfo->hostSegs = hsEntry->segmentCount;
+		cdbInfo->hostPrimaryCount = hsEntry->segmentCount;
 	}
 
 	hash_destroy(hostSegsHash);
@@ -4104,6 +4166,33 @@ AvoidCorefileGeneration()
 			 save_errno);
 	}
 #endif
+}
+
+PG_FUNCTION_INFO_V1(gp_get_suboverflowed_backends);
+/*
+ * Find the backends where subtransaction overflowed.
+ */
+Datum
+gp_get_suboverflowed_backends(PG_FUNCTION_ARGS)
+{
+	int 			i;
+	ArrayBuildState *astate = NULL;
+
+	LWLockAcquire(ProcArrayLock, LW_SHARED);
+	for (i = 0; i < ProcGlobal->allProcCount; i++)
+	{
+		if (ProcGlobal->subxidStates[i].overflowed)
+			astate = accumArrayResult(astate,
+									  Int32GetDatum(ProcGlobal->allProcs[i].pid),
+									  false, INT4OID, CurrentMemoryContext);
+	}
+	LWLockRelease(ProcArrayLock);
+
+	if (astate)
+		PG_RETURN_DATUM(makeArrayResult(astate,
+											CurrentMemoryContext));
+	else
+		PG_RETURN_NULL();
 }
 
 #endif /* USE_INTERNAL_FTS */

@@ -56,7 +56,7 @@ pg_isolation2_regress$(X): isolation2_main.o pg_regress.o submake-libpq submake-
 clean distclean:
 	rm -f pg_isolation2_regress$(X) $(OBJS) isolation2_main.o
 	rm -f isolation2_regress.so
-	rm -f pg_regress.o
+	rm -f pg_regress.o test_parallel_retrieve_cursor_extended_query test_parallel_retrieve_cursor_extended_query_error
 	rm -f gpstringsubs.pl gpdiff.pl atmsort.pm explain.pm
 	rm -f data
 	rm -rf $(pg_regress_clean_files)
@@ -67,7 +67,10 @@ installcheck: install installcheck-parallel-retrieve-cursor
 	$(pg_isolation2_regress_installcheck) --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_isolation2 --schedule=$(srcdir)/isolation2_schedule
 
 installcheck-resgroup: install
-	$(pg_isolation2_regress_installcheck) --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_resgroup --dbname=isolation2resgrouptest --schedule=$(srcdir)/isolation2_resgroup_schedule
+	$(pg_isolation2_regress_installcheck) --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_resgroup --dbname=isolation2resgrouptest --schedule=$(srcdir)/isolation2_resgroup_v1_schedule
+
+installcheck-resgroup-v2: install
+	$(pg_isolation2_regress_installcheck) --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_resgroup --dbname=isolation2resgrouptest --schedule=$(srcdir)/isolation2_resgroup_v2_schedule
 
 installcheck-expandshrink: install
 	$(pg_isolation2_regress_installcheck) --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_isolation2 --dbname=isolation2expandshrinktest --schedule=$(srcdir)/isolation2_expandshrink_schedule

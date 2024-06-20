@@ -52,6 +52,7 @@
 
 extern bool Test_print_direct_dispatch_info;
 
+extern bool gp_print_create_gang_time;
 typedef struct ParamWalkerContext
 {
 	plan_tree_base_prefix base; /* Required prefix for
@@ -317,6 +318,8 @@ CdbDispatchSetCommand(const char *strCommand, bool cancelOnError)
 	queryText = buildGpQueryString(pQueryParms, &queryTextLength);
 
 	primaryGang = AllocateGang(ds, GANGTYPE_PRIMARY_WRITER, cdbcomponent_getCdbComponentsList());
+	if (gp_print_create_gang_time)
+		printCreateGangTime(-1, primaryGang);
 
 	/* put all idle segment to a gang so QD can send SET command to them */
 	AllocateGang(ds, GANGTYPE_PRIMARY_READER, formIdleSegmentIdList());
@@ -489,6 +492,8 @@ cdbdisp_dispatchCommandInternal(DispatchCommandQueryParms *pQueryParms,
 	 * Allocate a primary QE for every available segDB in the system.
 	 */
 	primaryGang = AllocateGang(ds, GANGTYPE_PRIMARY_WRITER, segments);
+	if (gp_print_create_gang_time)
+		printCreateGangTime(-1, primaryGang);
 	Assert(primaryGang);
 
 	cdbdisp_makeDispatchResults(ds, 1, flags & DF_CANCEL_ON_ERROR);
@@ -1137,6 +1142,8 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 		}
 
 		primaryGang = slice->primaryGang;
+		if (gp_print_create_gang_time)
+			printCreateGangTime(si, primaryGang);
 		Assert(primaryGang != NULL);
 		AssertImply(queryDesc->extended_query,
 					primaryGang->type == GANGTYPE_PRIMARY_READER ||
@@ -1329,6 +1336,8 @@ CdbDispatchCopyStart(struct CdbCopy *cdbCopy, Node *stmt, int flags)
 	 * Allocate a primary QE for every available segDB in the system.
 	 */
 	primaryGang = AllocateGang(ds, GANGTYPE_PRIMARY_WRITER, cdbCopy->seglist);
+	if (gp_print_create_gang_time)
+		printCreateGangTime(-1, primaryGang);
 	Assert(primaryGang);
 
 	cdbdisp_makeDispatchResults(ds, 1, flags & DF_CANCEL_ON_ERROR);

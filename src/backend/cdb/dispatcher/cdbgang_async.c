@@ -141,6 +141,8 @@ create_gang_retry:
 			if (segdbDesc->conn != NULL && !cdbconn_isBadConnection(segdbDesc))
 			{
 				connStatusDone[i] = true;
+				/* -1 means this connection is cached */
+				segdbDesc->establishConnTime = -1;
 				successful_connections++;
 				continue;
 			}
@@ -153,7 +155,7 @@ create_gang_retry:
 			ret = build_gpqeid_param(gpqeid, sizeof(gpqeid),
 									 segdbDesc->isWriter,
 									 segdbDesc->identifier,
-									 segdbDesc->segment_database_info->hostSegs,
+									 segdbDesc->segment_database_info->hostPrimaryCount,
 									 totalSegs * 2);
 
 			if (!ret)
@@ -189,6 +191,8 @@ create_gang_retry:
 		gettimeofday(&startTS, NULL);
 		fds = (struct pollfd *) palloc0(sizeof(struct pollfd) * size);
 
+		instr_time              starttime, endtime;
+		INSTR_TIME_SET_CURRENT(starttime); /* record starttime of create gang */
 		for (;;)
 		{
 			int			nready;
@@ -217,7 +221,10 @@ create_gang_retry:
 											errdetail("Internal error: No motion listener port (%s)", segdbDesc->whoami)));
 						successful_connections++;
 						connStatusDone[i] = true;
-
+						/* the connection of segdbDesc is established successfully, calculate the time of establishConnTime */
+						INSTR_TIME_SET_CURRENT(endtime);
+						INSTR_TIME_SUBTRACT(endtime, starttime);
+						segdbDesc->establishConnTime = INSTR_TIME_GET_MILLISEC(endtime);
 						continue;
 
 					case PGRES_POLLING_READING:
@@ -237,7 +244,7 @@ create_gang_retry:
 						{
 							in_recovery_mode_count++;
 							connStatusDone[i] = true;
-							elog(LOG, "segment is in recovery mode (%s)", segdbDesc->whoami);
+							elog(LOG, "segment is in reset/recovery mode (%s)", segdbDesc->whoami);
 						}
 						else
 						{
@@ -309,7 +316,7 @@ create_gang_retry:
 		ELOG_DISPATCHER_DEBUG("createGang: %d processes requested; %d successful connections %d in recovery",
 							  size, successful_connections, in_recovery_mode_count);
 
-		/* some segments are in recovery mode */
+		/* some segments are in reset/recovery mode */
 		if (successful_connections != size)
 		{
 			Assert(successful_connections + in_recovery_mode_count == size);
@@ -318,7 +325,7 @@ create_gang_retry:
 				create_gang_retry_counter++ >= gp_gang_creation_retry_count)
 				ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 								errmsg("failed to acquire resources on one or more segments"),
-								errdetail("Segments are in recovery mode.")));
+								errdetail("Segments are in reset/recovery mode.")));
 
 			ELOG_DISPATCHER_DEBUG("createGang: gang creation failed, but retryable.");
 

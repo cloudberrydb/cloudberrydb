@@ -327,7 +327,7 @@ extern bool Debug_resource_group;
 extern bool gp_create_table_random_default_distribution;
 extern bool gp_allow_non_uniform_partitioning_ddl;
 extern int  dtx_phase2_retry_second;
-
+extern bool gp_log_suboverflow_statement;
 /* WAL replication debug gucs */
 extern bool debug_walrepl_snd;
 extern bool debug_walrepl_syncrep;
@@ -488,6 +488,7 @@ extern bool optimizer_xforms[OPTIMIZER_XFORMS_COUNT];
 extern char *optimizer_search_strategy_path;
 
 /* GUCs to tell Optimizer to enable a physical operator */
+extern bool optimizer_enable_nljoin;
 extern bool optimizer_enable_indexjoin;
 extern bool optimizer_enable_motions_masteronly_queries;
 extern bool optimizer_enable_motions;
@@ -527,6 +528,7 @@ extern bool optimizer_enable_mergejoin;
 extern bool optimizer_prune_unused_columns;
 extern bool optimizer_enable_redistribute_nestloop_loj_inner_child;
 extern bool optimizer_force_comprehensive_join_implementation;
+extern bool optimizer_enable_replicated_table;
 
 /* Optimizer plan enumeration related GUCs */
 extern bool optimizer_enumerate_plans;
@@ -620,6 +622,10 @@ extern bool gp_enable_global_deadlock_detector;
 
 extern bool gp_enable_predicate_pushdown;
 extern int  gp_predicate_pushdown_sample_rows;
+
+extern bool gp_log_endpoints;
+
+extern bool gp_allow_date_field_width_5digits;
 
 typedef enum
 {

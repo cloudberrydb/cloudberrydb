@@ -6,7 +6,13 @@ use strict;
 use warnings;
 use PostgresNode;
 use TestLib;
+
+# GPDB: Effectively disable this TAP test. We cannot run PREPARE
+# TRANSACTION in utility-mode.
 use Test::More tests => 1;
+is(-1, -1, "Disable this TAP test");
+exit;
+
 use File::Compare;
 
 # Initialize and start primary node with WAL archiving

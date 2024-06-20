@@ -1658,6 +1658,7 @@ _readPlannedStmt(void)
 	READ_NODE_FIELD(intoPolicy);
 
 	READ_UINT64_FIELD(query_mem);
+
 	READ_NODE_FIELD(intoClause);
 	READ_NODE_FIELD(copyIntoClause);
 	READ_NODE_FIELD(refreshClause);

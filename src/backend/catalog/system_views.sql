@@ -1527,18 +1527,27 @@ $$
 $$
 LANGUAGE SQL READS SQL DATA EXECUTE ON COORDINATOR;
 
-CREATE FUNCTION gp_session_endpoints (OUT gp_segment_id int, OUT auth_token text,
-									  OUT cursorname text, OUT sessionid int, OUT hostname text,
-									  OUT port int, OUT userid oid, OUT state text,
+CREATE FUNCTION gp_get_session_endpoints (OUT gp_segment_id int, OUT auth_token text,
+									  OUT cursorname text, OUT sessionid int, OUT hostname varchar(64),
+									  OUT port int, OUT username text, OUT state text,
 									  OUT endpointname text)
 RETURNS SETOF RECORD AS
 $$
-   SELECT * FROM gp_endpoints()
+   SELECT * FROM pg_catalog.gp_get_endpoints()
 	WHERE sessionid = (SELECT setting FROM pg_settings WHERE name = 'gp_session_id')::int4
 $$
 LANGUAGE SQL EXECUTE ON COORDINATOR;
 
-COMMENT ON FUNCTION pg_catalog.gp_session_endpoints() IS 'All endpoints in this session that are visible to the current user.';
+COMMENT ON FUNCTION pg_catalog.gp_get_session_endpoints() IS 'All endpoints in this session that are visible to the current user.';
+
+CREATE VIEW pg_catalog.gp_endpoints AS
+    SELECT * FROM pg_catalog.gp_get_endpoints();
+
+CREATE VIEW pg_catalog.gp_segment_endpoints AS
+    SELECT * FROM pg_catalog.gp_get_segment_endpoints();
+
+CREATE VIEW pg_catalog.gp_session_endpoints AS
+    SELECT * FROM pg_catalog.gp_get_session_endpoints();
 
 CREATE VIEW pg_stat_bgwriter AS
     SELECT
@@ -1748,3 +1757,9 @@ REVOKE ALL ON pg_subscription FROM public;
 GRANT SELECT (oid, subdbid, subname, subowner, subenabled, subbinary,
               substream, subslotname, subsynccommit, subpublications)
     ON pg_subscription TO public;
+
+-- Dispatch and Aggregate the backends information of subtransactions overflowed
+CREATE VIEW gp_suboverflowed_backend(segid, pids) AS
+  SELECT -1, gp_get_suboverflowed_backends()
+UNION ALL
+  SELECT gp_segment_id, gp_get_suboverflowed_backends() FROM gp_dist_random('gp_id') order by 1;

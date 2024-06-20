@@ -32,6 +32,7 @@
 #include "utils/snapmgr.h"
 
 #include "cdb/ml_ipc.h"
+#include "cdb/cdbtm.h"
 #include "commands/createas.h"
 #include "commands/queue.h"
 #include "commands/createas.h"
@@ -200,6 +201,7 @@ ProcessQuery(Portal portal,
 	if (query_info_collect_hook)
 		(*query_info_collect_hook)(METRICS_QUERY_SUBMIT, queryDesc);
 
+	check_and_unassign_from_resgroup(queryDesc->plannedstmt);
 	queryDesc->plannedstmt->query_mem = ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 
 	if (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE())
@@ -593,11 +595,32 @@ PortalStart(Portal portal, ParamListInfo params,
 		{
 			case PORTAL_ONE_SELECT:
 
+				/*
+				 * GPDB: If we just have one motion and slices[1] can be direct dispatched,
+				 * we do not need to grab distributed snapshot on QD, the local snapshot on
+				 * QE is enough if we meet direct dispatch.
+				 *
+				 * This could improve some efficiency on OLTP.
+				 */
+				if (Gp_role == GP_ROLE_DISPATCH && !IsInTransactionBlock(true) && !snapshot)
+				{
+					/* check whether we need to create distributed snapshot */
+					int 		determinedSliceIndex = 1;
+					PlannedStmt *pstmt = linitial_node(PlannedStmt, portal->stmts);
+
+					if (pstmt->numSlices == 2 &&
+						pstmt->slices[determinedSliceIndex].directDispatch.isDirectDispatch)
+						needDistributedSnapshot = false;
+				}
+				
 				/* Must set snapshot before starting executor. */
 				if (snapshot)
 					PushActiveSnapshot(snapshot);
 				else
 					PushActiveSnapshot(GetTransactionSnapshot());
+
+				/* reset value */
+				needDistributedSnapshot = true;
 
 				/*
 				 * We could remember the snapshot in portal->portalSnapshot,
@@ -644,6 +667,7 @@ PortalStart(Portal portal, ParamListInfo params,
 					queryDesc->ddesc->parallelCursorName = queryDesc->portal_name;
 				}
 
+				check_and_unassign_from_resgroup(queryDesc->plannedstmt);
 				queryDesc->plannedstmt->query_mem = ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 
 				if (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE())

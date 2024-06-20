@@ -719,4 +719,6 @@ extern ResultRelInfo *ExecLookupResultRelByOid(ModifyTableState *node,
 											   bool missing_ok,
 											   bool update_cache);
 
+extern bool already_under_executor_run(void);
+
 #endif							/* EXECUTOR_H  */

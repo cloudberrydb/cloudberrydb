@@ -748,7 +748,7 @@ initCdbComponentDatabases(GpSegConfigEntry * configs, int total_dbs)
 			}
 		}
 
-		cdbInfo->hostSegs = count;
+		cdbInfo->hostPrimaryCount = count;
 	}
 
 	for (i = 0; i < cdb_component_dbs->total_segment_dbs; i++)
@@ -779,7 +779,7 @@ initCdbComponentDatabases(GpSegConfigEntry * configs, int total_dbs)
 			}
 		}
 
-		cdbInfo->hostSegs = count;
+		cdbInfo->hostPrimaryCount = count;
 	}
 
 	return;

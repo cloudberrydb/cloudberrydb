@@ -16,7 +16,7 @@ PROGRAMS= analyzedb gpactivatestandby gpaddmirrors gpcheckcat gpcheckperf \
 	gpcheckresgroupimpl gpconfig gpdeletesystem gpexpand gpshrink gpinitstandby \
 	gpinitsystem gpload gpload.py gplogfilter gpmovemirrors \
 	gppkg gprecoverseg gpreload gpsync gpsd gpssh gpssh-exkeys gpstart \
-	gpstate gpstop minirepro gpmemwatcher gpmemreport gpdemo gpdirtableload
+	gpstate gpstop minirepro gpmemwatcher gpmemreport gpcheckresgroupv2impl gpdemo gpdirtableload
 
 	GPDEMO_LIBS = gpdemo-defaults.sh lalshell generate_certs.sh demo_cluster.sh \
 					probe_config.sh README
@@ -196,5 +196,5 @@ clean distclean:
 		  gpcheckperfc gpcheckresgroupimplc gpchecksubnetcfgc gpconfigc \
 		  gpdeletesystemc gpexpandc gpshrinkc gpinitstandbyc gplogfilterc gpmovemirrorsc \
 		  gppkgc gprecoversegc gpreloadc gpscpc gpsyncc gpsdc gpssh-exkeysc gpsshc \
-		  gpstartc gpstatec gpstopc minireproc
+		  gpstartc gpstatec gpstopc minireproc gpcheckresgroupv2implc
 	rm -f gpconfig_modules/gucs_disallowed_in_file.txt
