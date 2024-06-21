@@ -359,6 +359,10 @@ centos7:x86_64:icw-parallel:
       - ${GIT_CLONE_PATH}/contrib/pax_storage/src/test/regress/regression.diffs
       - ${GIT_CLONE_PATH}/contrib/pax_storage/src/test/regress/results/
       - ${GIT_CLONE_PATH}/contrib/pax_storage/src/test/regress/expected/
+      - ${GIT_CLONE_PATH}/contrib/pax_storage/src/test/vec/regression.out
+      - ${GIT_CLONE_PATH}/contrib/pax_storage/src/test/vec/regression.diffs
+      - ${GIT_CLONE_PATH}/contrib/pax_storage/src/test/vec/results/
+      - ${GIT_CLONE_PATH}/contrib/pax_storage/src/test/vec/expected/
       - ${GIT_CLONE_PATH}/contrib/pax_storage/coredumps/
       - ci_status/${CI_JOB_NAME}.txt
   timeout: 2 hours

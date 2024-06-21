@@ -10,6 +10,7 @@ PGFILEDESC = "pax - PAX table access method"
 SHLIB_LINK += -luuid
 
 PAX_REGRESS_DIR = src/test/regress
+PAX_VEC_REGRESS_DIR = src/test/vec
 
 ifdef USE_PGXS
 PG_CONFIG = pg_config
@@ -59,7 +60,12 @@ pax-test:
 	
 .PHONY: icw_test
 icw_test:
+	@echo "Begin running pax regression tests"
+	@echo "Current PGOPTIONS=$(PGOPTIONS)"
 	make -C $(PAX_REGRESS_DIR) icw_test
+	@echo "Begin running pax+vector regression tests"
+	@echo "Current PGOPTIONS=$(PGOPTIONS) -c vector.enable_vectorization=on"
+	PGOPTIONS="$(PGOPTIONS) -c vector.enable_vectorization=on" make -C $(PAX_VEC_REGRESS_DIR) icw_test
 
 .PHONY: uninstall-data
 uninstall-data:

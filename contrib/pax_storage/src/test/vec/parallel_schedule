@@ -1,0 +1,176 @@
+# ----------
+# src/test/regress/parallel_schedule
+#
+# By convention, we put no more than twenty tests in any one parallel group;
+# this limits the number of connections needed to run the tests.
+# ----------
+
+# run tablespace by itself, and first, because it forces a checkpoint;
+# we'd prefer not to have checkpoints later in the tests because that
+# interferes with crash-recovery testing.
+test: tablespace
+# ----------
+# The first group of parallel tests
+# ----------
+test: txid
+test: char
+test: boolean int2 int4 int8  float8  numeric
+test: name varchar text oid float4 bit money regproc rangetypes pg_lsn enum
+test: agg_stddev
+test: result_hashfilter
+# ----------
+# The second group of parallel tests
+# strings depends on char, varchar and text
+# numerology depends on int2, int4, int8, float4, float8
+# multirangetypes depends on rangetypes
+# multirangetypes shouldn't run concurrently with type_sanity
+# ----------
+# FIXME: extract Decimal type support is required
+# test: timestamp timestamptz
+test: strings interval inet  multirangetypes
+test: polygon numerology point lseg line box path circle time macaddr macaddr8 create_function_0  timetz date
+
+# ----------
+# Another group of parallel tests
+# geometry depends on point, lseg, box, path, polygon and circle
+# horology depends on interval, timetz, timestamp, timestamptz
+# opr_sanity depends on create_function_0
+# ----------
+# FIXME: vec problem depends on timestamptz
+#test: horology
+test: geometry tstypes regex misc_sanity comments unicode xid type_sanity opr_sanity expressions mvcc
+# ----------
+# These four each depend on the previous one
+# ----------
+test: create_function_1
+test: create_type
+test: create_table
+test: create_function_2
+# ----------
+# Load huge amounts of data
+# We should split the data files into single files and then
+# execute two copy tests parallel, to check that copy itself
+# is concurrent safe.
+# ----------
+test: copy copyselect copydml insert
+# ----------
+# More groups of parallel tests
+# ----------
+test: create_misc create_operator create_procedure
+test: create_index
+
+test: select
+
+# ----------
+# Another group of parallel tests
+# ----------
+test: create_aggregate  create_function_3 create_cast constraints inherit typed_table  drop_if_exists roleattributes create_am hash_func errors
+# test: create_view
+
+# test: vacuum
+
+# ----------
+# Because vacuum will detect concurrently running transactions, it is necessary to
+# run this test on its own, or it might not detect the pages are 'all visible'
+# ----------
+test: disable_autovacuum
+test: vacuum_stats
+test: enable_autovacuum
+
+# ----------
+# sanity_check does a vacuum, affecting the sort order of SELECT *
+# results. So it should not run parallel to other tests.
+test: sanity_check
+
+# ----------
+# Another group of parallel tests
+# Note: the ignore: line does not run random, just mark it as ignorable
+# ----------
+#ignore: random join
+test: select_distinct  select_implicit delete
+test: select_into select_having union case arrays
+
+test: select_distinct_on delete case
+
+#test: aggregates
+
+# In PostgreSQL, namespace test is run as part of the previous group, but there
+# are some GPDB additions in it that will show diff if concurrent tests use
+# temporary tables. So run it separately.
+test: namespace
+
+# ----------
+# Another group of parallel tests
+# ----------
+test: join_hash 
+test: groupingsets tablesample drop_operator password identity appendonly_sample aocs_sample
+# ----------
+# Another group of parallel tests
+# ----------
+
+test: tsrf collate.linux.utf8
+test: subselect psql_crosstab random
+test: misc_functions async dbsize
+#test: misc tid tidscan tidrangescan
+
+test: create_table_like alter_generic alter_operator  sysviews collate.icu.utf8 incremental_sort
+# rules cannot run concurrently with any test that creates
+# a view or rule in the public schema
+#
+# 'rules' test is disabled in GPDB. Maintaining the list of views in it is
+# too painful, and there are also errors because of cross-segment UPDATEs
+# and functions.
+#
+# GPDB_84_MERGE_FIXME: While disabling this was not really an effect of the 8.4
+# merge, it was done a long time ago, it's time to revisit this so we can re-
+# enable it
+#test: rules
+# collate.*.utf8 tests cannot be run in parallel with each other
+
+# run by itself so it can run parallel workers
+test: write_parallel
+
+# no relation related tests can be put in this group
+test: publication subscription
+
+# ----------
+# Another group of parallel tests
+# ----------
+# FIXME: ctid not support now
+#test: combocid select_views
+test: portals_p2 bitmapops foreign_data window
+test: dependency tsdicts  advisory_lock indirect_toast equivclass
+
+# ----------
+# Another group of parallel tests (JSON related)
+# ----------
+test: json jsonb
+test: json_encoding jsonpath jsonpath_encoding jsonb_jsonpath
+
+# ----------
+# Another group of parallel tests
+# NB: temp.sql does a reconnect which transiently uses 2 connections,
+# so keep this parallel group to at most 19 tests
+# ----------
+# test: plancache
+test: limit
+test: prepare conversion sequence returning xml
+# large objects are not supported by GPDB
+# test: largeobject
+
+test: gp_foreign_data
+
+# ----------
+# Another group of parallel tests
+# ----------
+test: partition_join partition_prune hash_part partition_info
+test: hash_part partition_aggregate tuplesort explain memoize
+# event triggers cannot run concurrently with any test that runs DDL
+# oidjoins is read-only, though, and should run late for best coverage
+# test: event_trigger oidjoins
+# this test also uses event triggers, so likewise run it by itself
+# test: fast_default
+
+# run stats by itself because its delay may be insufficient under heavy load
+#test: stats
+
