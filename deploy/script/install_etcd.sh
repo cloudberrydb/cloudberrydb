@@ -15,7 +15,7 @@ else
     etcd_file_name=etcd-${etcd_version}-linux-arm64
 fi
 
-etcd_download_url=https://artifactory.hashdata.xyz/artifactory/utility/${etcd_file_name}.tar.gz
+etcd_download_url=https://cbdb-deps.s3.amazonaws.com/etcd/${etcd_file_name}.tar.gz
 
 wget ${etcd_download_url} -O /tmp/${etcd_file_name}.tar.gz
 tar -xvf /tmp/${etcd_file_name}.tar.gz -C /tmp
