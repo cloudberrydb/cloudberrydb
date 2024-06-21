@@ -392,6 +392,7 @@ size_t PaxColumns::MeasureVecDataBuffer(
 
     switch (column->GetPaxColumnTypeInMem()) {
       case kTypeVecBpChar:
+      case kTypeVecNoHeader:
       case kTypeNonFixed: {
         size_t padding = 0;
         auto no_fixed_column = reinterpret_cast<PaxVecNonFixedColumn *>(column);
@@ -533,6 +534,7 @@ size_t PaxColumns::MeasureOrcDataBuffer(
       case kTypeVecBitPacked:
       case kTypeVecDecimal:
       case kTypeVecBpChar:
+      case kTypeVecNoHeader:
       case kTypeInvalid:
       default: {
         CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
@@ -603,6 +605,7 @@ void PaxColumns::CombineVecDataBuffer() {
 
     switch (column->GetPaxColumnTypeInMem()) {
       case kTypeVecBpChar:
+      case kTypeVecNoHeader:
       case kTypeNonFixed: {
         char *length_stream_data;
         size_t length_stream_len;
@@ -730,6 +733,7 @@ void PaxColumns::CombineOrcDataBuffer() {
       case kTypeVecBitPacked:
       case kTypeVecDecimal:
       case kTypeVecBpChar:
+      case kTypeVecNoHeader:
       case kTypeInvalid:
       default: {
         CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);

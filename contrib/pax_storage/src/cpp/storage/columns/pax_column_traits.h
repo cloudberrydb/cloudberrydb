@@ -10,6 +10,7 @@
 #include "storage/columns/pax_vec_bpchar_column.h"
 #include "storage/columns/pax_vec_column.h"
 #include "storage/columns/pax_vec_encoding_column.h"
+#include "storage/columns/pax_vec_no_hdr_column.h"
 #include "storage/columns/pax_vec_numeric_column.h"
 
 namespace pax::traits {
@@ -158,6 +159,7 @@ TRAITS_OPT_DECL_NO_TYPE(PaxShortNumericColumn);
 TRAITS_OPT_DECL2(PaxPgNumericColumn);
 TRAITS_OPT_DECL2(PaxBpCharColumn);
 TRAITS_OPT_DECL2(PaxVecBpCharColumn);
+TRAITS_OPT_DECL2(PaxVecNoHdrColumn);
 TRAITS_OPT_DECL_NO_TYPE(PaxBitPackedColumn);
 TRAITS_OPT_DECL_NO_TYPE(PaxVecBitPackedColumn);
 

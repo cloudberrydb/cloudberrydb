@@ -24,17 +24,17 @@ static std::pair<Datum, Datum> GetDatumWithNonNull(PaxColumn *column,
       datum = PointerGetDatum(buffer);
       if (column->IsToast(row_index)) {
         auto external_buffer = column->GetExternalToastDataBuffer();
-        ref = pax_detoast(
-            datum, external_buffer ? external_buffer->Start() : nullptr,
-            external_buffer ? external_buffer->Used() : 0);
+        ref = pax_detoast(datum,
+                          external_buffer ? external_buffer->Start() : nullptr,
+                          external_buffer ? external_buffer->Used() : 0);
         datum = ref;
         break;
       }
 
       CBDB_WRAP_START;
       {
-        ref = PointerGetDatum(
-          PAX_NEW_ARRAY<char>(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len + VARHDRSZ)));
+        ref = PointerGetDatum(PAX_NEW_ARRAY<char>(
+            TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len + VARHDRSZ)));
         SET_VARSIZE(ref, buffer_len + VARHDRSZ);
         memcpy(VARDATA(ref), buffer, buffer_len);
         datum = ref;
@@ -62,7 +62,8 @@ static std::pair<Datum, Datum> GetDatumWithNonNull(PaxColumn *column,
       }
       break;
     }
-    case kTypeVecDecimal: {
+    case kTypeVecDecimal:
+    case kTypeVecNoHeader: {
       datum = PointerGetDatum(buffer);
       break;
     }

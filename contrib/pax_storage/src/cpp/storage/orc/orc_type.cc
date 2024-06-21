@@ -38,6 +38,8 @@ pax::porc::proto::Type_Kind ConvertPgTypeToPorcType(FormData_pg_attribute *attr,
       type = is_vec ? pax::porc::proto::Type_Kind::Type_Kind_VECBPCHAR
                     : pax::porc::proto::Type_Kind::Type_Kind_BPCHAR;
 
+    } else if (is_vec && attr->attlen > 0) {
+      type = pax::porc::proto::Type_Kind::Type_Kind_VECNOHEADER;
     } else {
       type = pax::porc::proto::Type_Kind::Type_Kind_STRING;
     }

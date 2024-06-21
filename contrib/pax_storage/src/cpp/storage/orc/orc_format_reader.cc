@@ -563,7 +563,7 @@ static PaxColumn *BuildVecEncodingDecimalColumn(
 static PaxColumn *BuildEncodingVecNonFixedColumn(
     DataBuffer<char> *data_buffer, const pax::porc::proto::Stream &data_stream,
     const pax::porc::proto::Stream &len_stream,
-    const ColumnEncoding &data_encoding, bool is_bpchar) {
+    const ColumnEncoding &data_encoding, bool is_bpchar, bool is_no_hdr) {
   uint32 not_null_rows = 0;
   uint64 length_stream_len = 0;
   uint64 padding = 0;
@@ -573,6 +573,8 @@ static PaxColumn *BuildEncodingVecNonFixedColumn(
   PaxVecNonFixedColumn *pax_column = nullptr;
   PaxDecoder::DecodingOption decoding_option;
   size_t data_cap, lengths_cap;
+
+  Assert(!(is_bpchar && is_no_hdr));
 
   auto total_rows = static_cast<uint32>(len_stream.column());
   not_null_rows = static_cast<uint32>(data_stream.column());
@@ -624,6 +626,13 @@ static PaxColumn *BuildEncodingVecNonFixedColumn(
 
     pax_column =
         traits::ColumnOptCreateTraits2<PaxVecBpCharColumn>::create_decoding(
+            data_cap, lengths_cap, std::move(decoding_option));
+  } else if (is_no_hdr) {
+    data_buffer->Brush(data_stream_len);
+    data_stream_buffer->BrushAll();
+
+    pax_column =
+        traits::ColumnOptCreateTraits2<PaxVecNoHdrColumn>::create_decoding(
             data_cap, lengths_cap, std::move(decoding_option));
   } else {
     if (data_encoding.kind() ==
@@ -855,6 +864,7 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
     switch (column_types_[index]) {
       case (pax::porc::proto::Type_Kind::Type_Kind_BPCHAR):
       case (pax::porc::proto::Type_Kind::Type_Kind_VECBPCHAR):
+      case (pax::porc::proto::Type_Kind::Type_Kind_VECNOHEADER):
       case (pax::porc::proto::Type_Kind::Type_Kind_STRING): {
         const pax::porc::proto::Stream &len_stream =
             stripe_footer.streams(streams_index++);
@@ -867,14 +877,17 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
         Assert(data_stream.kind() == pax::porc::proto::Stream_Kind_DATA);
 
         pax_columns->Append(
-            is_vec_ ? BuildEncodingVecNonFixedColumn(
-                          data_buffer, data_stream, len_stream, data_encoding,
-                          column_types_[index] ==
-                              pax::porc::proto::Type_Kind::Type_Kind_VECBPCHAR)
-                    : BuildEncodingNonFixedColumn(
-                          data_buffer, data_stream, len_stream, data_encoding,
-                          column_types_[index] ==
-                              pax::porc::proto::Type_Kind::Type_Kind_BPCHAR));
+            is_vec_
+                ? BuildEncodingVecNonFixedColumn(
+                      data_buffer, data_stream, len_stream, data_encoding,
+                      column_types_[index] ==
+                          pax::porc::proto::Type_Kind::Type_Kind_VECBPCHAR,
+                      column_types_[index] ==
+                          pax::porc::proto::Type_Kind::Type_Kind_VECNOHEADER)
+                : BuildEncodingNonFixedColumn(
+                      data_buffer, data_stream, len_stream, data_encoding,
+                      column_types_[index] ==
+                          pax::porc::proto::Type_Kind::Type_Kind_BPCHAR));
         break;
       }
       case (pax::porc::proto::Type_Kind::Type_Kind_BOOLEAN): {

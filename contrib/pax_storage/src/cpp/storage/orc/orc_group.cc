@@ -227,9 +227,9 @@ static std::pair<Datum, Datum> GetDatumWithNonNull(PaxColumn *column,
       datum = PointerGetDatum(buffer);
       if (column->IsToast(row_offset)) {
         auto external_buffer = column->GetExternalToastDataBuffer();
-        ref = pax_detoast(
-            datum, external_buffer ? external_buffer->Start() : nullptr,
-            external_buffer ? external_buffer->Used() : 0);
+        ref = pax_detoast(datum,
+                          external_buffer ? external_buffer->Start() : nullptr,
+                          external_buffer ? external_buffer->Used() : 0);
         datum = ref;
       }
       break;
@@ -257,6 +257,7 @@ static std::pair<Datum, Datum> GetDatumWithNonNull(PaxColumn *column,
     }
     case kTypeVecBitPacked:
     case kTypeVecBpChar:
+    case kTypeVecNoHeader:
     case kTypeVecDecimal:
     default:
       Assert(!"should't be here, non-implemented column type in memory");

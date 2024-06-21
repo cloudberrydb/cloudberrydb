@@ -123,6 +123,13 @@ Impl::CreateDecodingFunc2<PaxVecBpCharColumn>
     ColumnOptCreateTraits2<PaxVecBpCharColumn>::create_decoding =
         Impl::CreateDecodingImpl2<PaxVecBpCharColumn>;
 
+Impl::CreateEncodingFunc2<PaxVecNoHdrColumn>
+    ColumnOptCreateTraits2<PaxVecNoHdrColumn>::create_encoding =
+        Impl::CreateEncodingImpl2<PaxVecNoHdrColumn>;
+Impl::CreateDecodingFunc2<PaxVecNoHdrColumn>
+    ColumnOptCreateTraits2<PaxVecNoHdrColumn>::create_decoding =
+        Impl::CreateDecodingImpl2<PaxVecNoHdrColumn>;
+
 Impl::CreateEncodingFunc2<PaxPgNumericColumn>
     ColumnOptCreateTraits2<PaxPgNumericColumn>::create_encoding =
         Impl::CreateEncodingImpl2<PaxPgNumericColumn>;

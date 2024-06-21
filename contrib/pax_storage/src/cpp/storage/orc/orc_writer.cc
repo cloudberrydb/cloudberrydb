@@ -117,6 +117,14 @@ static PaxColumns *BuildColumns(
                                          std::move(encoding_option)));
         break;
       }
+      case (pax::porc::proto::Type_Kind::Type_Kind_VECNOHEADER): {
+        Assert(is_vec);
+        columns->Append(
+            traits::ColumnOptCreateTraits2<PaxVecNoHdrColumn>::create_encoding(
+                DEFAULT_CAPACITY, DEFAULT_CAPACITY,
+                std::move(encoding_option)));
+        break;
+      }
       case (pax::porc::proto::Type_Kind::Type_Kind_VECBPCHAR):
       case (pax::porc::proto::Type_Kind::Type_Kind_BPCHAR): {
         columns->Append(CreateBpCharColumn(is_vec, std::move(encoding_option)));

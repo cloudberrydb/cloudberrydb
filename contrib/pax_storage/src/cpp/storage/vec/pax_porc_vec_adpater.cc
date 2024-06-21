@@ -142,6 +142,7 @@ std::pair<size_t, size_t> VecAdapter::AppendPorcVecFormat(PaxColumns *columns) {
 
     switch (column->GetPaxColumnTypeInMem()) {
       case PaxColumnTypeInMem::kTypeVecBpChar:
+      case PaxColumnTypeInMem::kTypeVecNoHeader:
       case PaxColumnTypeInMem::kTypeNonFixed: {
         Assert(!vec_buffer->GetBuffer());
         Assert(!offset_buffer->GetBuffer());

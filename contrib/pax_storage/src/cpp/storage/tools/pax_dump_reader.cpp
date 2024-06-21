@@ -600,6 +600,7 @@ void PaxDumpReader::DumpAllData() {
           case kTypeBpChar:
           case kTypeDecimal:
           case kTypeVecBpChar:
+          case kTypeVecNoHeader:
           case kTypeNonFixed:
             current_row.emplace_back(std::string(DatumGetPointer(d)));
             break;

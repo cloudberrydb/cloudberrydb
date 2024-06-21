@@ -91,6 +91,7 @@ message Type {
     VECBPCHAR = 14;
     BITPACKED = 15;
     VECBITPACKED = 16;
+    VECNOHEADER = 17;
   }
   // the kind of type
   optional Kind kind = 1;

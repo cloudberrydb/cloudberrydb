@@ -32,6 +32,7 @@ enum PaxColumnTypeInMem {
   kTypeVecBpChar = 7,
   kTypeBitPacked = 8,
   kTypeVecBitPacked = 9,
+  kTypeVecNoHeader = 10,
 };
 
 class PaxColumn {
