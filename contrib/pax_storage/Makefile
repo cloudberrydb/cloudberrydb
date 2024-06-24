@@ -66,6 +66,9 @@ icw_test:
 	@echo "Begin running pax+vector regression tests"
 	@echo "Current PGOPTIONS=$(PGOPTIONS) -c vector.enable_vectorization=on"
 	PGOPTIONS="$(PGOPTIONS) -c vector.enable_vectorization=on" make -C $(PAX_VEC_REGRESS_DIR) icw_test
+	@echo "Begin running pax+vec format+vector regression tests"
+	@echo "Current PGOPTIONS=$(PGOPTIONS) -c vector.enable_vectorization=on -c pax_default_storage_format=porc_vec"
+	PGOPTIONS="$(PGOPTIONS) -c vector.enable_vectorization=on -c pax_default_storage_format=porc_vec" make -C $(PAX_VEC_REGRESS_DIR) icw_test
 
 .PHONY: uninstall-data
 uninstall-data:

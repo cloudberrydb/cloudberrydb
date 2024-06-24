@@ -124,7 +124,7 @@ PaxStorageFormat TableWriter::GetStorageFormat() {
   if (!already_get_format_) {
     Assert(relation_);
     storage_format_ = StorageFormatKeyToPaxStorageFormat(RelationGetOptions(
-        relation_, storage_format, STORAGE_FORMAT_TYPE_DEFAULT));
+        relation_, storage_format, pax_default_storage_format));
     already_get_format_ = true;
   }
 

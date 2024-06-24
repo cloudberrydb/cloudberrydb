@@ -2,6 +2,7 @@
 
 #include "comm/cbdb_api.h"
 
+#include "access/paxc_rel_options.h"
 #include "storage/pax_defined.h"
 #include "storage/pax_itemptr.h"
 
@@ -36,6 +37,7 @@ int pax_max_size_per_file = PAX_MAX_SIZE_PER_FILE_DEFAULT;
 bool pax_enable_toast = true;
 int pax_min_size_of_compress_toast = PAX_MIN_SIZE_MAKE_COMPRESSED_TOAST;
 int pax_min_size_of_external_toast = PAX_MIN_SIZE_MAKE_EXTERNAL_TOAST;
+char *pax_default_storage_format = nullptr;
 
 }  // namespace pax
 
@@ -81,6 +83,12 @@ static bool CheckMinExternalToastSize(int *newval, void **extra,
          "pax_min_size_of_compress_toast");
   }
   return ok;
+}
+
+static bool CheckDefaultStorageFormat(char **newval, void **extra,
+                                      GucSource source) {
+  return pg_strcasecmp(*newval, STORAGE_FORMAT_TYPE_PORC) == 0 ||
+         pg_strcasecmp(*newval, STORAGE_FORMAT_TYPE_PORC_VEC) == 0;
 }
 
 void DefineGUCs() {
@@ -136,6 +144,11 @@ void DefineGUCs() {
       &pax::pax_min_size_of_external_toast, PAX_MIN_SIZE_MAKE_EXTERNAL_TOAST,
       PAX_MIN_SIZE_MAKE_EXTERNAL_TOAST, INT_MAX, PGC_USERSET, 0,
       CheckMinExternalToastSize, NULL, NULL);
+
+  DefineCustomStringVariable(
+      "pax_default_storage_format", "the default storage format", NULL,
+      &pax::pax_default_storage_format, "porc", PGC_USERSET, GUC_GPDB_NEED_SYNC,
+      CheckDefaultStorageFormat, NULL, NULL);
 }
 
 }  // namespace paxc
