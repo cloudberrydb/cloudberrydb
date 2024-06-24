@@ -1,5 +1,6 @@
 #include "storage/columns/pax_vec_encoding_column.h"
 
+#include "comm/fmt.h"
 #include "comm/pax_memory.h"
 
 namespace pax {
@@ -104,8 +105,9 @@ void PaxVecEncodingColumn<T>::Set(DataBuffer<T> *data, size_t non_null_rows) {
           PaxVecCommColumn<T>::data_->Start(),
           PaxVecCommColumn<T>::data_->Capacity(), data->Start(), data->Used());
       if (compressor_->IsError(d_size)) {
-        // log error with `compressor_->ErrorName(d_size)`
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+        CBDB_RAISE(
+            cbdb::CException::ExType::kExTypeCompressError,
+            fmt("Decompress failed, %s", compressor_->ErrorName(d_size)));
       }
 
       PaxVecCommColumn<T>::data_->Brush(d_size);
@@ -154,8 +156,8 @@ std::pair<char *, size_t> PaxVecEncodingColumn<T>::GetBuffer() {
           PaxVecCommColumn<T>::data_->Used(), encoder_options_.compress_level);
 
       if (compressor_->IsError(c_size)) {
-        // log error with `compressor_->ErrorName(c_size)`
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError,
+                   fmt("compress failed, %s", compressor_->ErrorName(c_size)));
       }
 
       shared_data_->Brush(c_size);
@@ -283,7 +285,9 @@ void PaxVecNonFixedEncodingColumn::Set(DataBuffer<char> *data,
           PaxVecNonFixedColumn::data_->Start(),
           PaxVecNonFixedColumn::data_->Capacity(), data->Start(), data->Used());
       if (compressor_->IsError(d_size)) {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+        CBDB_RAISE(
+            cbdb::CException::ExType::kExTypeCompressError,
+            fmt("Decompress failed, %s", compressor_->ErrorName(d_size)));
       }
       PaxVecNonFixedColumn::data_->Brush(d_size);
     }
@@ -302,7 +306,9 @@ void PaxVecNonFixedEncodingColumn::Set(DataBuffer<char> *data,
           PaxVecNonFixedColumn::offsets_->Capacity(), offsets->Start(),
           offsets->Used());
       if (offsets_compressor_->IsError(d_size)) {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+        CBDB_RAISE(
+            cbdb::CException::ExType::kExTypeCompressError,
+            fmt("Decompress failed, %s", compressor_->ErrorName(d_size)));
       }
       PaxVecNonFixedColumn::offsets_->Brush(d_size);
     }
@@ -356,8 +362,8 @@ std::pair<char *, size_t> PaxVecNonFixedEncodingColumn::GetBuffer() {
         PaxVecNonFixedColumn::data_->Used(), encoder_options_.compress_level);
 
     if (compressor_->IsError(c_size)) {
-      // log error with `compressor_->ErrorName(d_size)`
-      CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+      CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError,
+                 fmt("Compress failed, %s", compressor_->ErrorName(c_size)));
     }
 
     shared_data_->Brush(c_size);
@@ -409,7 +415,8 @@ std::pair<char *, size_t> PaxVecNonFixedEncodingColumn::GetOffsetBuffer(
         encoder_options_.compress_level);
 
     if (offsets_compressor_->IsError(d_size)) {
-      CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+      CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError,
+                 fmt("Decompress failed, %s", compressor_->ErrorName(d_size)));
     }
 
     shared_offsets_data_->Brush(d_size);

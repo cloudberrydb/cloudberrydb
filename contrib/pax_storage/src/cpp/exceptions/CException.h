@@ -4,6 +4,8 @@
 #include <sstream>
 #include <string>
 
+#include "comm/fmt.h"
+
 // CBDB_TRY();
 // {
 //   // C++ implementation code
@@ -80,6 +82,7 @@ namespace cbdb {
 #define DEFAULT_STACK_MAX_DEPTH 63
 #define DEFAULT_STACK_MAX_SIZE \
   ((DEFAULT_STACK_MAX_DEPTH + 1) * PIPE_MAX_PAYLOAD)
+#define MAX_SIZE_OF_ERROR_MESSAGE 2048
 // error message buffer
 class ErrorMessage final {
  public:
@@ -119,7 +122,7 @@ class CException {
     kExTypeToastPGLZError,
     kExTypeToastLZ4Error,
     kExTypeInvalidExternalToast,
-    kExTypeToastNotMatch,
+    kExTypeEnd,
   };
 
   explicit CException(ExType extype);
@@ -133,6 +136,10 @@ class CException {
 
   ExType EType() const;
 
+  void AppendDetailMessage(const char *message);
+
+  void AppendDetailMessage(const std::string &message);
+
   std::string What() const;
 
   const char *Stack() const;
@@ -141,16 +148,18 @@ class CException {
       __attribute__((__noreturn__));
   static void Raise(const char *filename, int line, ExType extype,
                     const char *message) __attribute__((__noreturn__));
+  static void Raise(const char *filename, int line, ExType extype,
+                    const std::string &message) __attribute__((__noreturn__));
   static void Raise(CException ex, bool reraise) __attribute__((__noreturn__));
   static void ReRaise(CException ex) __attribute__((__noreturn__));
 
  private:
   char stack_[DEFAULT_STACK_MAX_SIZE];
-  static const char *exception_names[];
   const char *m_filename_;
   int m_lineno_;
   ExType m_extype_;
-  char m_errormsg_[512] = {0};
+  char m_errormsg_[MAX_SIZE_OF_ERROR_MESSAGE] = {0};
+  int m_errormsg_len_ = 0;
 };
 
 }  // namespace cbdb

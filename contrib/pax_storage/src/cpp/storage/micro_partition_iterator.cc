@@ -2,6 +2,7 @@
 
 #include "catalog/pax_aux_table.h"
 #include "comm/cbdb_wrappers.h"
+#include "comm/fmt.h"
 #include "comm/pax_memory.h"
 #include "exceptions/CException.h"
 
@@ -102,7 +103,9 @@ MicroPartitionMetadata MicroPartitionInfoIterator::ToValue(HeapTuple tuple) {
     auto flat_stats = cbdb::PgDeToastDatumPacked(stats);
     auto ok = stats_info.ParseFromArray(VARDATA_ANY(flat_stats),
                                         VARSIZE_ANY_EXHDR(flat_stats));
-    CBDB_CHECK(ok, cbdb::CException::kExTypeIOError);
+    CBDB_CHECK(ok, cbdb::CException::kExTypeIOError,
+               ::pax::fmt("Invalid pb structure in the aux table [rd_id=%d]",
+                          aux_rel_->rd_id));
     v.SetStats(std::move(stats_info));
 
     if (flat_stats != stats) cbdb::Pfree(flat_stats);

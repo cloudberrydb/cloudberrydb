@@ -1,5 +1,6 @@
 #include "storage/columns/pax_decoding.h"
 
+#include "comm/fmt.h"
 #include "comm/pax_memory.h"
 #include "storage/columns/pax_rlev2_decoding.h"
 
@@ -22,7 +23,9 @@ PaxDecoder *PaxDecoder::CreateDecoder(const DecodingOption &decoder_options) {
       break;
     }
     case ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED: {
-      CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
+      CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError,
+                 fmt("Invalid encoding type %d",
+                     ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED));
     }
     case ColumnEncoding_Kind::ColumnEncoding_Kind_COMPRESS_ZSTD:
     case ColumnEncoding_Kind::ColumnEncoding_Kind_COMPRESS_ZLIB:

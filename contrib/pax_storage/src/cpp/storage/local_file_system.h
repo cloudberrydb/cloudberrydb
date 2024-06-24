@@ -13,6 +13,7 @@
 namespace pax {
 
 struct pax_fd_handle_t;
+class LocalFileSystem;
 
 class LocalFile final : public File {
  public:
@@ -27,6 +28,7 @@ class LocalFile final : public File {
   void Delete() override;
   void Close() override;
   std::string GetPath() const override;
+  std::string DebugString() const override;
 
  private:
   int fd_;

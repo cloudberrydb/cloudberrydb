@@ -59,7 +59,9 @@ void PaxVecBitPackedColumn::Append(char *buffer, size_t size) {
 }
 
 std::pair<char *, size_t> PaxVecBitPackedColumn::GetBuffer(size_t position) {
-  CBDB_CHECK(position < GetRows(), cbdb::CException::ExType::kExTypeOutOfRange);
+  CBDB_CHECK(position < GetRows(), cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to get buffer [pos=%lu, total rows=%lu], \n %s",
+                 position, GetRows(), DebugString().c_str()));
   if (!flat_buffer_) {
     flat_buffer_ = new DataBuffer<bool>(non_null_rows_ * sizeof(bool));
   }

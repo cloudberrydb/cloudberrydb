@@ -1,5 +1,6 @@
 #include "storage/columns/pax_encoding_column.h"
 
+#include "comm/fmt.h"
 #include "storage/pax_defined.h"
 #include "storage/proto/proto_wrappers.h"
 namespace pax {
@@ -123,8 +124,9 @@ void PaxEncodingColumn<T>::Set(DataBuffer<T> *data) {
           PaxCommColumn<T>::data_->Start(), PaxCommColumn<T>::data_->Capacity(),
           data->Start(), data->Used());
       if (compressor_->IsError(d_size)) {
-        // log error with `compressor_->ErrorName(d_size)`
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+        CBDB_RAISE(
+            cbdb::CException::ExType::kExTypeCompressError,
+            fmt("Decompress failed, %s", compressor_->ErrorName(d_size)));
       }
 
       PaxCommColumn<T>::data_->Brush(d_size);
@@ -173,8 +175,8 @@ std::pair<char *, size_t> PaxEncodingColumn<T>::GetBuffer() {
           encoder_options_.compress_level);
 
       if (compressor_->IsError(c_size)) {
-        // log error with `compressor_->ErrorName(c_size)`
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError,
+                   fmt("Compress failed, %s", compressor_->ErrorName(c_size)));
       }
 
       shared_data_->Brush(c_size);

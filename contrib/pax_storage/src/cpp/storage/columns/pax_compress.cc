@@ -1,6 +1,7 @@
 #include "storage/columns/pax_compress.h"
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/fmt.h"
 #include "comm/pax_memory.h"
 #ifdef USE_LZ4
 #include <lz4.h>
@@ -23,7 +24,9 @@ PaxCompressor *PaxCompressor::CreateBlockCompressor(
       break;
     }
     case ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED: {
-      CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
+      CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError,
+                 fmt("Invalid compress type %d",
+                     ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED));
     }
     // two cases here:
     //  - `encoded type` is not a compress type.

@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/fmt.h"
 #include "storage/proto/proto_wrappers.h"
 
 namespace pax {

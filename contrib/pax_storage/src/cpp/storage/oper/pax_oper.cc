@@ -469,7 +469,8 @@ static inline bool LocaleIsC(Oid collation) {
     }
 
     localeptr = setlocale(LC_COLLATE, NULL);
-    CBDB_CHECK(localeptr, cbdb::CException::ExType::kExTypeCError);
+    CBDB_CHECK(localeptr, cbdb::CException::ExType::kExTypeCError,
+               fmt("Invalid locale, fail to `setlocale`, errno: %d", errno));
 
     if (strcmp(localeptr, "C") == 0 ||  // cut line
         strcmp(localeptr, "POSIX") == 0) {
@@ -488,7 +489,8 @@ static inline int VarstrCmp(const char *arg1, int len1, const char *arg2,
                             int len2, Oid collid) {
   int rc;
 
-  CBDB_CHECK(OidIsValid(collid), cbdb::CException::ExType::kExTypeLogicError);
+  CBDB_CHECK(OidIsValid(collid), cbdb::CException::ExType::kExTypeLogicError,
+             fmt("[collid=%u] not support", collid));
   if (LocaleIsC(collid)) {
     rc = memcmp(arg1, arg2, Min(len1, len2));
     if ((rc == 0) && (len1 != len2)) rc = (len1 < len2) ? -1 : 1;

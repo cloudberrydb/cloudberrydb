@@ -98,7 +98,10 @@ void CopyBitmapBuffer(PaxColumn *column,
       CopyBitmap(null_bitmap, 0, out_range_lens, null_bits_buffer);
       *out_visable_null_counts = null_count;
       CBDB_CHECK(out_range_lens == null_index,
-                 cbdb::CException::ExType::kExTypeOutOfRange);
+                 cbdb::CException::ExType::kExTypeOutOfRange,
+                 fmt("The required range len not match the null counts [range "
+                     "len=%lu, null count=%lu]",
+                     out_range_lens, null_index));
       PAX_DELETE(null_bitmap);
     }
   }

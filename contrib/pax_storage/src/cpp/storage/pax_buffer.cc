@@ -1,5 +1,6 @@
 #include "storage/pax_buffer.h"
 
+#include "comm/fmt.h"
 #include "exceptions/CException.h"
 
 namespace pax {
@@ -103,7 +104,9 @@ void DataBuffer<T>::ReSize(size_t size) {
   }
 
   if (unlikely(size > MEMORY_RESIZE_LIMIT)) {
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeOOM);
+    CBDB_RAISE(cbdb::CException::ExType::kExTypeOOM,
+               fmt("Current size require: %lu, The max limit resize is %lu",
+                   size, MEMORY_RESIZE_LIMIT));
   }
 
   size_t used = Used();

@@ -200,8 +200,13 @@ void CCPaxAccessMethod::RelationSetNewFilenode(Relation rel,
     FileSystem *fs = pax::Singleton<LocalFileSystem>::GetInstance();
     auto path = cbdb::BuildPaxDirectoryPath(*newrnode, rel->rd_backend, false);
     Assert(!path.empty());
-    CBDB_CHECK((fs->CreateDirectory(path) == 0),
-               cbdb::CException::ExType::kExTypeIOError);
+    CBDB_CHECK(
+        (fs->CreateDirectory(path) == 0),
+        cbdb::CException::ExType::kExTypeIOError,
+        fmt("Create directory failed [path=%s, errno=%d], "
+            "relfilenode [spcNode=%u, dbNode=%u, relNode=%lu, backend=%d]",
+            path.c_str(), errno, newrnode->spcNode, newrnode->dbNode,
+            newrnode->relNode, rel->rd_backend));
   }
   CBDB_CATCH_DEFAULT();
   CBDB_FINALLY({});

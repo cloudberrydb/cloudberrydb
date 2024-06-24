@@ -5,6 +5,7 @@
 
 #include "comm/bitmap.h"
 #include "comm/cbdb_wrappers.h"
+#include "comm/fmt.h"
 #include "comm/pax_memory.h"
 #include "comm/singleton.h"
 #include "storage/file_system.h"
@@ -54,7 +55,7 @@ class LruCache {
     // We'll remove the memory context later
     MemoryContextGuard guard(TopMemoryContext);
     if (it == cache_items_map_.end()) {
-      CBDB_CHECK(load_func, cbdb::CException::kExTypeLogicError);
+      Assert(load_func);
 
       auto value = load_func(key);
       Put(key, value);
@@ -87,7 +88,16 @@ std::shared_ptr<std::vector<uint8>> LoadVisimapInternal(
   auto file = file_system->Open(visimap_file_path, pax::fs::kReadMode, options);
   Assert(file);
   size_t file_size = file->FileLength();
-  // TODO: check the limit of file size, to avoid OOM
+
+  // The file_size / 8 == number of ctid in this file
+  CBDB_CHECK(file_size <= PAX_MAX_NUM_TUPLES_PER_FILE / 8,
+             cbdb::CException::kExTypeLogicError,
+             fmt("Invalid visimap file [path=%s]."
+                 "The number of tuples(%ld +- 7) in this file is invalid which "
+                 "is more "
+                 "than %lu",
+                 visimap_file_path.c_str(), (file_size / 8),
+                 PAX_MAX_NUM_TUPLES_PER_FILE));
 
   std::vector<uint8> buffer(file_size, 0);
   file->ReadN((void *)&buffer[0], file_size);
@@ -97,7 +107,7 @@ std::shared_ptr<std::vector<uint8>> LoadVisimapInternal(
 }
 
 std::shared_ptr<std::vector<uint8>> LoadVisimap(
-    FileSystem *fs, FileSystemOptions* options,
+    FileSystem *fs, FileSystemOptions *options,
     const std::string &visimap_file_path) {
   return visimap_cache.Get(visimap_file_path, [&](const std::string &key) {
     return LoadVisimapInternal(fs, options, key);
@@ -111,7 +121,8 @@ bool TestVisimap(Relation rel, const char *visimap_name, int offset) {
   FileSystemOptions *options = nullptr;
   static RemoteFileSystemOptions remote_options;
   // FIXME(gongxun): mount the is_dfs_tablespace in the PaxIndexScanDesc
-  bool is_dfs_tablespace = cbdb::IsDfsTablespaceById(rel->rd_rel->reltablespace);
+  bool is_dfs_tablespace =
+      cbdb::IsDfsTablespaceById(rel->rd_rel->reltablespace);
   auto rel_path = cbdb::BuildPaxDirectoryPath(rel->rd_node, rel->rd_backend,
                                               is_dfs_tablespace);
   auto file_path = cbdb::BuildPaxFilePath(rel_path, visimap_name);

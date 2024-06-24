@@ -194,7 +194,15 @@ CException::CException(ExType extype)  // NOLINT
 CException::CException(const char *filename, int lineno,  // NOLINT
                        ExType extype, const char *message)
     : m_filename_(filename), m_lineno_(lineno), m_extype_(extype) {
-  strncpy(m_errormsg_, message, sizeof(m_errormsg_) - 1);
+  if (!message) {
+    return;
+  }
+
+  strncpy(m_errormsg_, message, MAX_SIZE_OF_ERROR_MESSAGE - 1);
+  m_errormsg_len_ = strlen(message);
+  if (m_errormsg_len_ > MAX_SIZE_OF_ERROR_MESSAGE - 1) {
+    m_errormsg_len_ = MAX_SIZE_OF_ERROR_MESSAGE - 1;
+  }
 }
 
 const char *CException::Filename() const { return m_filename_; }
@@ -203,11 +211,21 @@ int CException::Lineno() const { return m_lineno_; }
 
 CException::ExType CException::EType() const { return m_extype_; }
 
-std::string CException::What() const {
-  std::ostringstream buffer;
-  buffer << m_filename_ << ":" << m_lineno_ << " " << exception_names[m_extype_]
-         << " detail:" << m_errormsg_;
-  return buffer.str();
+void CException::AppendDetailMessage(const char *message) {
+  if (m_errormsg_len_ >= MAX_SIZE_OF_ERROR_MESSAGE - 1) {
+    return;
+  }
+
+  strncpy(m_errormsg_ + m_errormsg_len_, message,
+          (MAX_SIZE_OF_ERROR_MESSAGE - 1) - m_errormsg_len_);
+  m_errormsg_len_ += strlen(message);
+  if (m_errormsg_len_ > MAX_SIZE_OF_ERROR_MESSAGE - 1) {
+    m_errormsg_len_ = MAX_SIZE_OF_ERROR_MESSAGE - 1;
+  }
+}
+
+void CException::AppendDetailMessage(const std::string &message) {
+  AppendDetailMessage(message.c_str());
 }
 
 const char *CException::Stack() const { return stack_; }
@@ -221,9 +239,14 @@ void CException::Raise(const char *filename, int lineno, ExType extype,
   Raise(CException(filename, lineno, extype, message), false);
 }
 
+void CException::Raise(const char *filename, int lineno, ExType extype,
+                       const std::string &message) {
+  Raise(CException(filename, lineno, extype, message.c_str()), false);
+}
+
 void CException::ReRaise(CException ex) { Raise(ex, true); }
 
-const char *CException::exception_names[] = {
+static const char *exception_names[] = {
     "Invalid ExType",
     "Not implements in cpp",
     "Assert Failure",
@@ -239,7 +262,24 @@ const char *CException::exception_names[] = {
     "File operation got error",
     "Compress got errors",
     "Arrow export got errors",
+    "Arrow record batch too small",
+    "no LZ4 support",
+    "Invalid toast compress type",
+    "Toast pglz got error",
+    "Toast lz4 got error",
+    "Invalid external toast",
 };
+
+// don't forge regsiter the description of the exception
+static_assert(lengthof(exception_names) == CException::ExType::kExTypeEnd,
+              "exception description not match");
+
+std::string CException::What() const {
+  std::ostringstream buffer;
+  buffer << m_filename_ << ":" << m_lineno_ << " " << exception_names[m_extype_]
+         << " detail: " << m_errormsg_;
+  return buffer.str();
+}
 
 }  // namespace cbdb
 

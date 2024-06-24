@@ -2,6 +2,7 @@
 
 #include "comm/singleton.h"
 #include "storage/local_file_system.h"
+#include "stub.h"
 
 namespace pax::tests {
 #define PAX_TEST_CMD_LENGTH 2048
@@ -31,7 +32,7 @@ TEST_F(LocalFileSystemTest, Open) {
   ASSERT_NE(nullptr, local_fs);
 
   auto file_ptr = local_fs->Open(file_name_, fs::kWriteMode);
-  EXPECT_NE(nullptr, file_ptr);
+  ASSERT_NE(nullptr, file_ptr);
 
   file_ptr->Close();
   delete file_ptr;
@@ -208,4 +209,314 @@ TEST_F(LocalFileSystemTest, DeleteDirectoryReserveToplevel) {
   filelist = fs->ListDirectory(file_path_);
   ASSERT_EQ(filelist.size(), 0UL);
 }
+
+namespace exceptions {
+
+ssize_t MockWrite(int __fd, const void *__buf, size_t __n) { return -1; }
+
+ssize_t MockWrite2(int __fd, const void *__buf, size_t __n) { return __n - 1; }
+
+ssize_t MockRead(int __fd, void *__buf, size_t __nbytes) { return -1; }
+
+ssize_t MockRead2(int __fd, void *__buf, size_t __nbytes) {
+  return __nbytes - 1;
+}
+
+ssize_t MockPWrite(int __fd, const void *__buf, size_t __n, off_t __offset) {
+  return -1;
+}
+
+ssize_t MockPWrite2(int __fd, const void *__buf, size_t __n, off_t __offset) {
+  return __n - 1;
+}
+
+ssize_t MockPRead(int __fd, void *__buf, size_t __nbytes, off_t __offset) {
+  return -1;
+}
+
+ssize_t MockPRead2(int __fd, void *__buf, size_t __nbytes, off_t __offset) {
+  return __nbytes - 1;
+}
+
+int MockFSync(int __fd) { return -1; }
+
+int MockClose(int __fd) { return -1; }
+
+TEST_F(LocalFileSystemTest, TestFileException) {
+  Stub *stub;
+  char buffer[50] = {0};
+  bool get_exception = false;
+  auto *local_fs = Singleton<LocalFileSystem>::GetInstance();
+  ASSERT_NE(nullptr, local_fs);
+
+  auto file_ptr = local_fs->Open(file_name_, fs::kWriteMode);
+  ASSERT_NE(nullptr, file_ptr);
+
+  stub = new Stub();
+
+  // 1. check the pwrite
+  stub->set(pwrite, MockPWrite);
+
+  try {
+    file_ptr->PWriteN(buffer, 50, -1);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to pwrite"), std::string::npos);
+    ASSERT_NE(exception_str.find("offset=-1"), std::string::npos);
+    ASSERT_NE(exception_str.find("require=50"), std::string::npos);
+    ASSERT_NE(exception_str.find("rc="), std::string::npos);
+    ASSERT_NE(exception_str.find("errno="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  // 2. check the pwriten
+  stub->reset(pwrite);
+  stub->set(pwrite, MockPWrite2);
+
+  try {
+    file_ptr->PWriteN(buffer, 50, -1);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to PWriteN"), std::string::npos);
+    ASSERT_NE(exception_str.find("offset=-1"), std::string::npos);
+    ASSERT_NE(exception_str.find("require=50"), std::string::npos);
+    ASSERT_NE(exception_str.find("written="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  // 3. check the pread
+  stub->set(pread, MockPRead);
+
+  try {
+    file_ptr->PReadN(buffer, 50, -1);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to pread"), std::string::npos);
+    ASSERT_NE(exception_str.find("offset=-1"), std::string::npos);
+    ASSERT_NE(exception_str.find("require=50"), std::string::npos);
+    ASSERT_NE(exception_str.find("rc="), std::string::npos);
+    ASSERT_NE(exception_str.find("errno="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  // 4. check the preadN
+  stub->reset(pread);
+  stub->set(pread, MockPRead2);
+
+  try {
+    file_ptr->PReadN(buffer, 50, -1);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to PReadN"), std::string::npos);
+    ASSERT_NE(exception_str.find("offset=-1"), std::string::npos);
+    ASSERT_NE(exception_str.find("require=50"), std::string::npos);
+    ASSERT_NE(exception_str.find("read="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  // 5. check the write
+  stub->set(write, MockWrite);
+
+  try {
+    file_ptr->WriteN(buffer, 50);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to write"), std::string::npos);
+    ASSERT_NE(exception_str.find("require=50"), std::string::npos);
+    ASSERT_NE(exception_str.find("rc="), std::string::npos);
+    ASSERT_NE(exception_str.find("errno="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  // 6. check the pwriten
+  stub->reset(write);
+  stub->set(write, MockWrite2);
+
+  try {
+    file_ptr->WriteN(buffer, 50);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to WriteN"), std::string::npos);
+    ASSERT_NE(exception_str.find("require=50"), std::string::npos);
+    ASSERT_NE(exception_str.find("written="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  // 7. check the pread
+  stub->set(read, MockRead);
+
+  try {
+    file_ptr->ReadN(buffer, 50);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to read"), std::string::npos);
+    ASSERT_NE(exception_str.find("require=50"), std::string::npos);
+    ASSERT_NE(exception_str.find("rc="), std::string::npos);
+    ASSERT_NE(exception_str.find("errno="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  // 8. check the preadN
+  stub->reset(read);
+  stub->set(read, MockRead2);
+
+  try {
+    file_ptr->ReadN(buffer, 50);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to ReadN"), std::string::npos);
+    ASSERT_NE(exception_str.find("require=50"), std::string::npos);
+    ASSERT_NE(exception_str.find("read="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  // 9. check the flush
+  stub->set(fsync, MockFSync);
+
+  try {
+    file_ptr->Flush();
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to fsync"), std::string::npos);
+    ASSERT_NE(exception_str.find("rc="), std::string::npos);
+    ASSERT_NE(exception_str.find("errno="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  // 10. check the close
+  stub->set(close, MockClose);
+
+  try {
+    file_ptr->Close();
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to close"), std::string::npos);
+    ASSERT_NE(exception_str.find("rc="), std::string::npos);
+    ASSERT_NE(exception_str.find("errno="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  stub->reset(close);
+  file_ptr->Close();
+  delete file_ptr;
+  delete stub;
+}
+
+int MockOpen(const char *__path, int __oflag, ...) { return -1; }
+
+TEST_F(LocalFileSystemTest, TestFileSystemException) {
+  Stub *stub;
+  bool get_exception = false;
+  auto *local_fs = Singleton<LocalFileSystem>::GetInstance();
+  ASSERT_NE(nullptr, local_fs);
+
+  remove(std::string(file_name_ + ".1").c_str());
+  remove(std::string(file_name_ + ".2").c_str());
+
+  stub = new Stub();
+
+  // 1. check the open
+  stub->set(open, MockOpen);
+
+  try {
+    local_fs->Open(file_name_, fs::kWriteMode);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to open"), std::string::npos);
+    ASSERT_NE(exception_str.find("rc="), std::string::npos);
+    ASSERT_NE(exception_str.find("errno="), std::string::npos);
+    ASSERT_NE(exception_str.find("path="), std::string::npos);
+    ASSERT_NE(exception_str.find("flags="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  // 2. check the copy
+  stub->reset(open);
+
+  auto file_ptr1 = local_fs->Open(file_name_ + ".1", fs::kReadWriteMode);
+  ASSERT_NE(nullptr, file_ptr1);
+
+  auto file_ptr2 = local_fs->Open(file_name_ + ".2", fs::kReadWriteMode);
+  ASSERT_NE(nullptr, file_ptr2);
+
+  char buffer[50] = {0};
+  file_ptr1->Write(buffer, 50);
+  file_ptr1->Flush();
+
+  stub->set(write, MockWrite2);
+  try {
+    local_fs->CopyFile(file_ptr1, file_ptr2);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to copy LOCAL file from"),
+              std::string::npos);
+    ASSERT_NE(exception_str.find("require="), std::string::npos);
+    ASSERT_NE(exception_str.find("written="), std::string::npos);
+    ASSERT_NE(exception_str.find("errno="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  stub->reset(write);
+
+  file_ptr1->Close();
+  file_ptr2->Close();
+  delete file_ptr1;
+  delete file_ptr2;
+
+  remove(std::string(file_name_ + ".1").c_str());
+  remove(std::string(file_name_ + ".2").c_str());
+
+  delete stub;
+}
+
+}  // namespace exceptions
+
 }  // namespace pax::tests

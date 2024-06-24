@@ -283,6 +283,9 @@ class PaxColumn {
   // Append to the external toast data
   size_t AppendExternalToastData(char *data, size_t size);
 
+  // Use to dump the debug info
+  std::string DebugString();
+
  private:
   void CreateNulls(size_t cap);
 

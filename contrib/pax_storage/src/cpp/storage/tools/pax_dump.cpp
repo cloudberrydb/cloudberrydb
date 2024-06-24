@@ -11,30 +11,40 @@ const char *progname = NULL;
 
 static void Usage() {
   std::cout
-  << progname << " - Pax dump tools \n\n"
-  << "Used to dump pax file && pax aux table \n"
-  << "Usage:\n " << progname << " -f [FILE] [OPTION]...\n\n"
-  << "Options:\n"
+      << progname << " - Pax dump tools \n\n"
+      << "Used to dump pax file && pax aux table \n"
+      << "Usage:\n " << progname << " -f [FILE] [OPTION]...\n\n"
+      << "Options:\n"
 
-  << "  -h, -?, --help                    Print this help, then exit\n"
-  << "  -v, --version                     Print the version of current pax tools\n"
+      << "  -h, -?, --help                    Print this help, then exit\n"
+      << "  -v, --version                     Print the version of current pax "
+         "tools\n"
 
-  << "  -f, --file [file]                 Specify the file name to be dumped\n"
-  << "  -g, --group-range [start, len]    Specify print with range of group ids\n"
-  << "  -c, --column-range [start, len]   Specify print with range of column ids\n"
-  << "  -r, --row-range [start, len]      Specify print with range of column ids\n"
+      << "  -f, --file [file]                 Specify the file name to be "
+         "dumped\n"
+      << "  -g, --group-range [start, len]    Specify print with range of "
+         "group ids\n"
+      << "  -c, --column-range [start, len]   Specify print with range of "
+         "column ids\n"
+      << "  -r, --row-range [start, len]      Specify print with range of "
+         "column ids\n"
 
-  << "  -a, --print-all                   Print the all information, which contains meta and data\n"
-  << "  -m, --print-all-desc              Print the all desc part information, which contains version, post script, footer\n"
-  << "  -p, --print-post-script-info      Print the postscript information\n"
-  << "  -t, --print-footer-info           Print the footer information\n"
-  << "  -s, --print-schema-info           Print the schema information\n"
-  << "  -b, --print-group-info            Print the group information\n"
-  << "  -o, --print-group-footer          Print the group footer information\n"
-  << "  -d, --print-data                  Print the data part information\n\n"
-  << "Example:\n"
-  << "  " << progname << " -f test.file -a -g 0,3 -c 0,5 -r 0,10\n"
-  << std::endl;
+      << "  -a, --print-all                   Print the all information, which "
+         "contains meta and data\n"
+      << "  -m, --print-all-desc              Print the all desc part "
+         "information, which contains version, post script, footer\n"
+      << "  -p, --print-post-script-info      Print the postscript "
+         "information\n"
+      << "  -t, --print-footer-info           Print the footer information\n"
+      << "  -s, --print-schema-info           Print the schema information\n"
+      << "  -b, --print-group-info            Print the group information\n"
+      << "  -o, --print-group-footer          Print the group footer "
+         "information\n"
+      << "  -d, --print-data                  Print the data part "
+         "information\n\n"
+      << "Example:\n"
+      << "  " << progname << " -f test.file -a -g 0,3 -c 0,5 -r 0,10\n"
+      << std::endl;
 }
 
 static struct option long_options[] = {
@@ -229,7 +239,8 @@ int main(int argc, char **argv) {
   try {
     reader->Dump();
   } catch (cbdb::CException &e) {
-    std::cout << "error happend while dumping\n" << e.Stack() << std::endl;
+    std::cout << "error happend while dumping.\n  " << e.What() << std::endl;
+    std::cout << "Stack: \n" << e.Stack() << std::endl;
     reader->Release();
     delete reader;
     exit(-1);

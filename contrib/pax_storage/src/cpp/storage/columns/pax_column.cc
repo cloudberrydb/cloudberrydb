@@ -52,7 +52,10 @@ size_t PaxColumn::GetNonNullRows() const { return non_null_rows_; }
 
 size_t PaxColumn::GetRangeNonNullRows(size_t start_pos, size_t len) {
   CBDB_CHECK((start_pos + len) <= GetRows(),
-             cbdb::CException::ExType::kExTypeOutOfRange);
+             cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to get range not null rows [start position=%lu, "
+                 "len=%lu, total rows=%lu], \n %s",
+                 start_pos, len, GetRows(), DebugString().c_str()));
   if (!null_bitmap_) return len;
   if (len == 0) {
     return 0;
@@ -116,7 +119,9 @@ bool PaxColumn::IsToast(size_t pos) {
     return false;
   }
 
-  CBDB_CHECK(pos < total_rows_, cbdb::CException::ExType::kExTypeOutOfRange);
+  CBDB_CHECK(pos < total_rows_, cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to check is toast [pos=%lu, total rows=%u], \n %s", pos,
+                 total_rows_, DebugString().c_str()));
   return !toast_flat_map_->Test(pos);
 }
 
@@ -176,6 +181,21 @@ void PaxColumn::AddToastIndex(int32 index_of_toast) {
   toast_indexes_->Write(index_of_toast);
   toast_indexes_->Brush(sizeof(int32));
   toast_flat_map_->Clear(total_rows_);
+}
+
+std::string PaxColumn::DebugString() {
+  // Notice that: the method that needs to be called below MUST not cause a
+  // second exception.
+  return fmt(
+      "Column info [type=%d, format=%d, typelen=%d, hasnull=%d, allnull=%d,"
+      "hasattrs=%d, totalrows=%lu, alignsz=%lu, encoded/compress type=%d, len "
+      "stream encoded/compress type=%d,"
+      "compresslvl=%d, len stream compresslv=%d, ToastCounts=%lu, has external "
+      "toast=%d]",
+      GetPaxColumnTypeInMem(), GetStorageFormat(), GetTypeLength(), HasNull(),
+      AllNull(), HasAttributes(), GetRows(), GetAlignSize(), GetEncodingType(),
+      GetLengthsEncodingType(), GetCompressLevel(), GetLengthsCompressLevel(),
+      ToastCounts(), GetExternalToastDataBuffer() != nullptr);
 }
 
 template <typename T>
@@ -265,7 +285,9 @@ std::pair<char *, size_t> PaxCommColumn<T>::GetBuffer() {
 template <typename T>
 std::pair<char *, size_t> PaxCommColumn<T>::GetBuffer(size_t position) {
   CBDB_CHECK(position < GetNonNullRows(),
-             cbdb::CException::ExType::kExTypeOutOfRange);
+             cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to get buffer [pos=%lu, not null rows=%lu], \n %s",
+                 position, GetNonNullRows(), DebugString().c_str()));
   return std::make_pair(data_->Start() + (sizeof(T) * position), sizeof(T));
 }
 
@@ -273,7 +295,10 @@ template <typename T>
 std::pair<char *, size_t> PaxCommColumn<T>::GetRangeBuffer(size_t start_pos,
                                                            size_t len) {
   CBDB_CHECK((start_pos + len) <= GetNonNullRows(),
-             cbdb::CException::ExType::kExTypeOutOfRange);
+             cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to get range buffer [start=%lu, len=%lu, not null "
+                 "rows=%lu], \n %s",
+                 start_pos, len, GetNonNullRows(), DebugString().c_str()));
   return std::make_pair(data_->Start() + (sizeof(T) * start_pos),
                         sizeof(T) * len);
 }
@@ -381,7 +406,9 @@ int32 PaxNonFixedColumn::GetTypeLength() const { return -1; }
 
 std::pair<char *, size_t> PaxNonFixedColumn::GetBuffer(size_t position) {
   CBDB_CHECK(position < GetNonNullRows(),
-             cbdb::CException::ExType::kExTypeOutOfRange);
+             cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to get buffer [pos=%lu, not null rows=%lu], \n %s",
+                 position, GetNonNullRows(), DebugString().c_str()));
   return std::make_pair(data_->GetBuffer() + offsets_[position],
                         (*lengths_)[position]);
 }
@@ -389,7 +416,10 @@ std::pair<char *, size_t> PaxNonFixedColumn::GetBuffer(size_t position) {
 std::pair<char *, size_t> PaxNonFixedColumn::GetRangeBuffer(size_t start_pos,
                                                             size_t len) {
   CBDB_CHECK((start_pos + len) <= GetNonNullRows(),
-             cbdb::CException::ExType::kExTypeOutOfRange);
+             cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to get range buffer [start=%lu, len=%lu, not null "
+                 "rows=%lu], \n %s",
+                 start_pos, len, GetNonNullRows(), DebugString().c_str()));
   size_t range_len = 0;
 
   for (size_t i = start_pos; i < start_pos + len; i++) {

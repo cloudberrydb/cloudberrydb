@@ -773,4 +773,84 @@ TEST_F(PaxWriterTest, ParitionWriteReadTupleWithToast) {
   pax_min_size_of_external_toast = origin_pax_min_size_of_external_toast;
 }
 
+namespace exceptions {
+
+TEST_F(PaxWriterTest, WriteReadException) {
+  bool get_exception = false;
+  TupleTableSlot *slot = CreateTestTupleTableSlot(true);
+  std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
+
+  auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
+  relation->rd_att = slot->tts_tupleDescriptor;
+  relation->rd_rel = (Form_pg_class)cbdb::Palloc0(sizeof(*relation->rd_rel));
+  bool callback_called = false;
+
+  TableWriter::WriteSummaryCallback callback =
+      [&callback_called](const WriteSummary & /*summary*/) {
+        callback_called = true;
+      };
+
+  auto writer = new MockWriter(relation, callback);
+  writer->SetFileSplitStrategy(new PaxDefaultSplitStrategy());
+  EXPECT_CALL(*writer, GenFilePath(_))
+      .Times(AtLeast(1))
+      .WillRepeatedly(Return(pax_file_name));
+
+  for (size_t i = 0; i < COLUMN_NUMS; i++) {
+    encoding_opts.emplace_back(
+        std::make_tuple(ColumnEncoding_Kind_NO_ENCODED, 0));
+  }
+  EXPECT_CALL(*writer, GetRelEncodingOptions())
+      .Times(AtLeast(1))
+      .WillRepeatedly(Return(encoding_opts));
+
+  writer->Open();
+
+  writer->WriteTuple(slot);
+  writer->Close();
+  ASSERT_TRUE(callback_called);
+
+  DeleteTestTupleTableSlot(slot);
+  delete writer;
+
+  std::vector<MicroPartitionMetadata> meta_info_list;
+  MicroPartitionMetadata meta_info;
+
+  meta_info.SetFileName(pax_file_name);
+  meta_info.SetMicroPartitionId(pax_file_name);
+  meta_info.SetTupleCount(1);
+
+  meta_info_list.push_back(std::move(meta_info));
+
+  std::unique_ptr<IteratorBase<MicroPartitionMetadata>> meta_info_iterator =
+      std::unique_ptr<IteratorBase<MicroPartitionMetadata>>(
+          new MockReaderInterator(meta_info_list));
+
+  TupleTableSlot *rslot = CreateTestTupleTableSlot(false);
+  TableReader *reader;
+  TableReader::ReaderOptions reader_options{};
+  reader = new TableReader(std::move(meta_info_iterator), reader_options);
+  reader->Open();
+
+  try {
+    reader->GetTuple(rslot, ForwardScanDirection, 100);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("No more tuples to read."), std::string::npos);
+    ASSERT_NE(exception_str.find("target offsets=100"), std::string::npos);
+    ASSERT_NE(exception_str.find("remain offsets=99"), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  DeleteTestTupleTableSlot(rslot);
+  delete relation;
+  delete reader;
+}
+
+}  // namespace exceptions
+
 }  // namespace pax::tests

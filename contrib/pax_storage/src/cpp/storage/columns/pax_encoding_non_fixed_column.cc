@@ -1,5 +1,6 @@
 #include "storage/columns/pax_encoding_non_fixed_column.h"
 
+#include "comm/fmt.h"
 #include "comm/pax_memory.h"
 #include "storage/pax_defined.h"
 
@@ -83,8 +84,9 @@ void PaxNonFixedEncodingColumn::Set(DataBuffer<char> *data,
           PaxNonFixedColumn::data_->Start(),
           PaxNonFixedColumn::data_->Capacity(), data->Start(), data->Used());
       if (compressor_->IsError(d_size)) {
-        // log error with `compressor_->ErrorName(d_size)`
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+        CBDB_RAISE(
+            cbdb::CException::ExType::kExTypeCompressError,
+            fmt("Decompress failed, %s", compressor_->ErrorName(d_size)));
       }
       PaxNonFixedColumn::data_->Brush(d_size);
     }
@@ -102,7 +104,9 @@ void PaxNonFixedEncodingColumn::Set(DataBuffer<char> *data,
           PaxNonFixedColumn::lengths_->Capacity(), lengths->Start(),
           lengths->Used());
       if (lengths_compressor_->IsError(d_size)) {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+        CBDB_RAISE(
+            cbdb::CException::ExType::kExTypeCompressError,
+            fmt("Decompress failed, %s", compressor_->ErrorName(d_size)));
       }
       PaxNonFixedColumn::lengths_->Brush(d_size);
     }
@@ -159,8 +163,8 @@ std::pair<char *, size_t> PaxNonFixedEncodingColumn::GetBuffer() {
         encoder_options_.compress_level);
 
     if (compressor_->IsError(c_size)) {
-      // log error with `compressor_->ErrorName(d_size)`
-      CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+      CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError,
+                 fmt("Compress failed, %s", compressor_->ErrorName(c_size)));
     }
 
     shared_data_->Brush(c_size);
@@ -186,16 +190,17 @@ std::pair<char *, size_t> PaxNonFixedEncodingColumn::GetLengthBuffer() {
         PaxNonFixedColumn::lengths_->Used());
     shared_lengths_data_ = PAX_NEW<DataBuffer<char>>(bound_size);
 
-    auto d_size = lengths_compressor_->Compress(
+    auto c_size = lengths_compressor_->Compress(
         shared_lengths_data_->Start(), shared_lengths_data_->Capacity(),
         PaxNonFixedColumn::lengths_->Start(),
         PaxNonFixedColumn::lengths_->Used(), encoder_options_.compress_level);
 
-    if (lengths_compressor_->IsError(d_size)) {
-      CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError);
+    if (lengths_compressor_->IsError(c_size)) {
+      CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError,
+                 fmt("Compress failed, %s", compressor_->ErrorName(c_size)));
     }
 
-    shared_lengths_data_->Brush(d_size);
+    shared_lengths_data_->Brush(c_size);
     return std::make_pair(shared_lengths_data_->Start(),
                           shared_lengths_data_->Used());
   }

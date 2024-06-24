@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/fmt.h"
 
 namespace pax {
 
@@ -33,18 +34,24 @@ struct BlockBuffer {
     std::swap(end_offset_, other.end_offset_);
   }
 
-  template <typename T=char *>
-  static inline T Alloc(size_t size) { return reinterpret_cast<T>(cbdb::Palloc(size)); }
+  template <typename T = char *>
+  static inline T Alloc(size_t size) {
+    return reinterpret_cast<T>(cbdb::Palloc(size));
+  }
 
-  template <typename T=char *>
-  static inline T Alloc0(size_t size) { return reinterpret_cast<T>(cbdb::Palloc0(size)); }
+  template <typename T = char *>
+  static inline T Alloc0(size_t size) {
+    return reinterpret_cast<T>(cbdb::Palloc0(size));
+  }
 
-  template <typename T=char *>
+  template <typename T = char *>
   static inline T Realloc(void *ptr, size_t new_size) {
     return reinterpret_cast<T>(cbdb::RePalloc(ptr, new_size));
   }
   template <typename T>
-  static inline void Free(T ptr) { cbdb::Pfree(ptr); }
+  static inline void Free(T ptr) {
+    cbdb::Pfree(ptr);
+  }
 
  private:
   char *begin_offset_;
@@ -66,7 +73,8 @@ class BlockBufferBase {
 
   inline void BrushBack(size_t size) {
     size_t used = Used();
-    CBDB_CHECK(used >= size, cbdb::CException::ExType::kExTypeOutOfRange);
+    CBDB_CHECK(used >= size, cbdb::CException::ExType::kExTypeOutOfRange,
+               fmt("Invalid brush back [used=%lu, require=%lu]", used, size));
     block_pos_ = block_buffer_.Start() + used - size;
   }
 
@@ -105,7 +113,6 @@ class BlockBufferBase {
     Assert(block_pos_ + size <= block_buffer_.End());
     memset(block_pos_, 0, size);
   }
-
 
   void Combine(const BlockBufferBase &buffer);
 
@@ -165,16 +172,12 @@ class DataBuffer : public BlockBufferBase {
         data_buffer_(reinterpret_cast<T *>(data_buffer.data_buffer_)) {}
 
   // Direct access elements of internal buffer
-  inline T &operator[](size_t i) {
-    return data_buffer_[i];
-  }
+  inline T &operator[](size_t i) { return data_buffer_[i]; }
 
   inline T *StartT() const { return data_buffer_; }
 
   // Get size of elements of internal buffer
-  inline size_t GetSize() {
-    return Used() / sizeof(T);
-  }
+  inline size_t GetSize() { return Used() / sizeof(T); }
 
   ~DataBuffer() override;
 
@@ -217,14 +220,10 @@ class DataBuffer : public BlockBufferBase {
   }
 
   // Get the internal buffer pointer
-  inline T *GetBuffer() const {
-    return data_buffer_;
-  }
+  inline T *GetBuffer() const { return data_buffer_; }
 
   // Get the available buffer pointer
-  inline T *GetAvailableBuffer() const {
-    return data_buffer_ + Used();
-  }
+  inline T *GetAvailableBuffer() const { return data_buffer_ + Used(); }
 
   // Resize the internal buffer, size should bigger than capacity of internal
   // buffer `mem_take_over` should be true
@@ -237,13 +236,9 @@ class DataBuffer : public BlockBufferBase {
   virtual void ReSize(size_t size);
 
   // Is current internal buffer take over by DataBuffer
-  inline bool IsMemTakeOver() const {
-    return mem_take_over_;
-  }
+  inline bool IsMemTakeOver() const { return mem_take_over_; }
 
-  inline void SetMemTakeOver(bool take_over) {
-    mem_take_over_ = take_over;
-  }
+  inline void SetMemTakeOver(bool take_over) { mem_take_over_ = take_over; }
 
   // Clear up the DataBuffer
   // Caller should call `Set` to reuse current `DataBuffer` after call `Clear`

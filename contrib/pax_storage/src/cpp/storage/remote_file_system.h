@@ -7,9 +7,11 @@
 #include "comm/cbdb_wrappers.h"
 #include "comm/singleton.h"
 #include "storage/file_system.h"
-#include "storage/file_system_helper.h"
 
 namespace pax {
+struct pax_fd_handle_t;
+class RemoteFileSystem;
+
 class RemoteFile final : public File {
  public:
   RemoteFile(pax_fd_handle_t *ht, Oid tbl_space_id,
@@ -23,6 +25,7 @@ class RemoteFile final : public File {
   void Delete() override;
   void Close() override;
   std::string GetPath() const override;
+  std::string DebugString() const override;
 
  private:
   pax_fd_handle_t *handle_t_;

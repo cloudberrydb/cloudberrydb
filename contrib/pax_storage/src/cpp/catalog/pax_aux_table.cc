@@ -9,6 +9,7 @@
 #include "catalog/pax_fastsequence.h"
 #include "catalog/pg_pax_tables.h"
 #include "comm/cbdb_wrappers.h"
+#include "comm/fmt.h"
 #include "storage/file_system.h"
 #include "storage/local_file_system.h"
 #include "storage/micro_partition_metadata.h"
@@ -578,7 +579,9 @@ static void FetchMicroPartitionAuxRowCallback(Datum *values, bool *isnull,
     auto ok = stats_info.ParseFromArray(VARDATA_ANY(flat_stats),
                                         VARSIZE_ANY_EXHDR(flat_stats));
 
-    CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+    CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError,
+               ::pax::fmt("Invalid pb structure in the aux table [rd_id=%d]",
+                          rel->rd_id));
     ctx->info.SetStats(std::move(stats_info));
   }
 
@@ -699,8 +702,14 @@ void CCPaxAuxTable::PaxAuxRelationCopyData(Relation rel,
       cbdb::BuildPaxDirectoryPath(*newrnode, rel->rd_backend, is_dfs_tblspace);
   Assert(!dst_path.empty());
 
-  if (src_path.empty() || dst_path.empty())
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeFileOperationError);
+  CBDB_CHECK(!src_path.empty() && !dst_path.empty(),
+             cbdb::CException::ExType::kExTypeFileOperationError,
+             fmt("Fail to build directory path. "
+                 "src [spcNode=%u, dbNode=%u, relNode=%lu, backend=%d]"
+                 "dst [spcNode=%u, dbNode=%u, relNode=%lu, backend=%d]",
+                 rel->rd_node.spcNode, rel->rd_node.dbNode,
+                 rel->rd_node.relNode, rel->rd_backend, newrnode->spcNode,
+                 newrnode->dbNode, newrnode->relNode, rel->rd_backend));
 
   // createnewpath is used to indicate if creating destination micropartition
   // file directory and storage file for copying or not.
@@ -715,9 +724,11 @@ void CCPaxAuxTable::PaxAuxRelationCopyData(Relation rel,
     // create pg_pax_table relfilenode file and dbid directory.
     cbdb::RelationCreateStorageDirectory(*newrnode, rel->rd_rel->relpersistence,
                                          SMGR_MD, rel);
+
     // create micropartition file destination folder for copying.
     CBDB_CHECK((fs->CreateDirectory(dst_path) == 0),
-               cbdb::CException::ExType::kExTypeIOError);
+               cbdb::CException::ExType::kExTypeIOError,
+               fmt("Fail to create directory [path=%s]", dst_path.c_str()));
   }
 
   // Get micropatition file source folder filename list for copying, if file

@@ -98,13 +98,19 @@ bool PaxIndexScanDesc::FetchTuple(ItemPointer tid, Snapshot snapshot,
   if (call_again) *call_again = false;
   if (all_dead) *all_dead = false;
 
-  ExecClearTuple(slot);
-  if (CheckExists(GetRelation(), tid, snapshot, all_dead) &&
-      reader_->GetTuple(slot, pax::GetTupleOffset(*tid))) {
-    SetBlockNumber(&slot->tts_tid, block);
-    ExecStoreVirtualTuple(slot);
+  try {
+    ExecClearTuple(slot);
+    if (CheckExists(GetRelation(), tid, snapshot, all_dead) &&
+        reader_->GetTuple(slot, pax::GetTupleOffset(*tid))) {
+      SetBlockNumber(&slot->tts_tid, block);
+      ExecStoreVirtualTuple(slot);
 
-    return true;
+      return true;
+    }
+  } catch (cbdb::CException &e) {
+    e.AppendDetailMessage(
+        fmt("\n FetchTuple [tid=%s]", ItemPointerToString(tid)));
+    CBDB_RERAISE(e);
   }
 
   return false;
@@ -372,17 +378,26 @@ bool PaxScanDesc::ScanAnalyzeNextTuple(TransactionId /*oldest_xmin*/,
   }
 
   old_ctx = MemoryContextSwitchTo(memory_context_);
-  ExecClearTuple(slot);
-  ok = reader_->GetTuple(slot, ForwardScanDirection,
-                         target_tuple_id_ - prev_target_tuple_id_);
-  next_tuple_id_ = target_tuple_id_ + 1;
-  prev_target_tuple_id_ = target_tuple_id_;
-  if (ok) {
-    ExecStoreVirtualTuple(slot);
-    *liverows += 1;
-  } else {
-    *deadrows += 1;
+  try {
+    ExecClearTuple(slot);
+    ok = reader_->GetTuple(slot, ForwardScanDirection,
+                           target_tuple_id_ - prev_target_tuple_id_);
+    next_tuple_id_ = target_tuple_id_ + 1;
+    prev_target_tuple_id_ = target_tuple_id_;
+    if (ok) {
+      ExecStoreVirtualTuple(slot);
+      *liverows += 1;
+    } else {
+      *deadrows += 1;
+    }
+  } catch (cbdb::CException &e) {
+    e.AppendDetailMessage(
+        fmt("\n ScanAnalyzeNextTuple [target tuple=%lu, next tuple=%lu, prev "
+            "target tuple=%lu]",
+            target_tuple_id_, next_tuple_id_, prev_target_tuple_id_));
+    CBDB_RERAISE(e);
   }
+
   MemoryContextSwitchTo(old_ctx);
   return ok;
 }

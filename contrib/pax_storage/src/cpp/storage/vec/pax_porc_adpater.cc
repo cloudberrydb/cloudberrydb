@@ -172,7 +172,10 @@ void CopyNonFixedBuffer(PaxColumn *column,
   // invalid. Non_null_offset may be less than the data_range_lens.
   if (visibility_map_bitset == nullptr) {
     CBDB_CHECK(non_null_offset == data_range_lens,
-               cbdb::CException::ExType::kExTypeOutOfRange);
+               cbdb::CException::ExType::kExTypeOutOfRange,
+               fmt("The data range len may invalid or logic error here [end "
+                   "read offset=%lu, range len=%lu]",
+                   non_null_offset, data_range_lens));
   }
 }
 
@@ -227,7 +230,10 @@ static void CopyDecimalBuffer(PaxColumn *column,
 
   if (visibility_map_bitset == nullptr) {
     CBDB_CHECK(non_null_offset == data_range_lens,
-               cbdb::CException::ExType::kExTypeOutOfRange);
+               cbdb::CException::ExType::kExTypeOutOfRange,
+               fmt("The data range len may invalid or logic error here [end "
+                   "read offset=%lu, range len=%lu]",
+                   non_null_offset, data_range_lens));
   }
 }
 
@@ -430,7 +436,10 @@ std::pair<size_t, size_t> VecAdapter::AppendPorcFormat(PaxColumns *columns,
         break;
       }
       default: {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError,
+                   fmt("Invalid column [type=%d], PORC format won't create "
+                       "this type of column.",
+                       column_type));
       }
     }  // switch column type
   }

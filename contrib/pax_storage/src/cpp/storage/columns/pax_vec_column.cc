@@ -99,7 +99,10 @@ std::pair<char *, size_t> PaxVecCommColumn<T>::GetBuffer() {
 
 template <typename T>
 std::pair<char *, size_t> PaxVecCommColumn<T>::GetBuffer(size_t position) {
-  CBDB_CHECK(position < GetRows(), cbdb::CException::ExType::kExTypeOutOfRange);
+  CBDB_CHECK(position < GetRows(), cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to get buffer [pos=%lu, total rows=%lu], \n %s",
+                 position, GetRows(), DebugString().c_str()));
+
   return std::make_pair(data_->Start() + (sizeof(T) * position), sizeof(T));
 }
 
@@ -107,7 +110,10 @@ template <typename T>
 std::pair<char *, size_t> PaxVecCommColumn<T>::GetRangeBuffer(size_t start_pos,
                                                               size_t len) {
   CBDB_CHECK((start_pos + len) <= GetRows(),
-             cbdb::CException::ExType::kExTypeOutOfRange);
+             cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to get range buffer [pos=%lu, len=%lu, total "
+                 "rows=%lu], \n %s",
+                 start_pos, len, GetRows(), DebugString().c_str()));
   return std::make_pair(data_->Start() + (sizeof(T) * start_pos),
                         sizeof(T) * len);
 }
@@ -239,7 +245,9 @@ int32 PaxVecNonFixedColumn::GetTypeLength() const { return -1; }
 
 std::pair<char *, size_t> PaxVecNonFixedColumn::GetBuffer(size_t position) {
   CBDB_CHECK(position < offsets_->GetSize(),
-             cbdb::CException::ExType::kExTypeOutOfRange);
+             cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to get buffer [pos=%lu, total rows=%lu], \n %s",
+                 position, GetRows(), DebugString().c_str()));
   // This situation happend when writing
   // The `offsets_` have not fill the last one
   if (unlikely(position == offsets_->GetSize() - 1)) {
@@ -264,7 +272,9 @@ std::pair<char *, size_t> PaxVecNonFixedColumn::GetBuffer(size_t position) {
 std::pair<char *, size_t> PaxVecNonFixedColumn::GetRangeBuffer(size_t start_pos,
                                                                size_t len) {
   CBDB_CHECK((start_pos + len) <= (offsets_->GetSize() - 1),
-             cbdb::CException::ExType::kExTypeOutOfRange);
+             cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to get buffer [pos=%lu, len=%lu, total rows=%lu], \n %s",
+                 start_pos, len, GetRows(), DebugString().c_str()));
 
   auto start_offset = (*offsets_)[start_pos];
   auto last_offset = (*offsets_)[start_pos + len];

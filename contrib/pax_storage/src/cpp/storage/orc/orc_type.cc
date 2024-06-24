@@ -2,7 +2,9 @@
 
 #include "comm/cbdb_api.h"
 
+#include "comm/fmt.h"
 #include "exceptions/CException.h"
+#include "storage/orc/porc.h"
 
 namespace pax {
 pax::porc::proto::Type_Kind ConvertPgTypeToPorcType(FormData_pg_attribute *attr,
@@ -27,7 +29,8 @@ pax::porc::proto::Type_Kind ConvertPgTypeToPorcType(FormData_pg_attribute *attr,
         type = pax::porc::proto::Type_Kind::Type_Kind_LONG;
         break;
       default:
-        CBDB_RAISE(cbdb::CException::kExTypeInvalid);
+        CBDB_RAISE(cbdb::CException::kExTypeInvalid,
+                   fmt("Invalid attribute [attlen=%d]", attr->attlen));
     }
   } else {
     Assert(attr->attlen > 0 || attr->attlen == -1);

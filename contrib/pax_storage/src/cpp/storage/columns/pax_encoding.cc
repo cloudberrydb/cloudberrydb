@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "comm/fmt.h"
 #include "comm/pax_memory.h"
 #include "storage/columns/pax_rlev2_encoding.h"
 
@@ -21,7 +22,9 @@ PaxEncoder *PaxEncoder::CreateStreamingEncoder(
       break;
     }
     case ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED: {
-      CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
+      CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError,
+                 fmt("Invalid encoding type %d",
+                     ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED));
     }
     // two cases here:
     //  - `encoded type` is not a encoding type.

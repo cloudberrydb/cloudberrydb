@@ -1,6 +1,7 @@
 #include "comm/cbdb_api.h"
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/fmt.h"
 #include "comm/guc.h"
 #include "comm/log.h"
 #include "comm/pax_memory.h"
@@ -161,7 +162,8 @@ static PaxColumns *BuildColumns(
             CreateCommColumn<int64>(is_vec, std::move(encoding_option)));
         break;
       default:
-        Assert(!"non-implemented column type");
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError,
+                   fmt("Invalid PORC PB [type=%d]", type));
         break;
     }
   }
@@ -217,7 +219,8 @@ OrcWriter::OrcWriter(
         align_size = PAX_DATA_NO_ALIGN;
         break;
       default:
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError,
+                   fmt("Invalid attribute [attalign=%c]", attr->attalign));
     }
 
     column->SetAlignSize(align_size);
@@ -368,8 +371,12 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
   SetTupleOffset(&table_slot->tts_tid, row_index_++);
   natts = tuple_desc->natts;
 
-  CBDB_CHECK(pax_columns_->GetColumns() == static_cast<size_t>(natts),
-             cbdb::CException::ExType::kExTypeSchemaNotMatch);
+  CBDB_CHECK(
+      pax_columns_->GetColumns() == static_cast<size_t>(natts),
+      cbdb::CException::ExType::kExTypeSchemaNotMatch,
+      fmt("The number of column in memory not match the in TupleDesc, "
+          "[in mem=%lu, in desc=%d], \n %s",
+          pax_columns_->GetColumns(), natts, file_->DebugString().c_str()));
 
   for (int i = 0; i < natts; i++) {
     type_len = tuple_desc->attrs[i].attlen;
@@ -674,6 +681,7 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
   std::vector<ColumnEncoding> encoding_kinds;
   pax::porc::proto::StripeFooter stripe_footer;
   pax::porc::proto::StripeInformation *stripe_info;
+  bool pb_serialize_failed;
 
   size_t data_len = 0;
   size_t number_of_row = pax_columns->GetRows();
@@ -762,8 +770,19 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
   buffer_mem_stream->Set(data_buffer);
 
   // check memory io with protobuf
-  CBDB_CHECK(stripe_footer.SerializeToZeroCopyStream(buffer_mem_stream),
-             cbdb::CException::ExType::kExTypeIOError);
+  pb_serialize_failed =
+      stripe_footer.SerializeToZeroCopyStream(buffer_mem_stream);
+  if (unlikely(!pb_serialize_failed)) {
+    // current pb strucature is too large
+    PAX_LOG_IF(pax_enable_debug, "Invalid STRIPE FOOTER PB %s",
+               stripe_footer.DebugString().c_str());
+    CBDB_RAISE(cbdb::CException::ExType::kExTypeIOError,
+               fmt("Fail to serialize the STRIPE FOOTER pb structure into mem "
+                   "stream. [mem used=%ld, mem avail=%ld], \n %s",
+                   buffer_mem_stream->ByteCount(),
+                   buffer_mem_stream->GetDataBuffer()->Available(),
+                   file_->DebugString().c_str()));
+  }
 
   // Begin deal the toast memory
   if (number_of_toast > 0) {
@@ -853,6 +872,7 @@ size_t OrcWriter::PhysicalSize() const {
 }
 
 void OrcWriter::WriteFileFooter(BufferedOutputStream *buffer_mem_stream) {
+  bool pb_serialize_failed;
   Assert(writer_options_.storage_format == kTypeStoragePorcNonVec ||
          writer_options_.storage_format == kTypeStoragePorcVec);
   file_footer_.set_contentlength(current_offset_);
@@ -887,16 +907,38 @@ void OrcWriter::WriteFileFooter(BufferedOutputStream *buffer_mem_stream) {
   }
 
   buffer_mem_stream->StartBufferOutRecord();
-  CBDB_CHECK(file_footer_.SerializeToZeroCopyStream(buffer_mem_stream),
-             cbdb::CException::ExType::kExTypeIOError);
+
+  pb_serialize_failed =
+      file_footer_.SerializeToZeroCopyStream(buffer_mem_stream);
+  if (unlikely(!pb_serialize_failed)) {
+    PAX_LOG_IF(pax_enable_debug, "Invalid FOOTER PB %s",
+               file_footer_.DebugString().c_str());
+    CBDB_RAISE(cbdb::CException::ExType::kExTypeIOError,
+               fmt("Fail to serialize the FOOTER pb structure into mem stream. "
+                   "[mem used=%ld, mem avail=%ld], \n %s",
+                   buffer_mem_stream->ByteCount(),
+                   buffer_mem_stream->GetDataBuffer()->Available(),
+                   file_->DebugString().c_str()));
+  }
 
   post_script_.set_footerlength(buffer_mem_stream->EndBufferOutRecord());
 }
 
 void OrcWriter::WritePostscript(BufferedOutputStream *buffer_mem_stream) {
+  bool pb_serialize_failed;
   buffer_mem_stream->StartBufferOutRecord();
-  CBDB_CHECK(post_script_.SerializeToZeroCopyStream(buffer_mem_stream),
-             cbdb::CException::ExType::kExTypeIOError);
+  pb_serialize_failed =
+      post_script_.SerializeToZeroCopyStream(buffer_mem_stream);
+  if (unlikely(!pb_serialize_failed)) {
+    PAX_LOG_IF(pax_enable_debug, "Invalid POSTSCRIPT PB %s",
+               post_script_.DebugString().c_str());
+    CBDB_RAISE(cbdb::CException::ExType::kExTypeIOError,
+               fmt("Fail to serialize the POSTSCRIPT pb structure into mem "
+                   "stream. [mem used=%ld, mem avail=%ld], \n %s",
+                   buffer_mem_stream->ByteCount(),
+                   buffer_mem_stream->GetDataBuffer()->Available(),
+                   file_->DebugString().c_str()));
+  }
 
   auto ps_len = (uint64)buffer_mem_stream->EndBufferOutRecord();
   Assert(ps_len > 0);

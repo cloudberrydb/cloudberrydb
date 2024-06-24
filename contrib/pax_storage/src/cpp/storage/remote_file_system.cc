@@ -1,5 +1,9 @@
 #include "storage/remote_file_system.h"
 
+#include "comm/fmt.h"
+#include "exceptions/CException.h"
+#include "storage/file_system_helper.h"
+
 namespace pax {
 RemoteFile::RemoteFile(pax_fd_handle_t *ht, Oid tbl_space_id,
                        const std::string &file_path)
@@ -12,15 +16,18 @@ ssize_t RemoteFile::Read(void *ptr, size_t n) const {
   ssize_t ret;
   ret = cbdb::UFileRead(ufile_, (char *)ptr, n);
   CBDB_CHECK(ret >= 0, cbdb::CException::kExTypeIOError,
-             UFileGetLastError(ufile_));
+             fmt("Fail to read [require=%lu, rc=%ld], %s, %s", n, ret,
+                 DebugString().c_str(), UFileGetLastError(ufile_)));
   return ret;
 }
 
 ssize_t RemoteFile::PRead(void *ptr, size_t n, off_t offset) const {
   ssize_t ret;
   ret = cbdb::UFilePRead(ufile_, (char *)ptr, n, offset);
-  CBDB_CHECK(ret >= 0, cbdb::CException::kExTypeIOError,
-             UFileGetLastError(ufile_));
+  CBDB_CHECK(
+      ret >= 0, cbdb::CException::kExTypeIOError,
+      fmt("Fail to pread [offset=%ld, require=%lu, rc=%ld], %s, %s", offset, n,
+          ret, DebugString().c_str(), UFileGetLastError(ufile_)));
   return ret;
 }
 
@@ -28,14 +35,16 @@ ssize_t RemoteFile::Write(const void *ptr, size_t n) {
   ssize_t ret;
   ret = cbdb::UFileWrite(ufile_, (char *)ptr, n);
   CBDB_CHECK(ret >= 0, cbdb::CException::kExTypeIOError,
-             UFileGetLastError(ufile_));
+             fmt("Fail to write [require=%lu, rc=%ld], %s, %s", n, ret,
+                 DebugString().c_str(), UFileGetLastError(ufile_)));
   return ret;
 }
 ssize_t RemoteFile::PWrite(const void *ptr, size_t n, off_t offset) {
   ssize_t ret;
   ret = cbdb::UFileWrite(ufile_, (char *)ptr, n);
   CBDB_CHECK(ret >= 0, cbdb::CException::kExTypeIOError,
-             UFileGetLastError(ufile_));
+             fmt("Fail to pwrite [offset=%ld, len=%ld rc=%ld], %s, %s", offset,
+                 n, ret, DebugString().c_str(), UFileGetLastError(ufile_)));
   return ret;
 }
 
@@ -43,7 +52,8 @@ size_t RemoteFile::FileLength() const {
   int64_t ret;
   ret = cbdb::UFileSize(ufile_);
   CBDB_CHECK(ret >= 0, cbdb::CException::kExTypeIOError,
-             UFileGetLastError(ufile_));
+             fmt("Fail to get file size [rc=%ld], %s, %s", ret,
+                 DebugString().c_str(), UFileGetLastError(ufile_)));
   return ret;
 }
 
@@ -60,7 +70,8 @@ void RemoteFile::Delete() {
   int ret;
   ret = cbdb::UFileUnlink(tbl_space_id_, file_path_.c_str());
   CBDB_CHECK(ret >= 0, cbdb::CException::kExTypeIOError,
-             UFileGetLastError(ufile_));
+             fmt("Fail to delete [path=%s, rc=%d], %s, %s", file_path_.c_str(),
+                 ret, DebugString().c_str(), UFileGetLastError(ufile_)));
   ufile_ = nullptr;
 }
 
@@ -70,18 +81,23 @@ void RemoteFile::Close() {
 
   ForgetFdHandle(handle_t_);
   CBDB_CHECK(ret >= 0, cbdb::CException::kExTypeIOError,
-             UFileGetLastError(ufile_));
+             fmt("Fail to delete [rc=%d], %s, %s", ret, DebugString().c_str(),
+                 UFileGetLastError(ufile_)));
   ufile_ = nullptr;
 }
 
 std::string RemoteFile::GetPath() const { return file_path_; }
 
+std::string RemoteFile::DebugString() const {
+  return fmt("REMOTE file [path=%s, table space id=%d]", file_path_.c_str(),
+             tbl_space_id_);
+}
+
 // RemoteFileSystem
 
 RemoteFileSystemOptions *RemoteFileSystem::CastOptions(
     FileSystemOptions *options) const {
-  CBDB_CHECK(options, cbdb::CException::kExTypeLogicError,
-             "open remote file with no options");
+  Assert(options);
   RemoteFileSystemOptions *remote_options =
       dynamic_cast<RemoteFileSystemOptions *>(options);
   CBDB_CHECK(remote_options, cbdb::CException::kExTypeLogicError,
@@ -92,19 +108,34 @@ RemoteFileSystemOptions *RemoteFileSystem::CastOptions(
 
 File *RemoteFileSystem::Open(const std::string &file_path, int flags,
                              FileSystemOptions *options) {
-  auto remote_options = CastOptions(options);
-
+  RemoteFileSystemOptions *remote_options;
   char errorMessage[UFILE_ERROR_SIZE] = {0};
   UFile *file;
+
+  Assert(options);
+  remote_options = CastOptions(options);
+
   CBDB_CHECK(!(flags & O_RDWR), cbdb::CException::kExTypeIOError,
-             "remote file not support O_RDWR flag");
+             fmt("remote file not support O_RDWR flag [path=%s, flags=%d, "
+                 "tablespace id=%u]",
+                 file_path.c_str(), flags, remote_options->tablespace_id_));
+
   // remove O_EXCL flag, because it is not supported by remote file system.
   flags &= ~O_EXCL;
   file = cbdb::UFileOpen(remote_options->tablespace_id_, file_path.c_str(),
                          flags, errorMessage, sizeof(errorMessage));
-  CBDB_CHECK(file, cbdb::CException::ExType::kExTypeIOError, errorMessage);
+  CBDB_CHECK(
+      file, cbdb::CException::ExType::kExTypeIOError,
+      fmt("Fail to open remote file [path=%s, flags=%d, tablespace id=%u]], %s",
+          file_path.c_str(), flags, remote_options->tablespace_id_,
+          errorMessage));
+
   auto ht = RememberRemoteFileHandle(file);
-  CBDB_CHECK(ht, cbdb::CException::ExType::kExTypeIOError);
+  CBDB_CHECK(
+      ht, cbdb::CException::ExType::kExTypeIOError,
+      fmt("Fail to remember remote file [path=%s, flags=%d, tablespace id=%u]]",
+          file_path.c_str(), flags, remote_options->tablespace_id_));
+
   return PAX_NEW<RemoteFile>(ht, remote_options->tablespace_id_, file_path);
 }
 std::string RemoteFileSystem::BuildPath(const File *file) const {
@@ -126,10 +157,14 @@ int RemoteFileSystem::CopyFile(const File *src_file, File *dst_file) {
   while ((num_read = src_file->Read(buf, kBufSize)) > 0) {
     num_write = dst_file->Write(buf, num_read);
     CBDB_CHECK(num_write == num_read, cbdb::CException::kExTypeIOError,
-               "write error");
+               fmt("Fail to copy REMOTE file from %s to %s. \n"
+                   "Write failed [require=%ld, written=%ld]",
+                   src_file->DebugString().c_str(),
+                   dst_file->DebugString().c_str(), num_read, num_write));
   }
+  // no need check num_read >= 0 again
+  // already checked in `src_file->Read`
 
-  CBDB_CHECK(num_read >= 0, cbdb::CException::kExTypeIOError, "read error");
   return 0;
 }
 

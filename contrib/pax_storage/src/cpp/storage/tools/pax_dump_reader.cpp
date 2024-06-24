@@ -2,6 +2,7 @@
 
 #include <tabulate/table.hpp>
 
+#include "comm/fmt.h"
 #include "comm/singleton.h"
 #include "exceptions/CException.h"
 #include "storage/columns/pax_column_traits.h"
@@ -73,7 +74,8 @@ bool PaxDumpReader::Initialize() {
     format_reader_ = new OrcFormatReader(open_file);
     format_reader_->Open();
   } catch (cbdb::CException &e) {
-    std::cout << "error happend\n" << e.Stack() << std::endl;
+    std::cout << e.What() << std::endl;
+    std::cout << "Stack Info: \n" << e.Stack() << std::endl;
     Release();
     return false;
   }
@@ -183,14 +185,24 @@ void PaxDumpReader::DumpSchema() {
 
   // verify schema exist
   auto max_id = footer->types_size();
-  CBDB_CHECK(max_id > 0, cbdb::CException::ExType::kExTypeInvalidPORCFormat);
+  CBDB_CHECK(max_id > 0, cbdb::CException::ExType::kExTypeInvalidPORCFormat,
+             fmt("Invalid FOOTER pb structure, the schema is empty or invalid. "
+                 "[type mid=%d]",
+                 max_id));
 
   // verify schema defined
   auto struct_types = &(footer->types(0));
   CBDB_CHECK(struct_types->kind() == pax::porc::proto::Type_Kind_STRUCT,
-             cbdb::CException::ExType::kExTypeInvalidPORCFormat);
-  CBDB_CHECK(struct_types->subtypes_size() == col_infos->size(),
-             cbdb::CException::ExType::kExTypeInvalidPORCFormat);
+             cbdb::CException::ExType::kExTypeInvalidPORCFormat,
+             fmt("Invalid FOOTER pb structure, the schema is invalid."
+                 "The first type in PORC must be %d but got %d",
+                 pax::porc::proto::Type_Kind_STRUCT, struct_types->kind()));
+  CBDB_CHECK(
+      struct_types->subtypes_size() == col_infos->size(),
+      cbdb::CException::ExType::kExTypeInvalidPORCFormat,
+      fmt("Invalid FOOTER pb structure, the schema is invalid."
+          "Subtypes not match the type sizes [type mid=%d, subtypes size=%d]",
+          max_id, struct_types->subtypes_size()));
 
   // create desc header, types and basic info
   tabulate::Table::Row_t desc_table_header{""};
@@ -204,13 +216,10 @@ void PaxDumpReader::DumpSchema() {
   std::tie(column_start, column_end, succ) =
       ParseRange(config_->column_id_start, config_->column_id_len,
                  struct_types->subtypes_size());
-  if (!succ) {
-    std::cout << "Fail to parse the column range. \n"
-              << "file: " << config_->file_name << "\n"
-              << "column range should in [0, " << struct_types->subtypes_size()
-              << ")" << std::endl;
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalid);
-  }
+  CBDB_CHECK(succ, cbdb::CException::ExType::kExTypeInvalid,
+             fmt("Fail to parse the column range [file=%s] column range should "
+                 "in [0, %u)",
+                 config_->file_name, struct_types->subtypes_size()));
 
   for (int j = column_start; j < column_end; ++j) {
     int sub_type_id = static_cast<int>(struct_types->subtypes(j)) + 1;
@@ -279,23 +288,17 @@ void PaxDumpReader::DumpGroupInfo() {
 
   std::tie(group_start, group_end, succ) = ParseRange(
       config_->group_id_start, config_->group_id_len, stripes->size());
-  if (!succ) {
-    std::cout << "Fail to parse the group range. \n"
-              << "file: " << config_->file_name << "\n"
-              << "group range should in [0, " << stripes->size() << ")"
-              << std::endl;
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalid);
-  }
+  CBDB_CHECK(succ, cbdb::CException::ExType::kExTypeInvalid,
+             fmt("Fail to parse the group range [file=%s], group range should "
+                 "in [0, %u)",
+                 config_->file_name, stripes->size()));
 
   std::tie(column_start, column_end, succ) = ParseRange(
       config_->column_id_start, config_->column_id_len, number_of_column);
-  if (!succ) {
-    std::cout << "Fail to parse the column range. \n"
-              << "file: " << config_->file_name << "\n"
-              << "column range should in [0, " << number_of_column << ")"
-              << std::endl;
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalid);
-  }
+  CBDB_CHECK(succ, cbdb::CException::ExType::kExTypeInvalid,
+             fmt("Fail to parse the column range [file=%s], column range "
+                 "should in [0, %u)",
+                 config_->file_name, number_of_column));
 
   for (int i = group_start; i < group_end; i++) {
     tabulate::Table group_table;
@@ -405,7 +408,7 @@ void PaxDumpReader::DumpGroupFooter() {
   DataBuffer<char> *data_buffer = nullptr;
   auto footer = &(format_reader_->file_footer_);
   auto stripes = &(footer->stripes());
-  auto number_of_column = footer->colinfo_size();
+  auto number_of_columns = footer->colinfo_size();
 
   bool succ;
   int64 group_start, group_end;
@@ -413,23 +416,17 @@ void PaxDumpReader::DumpGroupFooter() {
 
   std::tie(group_start, group_end, succ) = ParseRange(
       config_->group_id_start, config_->group_id_len, stripes->size());
-  if (!succ) {
-    std::cout << "Fail to parse the group range. \n"
-              << "file: " << config_->file_name << "\n"
-              << "group range should in [0, " << stripes->size() << ")"
-              << std::endl;
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalid);
-  }
+  CBDB_CHECK(succ, cbdb::CException::ExType::kExTypeInvalid,
+             fmt("Fail to parse the group range [file=%s], group range should "
+                 "in [0, %u)",
+                 config_->file_name, stripes->size()));
 
   std::tie(column_start, column_end, succ) = ParseRange(
-      config_->column_id_start, config_->column_id_len, number_of_column);
-  if (!succ) {
-    std::cout << "Fail to parse the column range. \n"
-              << "file: " << config_->file_name << "\n"
-              << "column range should in [0, " << number_of_column << ")"
-              << std::endl;
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalid);
-  }
+      config_->column_id_start, config_->column_id_len, number_of_columns);
+  CBDB_CHECK(succ, cbdb::CException::ExType::kExTypeInvalid,
+             fmt("Fail to parse the column range [file=%s], column range "
+                 "should in [0, %u)",
+                 config_->file_name, number_of_columns));
 
   data_buffer = new DataBuffer<char>(8192);
 
@@ -517,24 +514,19 @@ void PaxDumpReader::DumpAllData() {
 
   std::tie(group_start, group_end, succ) = ParseRange(
       config_->group_id_start, config_->group_id_len, stripes->size());
-  if (!succ || config_->group_id_len != 1) {
-    std::cout << "Invalid group range, with option -d/--print-data the range "
-                 "length should be 1 \n"
-              << "file: " << config_->file_name << "\n"
-              << "group range shoule in [0, " << stripes->size() << ")"
-              << std::endl;
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalid);
-  }
+  CBDB_CHECK(succ && config_->group_id_len == 1,
+             cbdb::CException::ExType::kExTypeInvalid,
+             fmt("Invalid group range, with option -d/--print-data the range "
+                 "length should be 1"
+                 "[file=%s] group range shoule in [0, %u)",
+                 config_->file_name, stripes->size()));
 
   std::tie(column_start, column_end, succ) = ParseRange(
       config_->column_id_start, config_->column_id_len, number_of_columns);
-  if (!succ) {
-    std::cout << "Fail to parse the column range. \n"
-              << "file: " << config_->file_name << "\n"
-              << "column range should in [0, " << number_of_columns << ")"
-              << std::endl;
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalid);
-  }
+  CBDB_CHECK(succ, cbdb::CException::ExType::kExTypeInvalid,
+             fmt("Fail to parse the column range [file=%s] column range should "
+                 "in [0, %u)",
+                 config_->file_name, number_of_columns));
 
   DataBuffer<char> *data_buffer = nullptr;
   auto stripe_info = (*stripes)[group_start];
@@ -550,13 +542,11 @@ void PaxDumpReader::DumpAllData() {
 
   std::tie(row_start, row_end, succ) =
       ParseRange(config_->row_id_start, config_->row_id_len, number_of_rows);
-  if (!succ) {
-    std::cout << "Fail to parse the row range. \n"
-              << "file: " << config_->file_name << "\n"
-              << "row range should in [0, " << number_of_rows << ")"
-              << std::endl;
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalid);
-  }
+
+  CBDB_CHECK(succ, cbdb::CException::ExType::kExTypeInvalid,
+             fmt("Fail to parse the row range [file=%s], row range should in "
+                 "[0, %lu)",
+                 config_->file_name, number_of_rows));
 
   memset(proj_map, false, number_of_columns);
   for (int column_index = column_start; column_index < column_end;

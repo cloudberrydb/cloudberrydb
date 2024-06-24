@@ -13,6 +13,7 @@
 #include "storage/local_file_system.h"
 #include "storage/pax_filter.h"
 #include "storage/toast/pax_toast.h"
+#include "stub.h"
 
 namespace pax::tests {
 
@@ -1509,5 +1510,245 @@ TEST_P(OrcEncodingTest, WriterMerge) {
   // only remain file3
   remove(file3_name.c_str());
 }
+
+namespace exceptions {
+
+static int current_pb_func_call_times = 0;
+static int target_pb_func_call_times = 0;
+
+static inline bool MockPbFuncCallTimes() {
+  if (target_pb_func_call_times <= current_pb_func_call_times) {
+    current_pb_func_call_times = 0;
+    return false;
+  }
+
+  current_pb_func_call_times++;
+  return true;
+}
+
+bool MockSerializeToZeroCopyStream(
+    ::google::protobuf::io::ZeroCopyOutputStream *output) {
+  return MockPbFuncCallTimes();
+}
+
+TEST_F(OrcTest, WriteException) {
+  bool get_exception = false;
+  Stub *stub;
+  TupleTableSlot *tuple_slot = CreateTestTupleTableSlot();
+
+  stub = new Stub();
+  auto create_test_writer = [&]() -> MicroPartitionWriter * {
+    OrcWriter::WriterOptions writer_options;
+    auto local_fs = Singleton<LocalFileSystem>::GetInstance();
+    local_fs->Delete(file_name_);
+    auto file_ptr = local_fs->Open(file_name_, fs::kWriteMode);
+
+    writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
+    auto writer = OrcWriter::CreateWriter(
+        writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
+
+    return writer;
+  };
+
+  stub->set(ADDR(::google::protobuf::MessageLite, SerializeToZeroCopyStream),
+            MockSerializeToZeroCopyStream);
+
+  // 1. check serialize STRIPE FOOTER
+  auto writer = create_test_writer();
+  target_pb_func_call_times = 0;
+  try {
+    writer->WriteTuple(tuple_slot);
+    writer->Close();
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to serialize the STRIPE FOOTER"),
+              std::string::npos);
+    ASSERT_NE(exception_str.find("mem used="), std::string::npos);
+    ASSERT_NE(exception_str.find("mem avail="), std::string::npos);
+    ASSERT_NE(exception_str.find("path="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+  delete writer;
+
+  // 2. check serialize FOOTER
+  writer = create_test_writer();
+  target_pb_func_call_times = 1;
+
+  try {
+    writer->WriteTuple(tuple_slot);
+    writer->Close();
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to serialize the FOOTER"),
+              std::string::npos);
+    ASSERT_NE(exception_str.find("mem used="), std::string::npos);
+    ASSERT_NE(exception_str.find("mem avail="), std::string::npos);
+    ASSERT_NE(exception_str.find("path="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+  delete writer;
+
+  // 3. check serialize POSTSCRIPT
+  writer = create_test_writer();
+  target_pb_func_call_times = 2;
+
+  try {
+    writer->WriteTuple(tuple_slot);
+    writer->Close();
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to serialize the POSTSCRIPT"),
+              std::string::npos);
+    ASSERT_NE(exception_str.find("mem used="), std::string::npos);
+    ASSERT_NE(exception_str.find("mem avail="), std::string::npos);
+    ASSERT_NE(exception_str.find("path="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+  delete writer;
+
+  delete stub;
+  DeleteTestTupleTableSlot(tuple_slot);
+}
+
+bool MockParseFromArray(const void *data, int size) {
+  return MockPbFuncCallTimes();
+}
+
+bool MockParseFromZeroCopyStream(
+    ::google::protobuf::io::ZeroCopyInputStream *input) {
+  return MockPbFuncCallTimes();
+}
+
+TEST_F(OrcTest, ReadException) {
+  bool get_exception = false;
+  Stub *stub;
+  MicroPartitionReader::ReaderOptions reader_options;
+  TupleTableSlot *tuple_slot = CreateTestTupleTableSlot();
+  TupleTableSlot *tuple_slot_empty = CreateTestTupleTableSlot(false);
+  auto local_fs = Singleton<LocalFileSystem>::GetInstance();
+  ASSERT_NE(nullptr, local_fs);
+
+  auto file_ptr = local_fs->Open(file_name_, fs::kWriteMode);
+  EXPECT_NE(nullptr, file_ptr);
+
+  current_pb_func_call_times = 0;
+  target_pb_func_call_times = 0;
+
+  MicroPartitionWriter::WriterOptions writer_options;
+  writer_options.rel_tuple_desc = tuple_slot->tts_tupleDescriptor;
+  writer_options.group_limit = 10;
+
+  auto writer = OrcWriter::CreateWriter(
+      writer_options, std::move(CreateTestSchemaTypes()), file_ptr);
+  for (int i = 0; i < 50; i++) {
+    writer->WriteTuple(tuple_slot);
+  }
+  writer->Close();
+  delete writer;
+
+  DeleteTestTupleTableSlot(tuple_slot);
+
+  auto create_test_reader = [&]() -> MicroPartitionReader * {
+    auto local_fs = Singleton<LocalFileSystem>::GetInstance();
+    ;
+    auto file_ptr = local_fs->Open(file_name_, fs::kReadMode);
+
+    return new OrcReader(file_ptr);
+  };
+
+  stub = new Stub();
+
+  // 1. failed to parse POSTSCRIPT
+  auto reader = create_test_reader();
+  stub->set(ADDR(::google::protobuf::MessageLite, ParseFromArray),
+            MockParseFromArray);
+  try {
+    reader->Open(reader_options);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to parse the POSTSCRIPT"),
+              std::string::npos);
+    ASSERT_NE(exception_str.find("offset="), std::string::npos);
+    ASSERT_NE(exception_str.find("len="), std::string::npos);
+    ASSERT_NE(exception_str.find("file="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  stub->reset(ADDR(::google::protobuf::MessageLite, ParseFromArray));
+  delete reader;
+
+  // 2. failed to parse FOOTER
+  reader = create_test_reader();
+  stub->set(ADDR(::google::protobuf::MessageLite, ParseFromZeroCopyStream),
+            MockParseFromZeroCopyStream);
+  target_pb_func_call_times = 0;
+  try {
+    reader->Open(reader_options);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to parse the FOOTER"),
+              std::string::npos);
+    ASSERT_NE(exception_str.find("offset="), std::string::npos);
+    ASSERT_NE(exception_str.find("len="), std::string::npos);
+    ASSERT_NE(exception_str.find("file="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  stub->reset(ADDR(::google::protobuf::MessageLite, ParseFromZeroCopyStream));
+  delete reader;
+
+  // 3. failed to parse STRIPE FOOTER
+  reader = create_test_reader();
+  reader->Open(reader_options);
+
+  // mock pb function after file opened
+  stub->set(ADDR(::google::protobuf::MessageLite, ParseFromZeroCopyStream),
+            MockParseFromZeroCopyStream);
+
+  try {
+    reader->GetTuple(tuple_slot_empty, 25);
+  } catch (cbdb::CException &e) {
+    std::string exception_str(e.What());
+    std::cout << exception_str << std::endl;
+    ASSERT_NE(exception_str.find("Fail to parse the STRIPE FOOTER"),
+              std::string::npos);
+    ASSERT_NE(exception_str.find("group index="), std::string::npos);
+    ASSERT_NE(exception_str.find("offset="), std::string::npos);
+    ASSERT_NE(exception_str.find("len="), std::string::npos);
+    ASSERT_NE(exception_str.find("file="), std::string::npos);
+    get_exception = true;
+  }
+
+  ASSERT_TRUE(get_exception);
+  get_exception = false;
+
+  stub->reset(ADDR(::google::protobuf::MessageLite, ParseFromZeroCopyStream));
+  delete reader;
+
+  delete stub;
+  DeleteTestTupleTableSlot(tuple_slot_empty);
+}
+
+}  // namespace exceptions
 
 }  // namespace pax::tests

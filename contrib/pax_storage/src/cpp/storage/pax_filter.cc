@@ -3,6 +3,7 @@
 #include "comm/cbdb_api.h"
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/fmt.h"
 #include "comm/pax_memory.h"
 #include "storage/micro_partition_stats.h"
 #include "storage/proto/proto_wrappers.h"
@@ -408,7 +409,8 @@ static inline bool CheckOpfamily(const ::pax::stats::ColumnBasicInfo &info,
 
 static bool CheckNonnullValue(const ::pax::stats::ColumnBasicInfo &minmax,
                               const ::pax::stats::ColumnDataStats &data_stats,
-                              ScanKey scan_key, Form_pg_attribute attr,
+                              const int column_index, ScanKey scan_key,
+                              Form_pg_attribute attr,
                               bool allow_fallback_to_pg) {
   Oid opfamily;
   FmgrInfo finfo;
@@ -435,7 +437,11 @@ static bool CheckNonnullValue(const ::pax::stats::ColumnBasicInfo &minmax,
         Assert(lfunc);
         datum = pax::MicroPartitionStats::FromValue(data_stats.minimal(),
                                                     typlen, typbyval, &ok);
-        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError,
+                   fmt("Fail to parse the MIN datum in pb [typbyval=%d, "
+                       "typlen=%d, column_index=%d]",
+                       typbyval, typlen, column_index));
 
         matches = lfunc(&datum, &value, collation);
       } else if (allow_fallback_to_pg) {
@@ -445,7 +451,10 @@ static bool CheckNonnullValue(const ::pax::stats::ColumnBasicInfo &minmax,
         if (!ok || !CheckOpfamily(minmax, opfamily)) break;
         datum = pax::MicroPartitionStats::FromValue(data_stats.minimal(),
                                                     typlen, typbyval, &ok);
-        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError,
+                   fmt("Fail to parse the MIN datum in pb [typbyval=%d, "
+                       "typlen=%d, column_index=%d]",
+                       typbyval, typlen, column_index));
         matches = cbdb::FunctionCall2Coll(&finfo, collation, datum, value);
       }
 
@@ -460,7 +469,10 @@ static bool CheckNonnullValue(const ::pax::stats::ColumnBasicInfo &minmax,
 
         datum = pax::MicroPartitionStats::FromValue(data_stats.minimal(),
                                                     typlen, typbyval, &ok);
-        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError,
+                   fmt("Fail to parse the MIN datum in pb [typbyval=%d, "
+                       "typlen=%d, column_index=%d]",
+                       typbyval, typlen, column_index));
         matches = lfunc(&datum, &value, collation);
         if (!DatumGetBool(matches))
           // not (min <= value) --> min > value
@@ -468,7 +480,10 @@ static bool CheckNonnullValue(const ::pax::stats::ColumnBasicInfo &minmax,
 
         datum = pax::MicroPartitionStats::FromValue(data_stats.maximum(),
                                                     typlen, typbyval, &ok);
-        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError,
+                   fmt("Fail to parse the MAX datum in pb [typbyval=%d, "
+                       "typlen=%d, column_index=%d]",
+                       typbyval, typlen, column_index));
         matches = lfunc2(&datum, &value, collation);
 
       } else if (allow_fallback_to_pg) {
@@ -478,7 +493,11 @@ static bool CheckNonnullValue(const ::pax::stats::ColumnBasicInfo &minmax,
         if (!ok || !CheckOpfamily(minmax, opfamily)) break;
         datum = pax::MicroPartitionStats::FromValue(data_stats.minimal(),
                                                     typlen, typbyval, &ok);
-        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError,
+                   fmt("Fail to parse the MIN datum in pb [typbyval=%d, "
+                       "typlen=%d, column_index=%d]",
+                       typbyval, typlen, column_index));
+
         matches = cbdb::FunctionCall2Coll(&finfo, collation, datum, value);
 
         if (!DatumGetBool(matches))
@@ -491,7 +510,11 @@ static bool CheckNonnullValue(const ::pax::stats::ColumnBasicInfo &minmax,
         if (!ok || !CheckOpfamily(minmax, opfamily)) break;
         datum = pax::MicroPartitionStats::FromValue(data_stats.maximum(),
                                                     typlen, typbyval, &ok);
-        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError,
+                   fmt("Fail to parse the MAX datum in pb [typbyval=%d, "
+                       "typlen=%d, column_index=%d]",
+                       typbyval, typlen, column_index));
+
         matches = cbdb::FunctionCall2Coll(&finfo, collation, datum, value);
       }
       break;
@@ -503,7 +526,10 @@ static bool CheckNonnullValue(const ::pax::stats::ColumnBasicInfo &minmax,
         Assert(lfunc);
         datum = pax::MicroPartitionStats::FromValue(data_stats.maximum(),
                                                     typlen, typbyval, &ok);
-        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError,
+                   fmt("Fail to parse the MAX datum in pb [typbyval=%d, "
+                       "typlen=%d, column_index=%d]",
+                       typbyval, typlen, column_index));
 
         matches = lfunc(&datum, &value, collation);
       } else if (allow_fallback_to_pg) {
@@ -514,7 +540,10 @@ static bool CheckNonnullValue(const ::pax::stats::ColumnBasicInfo &minmax,
 
         datum = pax::MicroPartitionStats::FromValue(data_stats.maximum(),
                                                     typlen, typbyval, &ok);
-        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError,
+                   fmt("Fail to parse the MAX datum in pb [typbyval=%d, "
+                       "typlen=%d, column_index=%d]",
+                       typbyval, typlen, column_index));
         matches = cbdb::FunctionCall2Coll(&finfo, collation, datum, value);
       }
 
@@ -600,7 +629,7 @@ bool PaxFilter::TestScanInternal(const ColumnStatsProvider &provider,
     } else if (scan_key->sk_collation != info.collation()) {
       // collation doesn't match ignore this scan key
     } else if (data_stats.has_minimal() &&
-               !CheckNonnullValue(info, data_stats, scan_key, attr,
+               !CheckNonnullValue(info, data_stats, i, scan_key, attr,
                                   allow_fallback_to_pg_)) {
       return false;
     }

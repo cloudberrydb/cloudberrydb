@@ -1,6 +1,7 @@
 #include "storage/orc/orc_format_reader.h"
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/fmt.h"
 #include "comm/pax_memory.h"
 #include "storage/columns/pax_column_traits.h"
 #include "storage/orc/orc_defined.h"
@@ -33,21 +34,25 @@ void OrcFormatReader::Open() {
     // read post script
     if (!skip_read_post_script) {
       char post_script_buffer[ps_len];
-      off_t offset;
+      off64_t offset;
 
-      offset = (off_t)(file_size - PORC_POST_SCRIPT_SIZE - ps_len);
+      offset = (off64_t)(file_size - PORC_POST_SCRIPT_SIZE - ps_len);
       Assert(offset >= 0);
 
       file_->PReadN(post_script_buffer, ps_len, offset);
 
       CBDB_CHECK(post_script_.ParseFromArray(&post_script_buffer,
                                              static_cast<int>(ps_len)),
-                 cbdb::CException::ExType::kExTypeIOError);
+                 cbdb::CException::ExType::kExTypeInvalidPORCFormat,
+                 fmt("Fail to parse the POSTSCRIPT pb structure. [file=%s, "
+                     "offset=%ld, len=%lu], %s",
+                     file_->GetPath().c_str(), offset, ps_len,
+                     file_->DebugString().c_str()));
     }
 
     size_t footer_len = post_script_.footerlength();
     size_t tail_len = PORC_POST_SCRIPT_SIZE + ps_len + footer_len;
-    size_t footer_offset = file_size - tail_len;
+    off64_t footer_offset = file_size - tail_len;
 
     // read file_footer
     {
@@ -60,7 +65,11 @@ void OrcFormatReader::Open() {
 
       SeekableInputStream input_stream(buffer.get(), footer_len);
       CBDB_CHECK(file_footer_.ParseFromZeroCopyStream(&input_stream),
-                 cbdb::CException::ExType::kExTypeIOError);
+                 cbdb::CException::ExType::kExTypeIOError,
+                 fmt("Fail to parse the FOOTER pb structure. [file=%s, "
+                     "offset=%ld, len=%lu], %s",
+                     file_->GetPath().c_str(), footer_offset, footer_len,
+                     file_->DebugString().c_str()));
     }
   };
 
@@ -68,11 +77,11 @@ void OrcFormatReader::Open() {
   if (file_length > PORC_TAIL_SIZE) {
     size_t footer_len;
     size_t tail_len;
-    size_t footer_offset;
+    off64_t footer_offset;
     char tail_buffer[PORC_TAIL_SIZE];
 
     file_->PReadN(tail_buffer, PORC_TAIL_SIZE,
-                  (off_t)(file_length - PORC_TAIL_SIZE));
+                  (off64_t)(file_length - PORC_TAIL_SIZE));
 
     static_assert(sizeof(post_script_len) == PORC_POST_SCRIPT_SIZE,
                   "post script type len not match.");
@@ -85,10 +94,16 @@ void OrcFormatReader::Open() {
     }
 
     auto post_script_offset =
-        (off_t)(PORC_TAIL_SIZE - PORC_POST_SCRIPT_SIZE - post_script_len);
-    CBDB_CHECK(post_script_.ParseFromArray(tail_buffer + post_script_offset,
-                                           static_cast<int>(post_script_len)),
-               cbdb::CException::ExType::kExTypeIOError);
+        (off64_t)(PORC_TAIL_SIZE - PORC_POST_SCRIPT_SIZE - post_script_len);
+    CBDB_CHECK(
+        post_script_.ParseFromArray(tail_buffer + post_script_offset,
+                                    static_cast<int>(post_script_len)),
+        cbdb::CException::ExType::kExTypeIOError,
+        fmt("Fail to parse the POSTSCRIPT pb structure. [file=%s, offset=%ld, "
+            "len=%lu], %s",
+            file_->GetPath().c_str(),
+            (off64_t)(file_length - PORC_POST_SCRIPT_SIZE - post_script_len),
+            post_script_len, file_->DebugString().c_str()));
 
     footer_len = post_script_.footerlength();
     tail_len = PORC_POST_SCRIPT_SIZE + post_script_len + footer_len;
@@ -100,12 +115,18 @@ void OrcFormatReader::Open() {
     footer_offset = PORC_TAIL_SIZE - tail_len;
     SeekableInputStream input_stream(tail_buffer + footer_offset, footer_len);
     CBDB_CHECK(file_footer_.ParseFromZeroCopyStream(&input_stream),
-               cbdb::CException::ExType::kExTypeIOError);
+               cbdb::CException::ExType::kExTypeIOError,
+               fmt("Fail to parse the FOOTER pb structure. [file=%s, "
+                   "offset=%ld, len=%lu], %s",
+                   file_->GetPath().c_str(),
+                   (off64_t)(file_length - (PORC_POST_SCRIPT_SIZE +
+                                            post_script_len + footer_len)),
+                   footer_len, file_->DebugString().c_str()));
   } else {
     static_assert(sizeof(post_script_len) == PORC_POST_SCRIPT_SIZE,
                   "post script type len not match.");
     file_->PReadN(&post_script_len, PORC_POST_SCRIPT_SIZE,
-                  (off_t)(file_length - PORC_POST_SCRIPT_SIZE));
+                  (off64_t)(file_length - PORC_POST_SCRIPT_SIZE));
     read_in_disk(file_length, post_script_len, false);
   }
 
@@ -115,15 +136,27 @@ finish_read:
 
   // Build schema
   auto max_id = file_footer_.types_size();
-  CBDB_CHECK(max_id > 0, cbdb::CException::ExType::kExTypeInvalidPORCFormat);
+  CBDB_CHECK(max_id > 0, cbdb::CException::ExType::kExTypeInvalidPORCFormat,
+             fmt("Invalid FOOTER pb structure, the schema is empty or invalid. "
+                 "[type mid=%d], %s",
+                 max_id, file_->DebugString().c_str()));
 
   const pax::porc::proto::Type &type = file_footer_.types(0);
   // There is an assumption here: for all pg tables, the outermost structure
   // should be Type_Kind_STRUCT
   CBDB_CHECK(type.kind() == pax::porc::proto::Type_Kind_STRUCT,
-             cbdb::CException::ExType::kExTypeInvalidPORCFormat);
+             cbdb::CException::ExType::kExTypeInvalidPORCFormat,
+             fmt("Invalid FOOTER pb structure, the schema is invalid."
+                 "The first type in PORC must be %d but got %d, %s",
+                 pax::porc::proto::Type_Kind_STRUCT, type.kind(),
+                 file_->DebugString().c_str()));
+
   CBDB_CHECK(type.subtypes_size() == max_id - 1,
-             cbdb::CException::ExType::kExTypeInvalidPORCFormat);
+             cbdb::CException::ExType::kExTypeInvalidPORCFormat,
+             fmt("Invalid FOOTER pb structure, the schema is invalid."
+                 "Subtypes not match the type sizes [type mid=%d, subtypes "
+                 "size=%d], %s",
+                 max_id, type.subtypes_size(), file_->DebugString().c_str()));
 
   column_types_.resize(type.subtypes_size());
   column_attrs_.resize(type.subtypes_size());
@@ -133,7 +166,10 @@ finish_read:
     // should allow struct contain struct
     // but not support yet
     CBDB_CHECK(sub_type.kind() != pax::porc::proto::Type_Kind_STRUCT,
-               cbdb::CException::ExType::kExTypeInvalidPORCFormat);
+               cbdb::CException::ExType::kExTypeInvalidPORCFormat,
+               fmt("Invalid FOOTER pb structure, the schema is invalid. "
+                   "Current PORC not support the inhert STRUCT type. %s",
+                   file_->DebugString().c_str()));
 
     column_types_[j] = sub_type.kind();
     for (int k = 0; k < sub_type.attributes_size(); k++) {
@@ -168,8 +204,8 @@ size_t OrcFormatReader::GetStripeOffset(size_t stripe_index) {
 }
 
 pax::porc::proto::StripeFooter OrcFormatReader::ReadStripeFooter(
-    DataBuffer<char> *data_buffer, size_t sf_length, size_t sf_offset,
-    size_t sf_data_len) {
+    DataBuffer<char> *data_buffer, size_t sf_length, off64_t sf_offset,
+    size_t sf_data_len, size_t group_index) {
   pax::porc::proto::StripeFooter stripe_footer;
 
   Assert(data_buffer->Capacity() >= (sf_length - sf_data_len));
@@ -179,22 +215,26 @@ pax::porc::proto::StripeFooter OrcFormatReader::ReadStripeFooter(
                                    sf_length - sf_data_len);
   if (!stripe_footer.ParseFromZeroCopyStream(&input_stream)) {
     // fail to do memory io with protobuf
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeIOError);
+    CBDB_RAISE(cbdb::CException::ExType::kExTypeIOError,
+               fmt("Fail to parse the STRIPE FOOTER pb structure. [group "
+                   "index=%lu, file=%s, offset=%ld, len=%lu], %s",
+                   group_index, file_->GetPath().c_str(), sf_offset, sf_length,
+                   file_->DebugString().c_str()));
   }
 
   return stripe_footer;
 }
 
 pax::porc::proto::StripeFooter OrcFormatReader::ReadStripeFooter(
-    DataBuffer<char> *data_buffer, size_t stripe_index) {
+    DataBuffer<char> *data_buffer, size_t group_index) {
   size_t sf_data_len;
-  size_t sf_offset;
+  off64_t sf_offset;
   size_t sf_length;
   pax::porc::proto::StripeInformation stripe_info;
 
-  Assert(stripe_index < GetStripeNums());
+  Assert(group_index < GetStripeNums());
 
-  stripe_info = file_footer_.stripes(static_cast<int>(stripe_index));
+  stripe_info = file_footer_.stripes(static_cast<int>(group_index));
 
   sf_data_len = stripe_info.datalength();
   sf_offset = stripe_info.offset();
@@ -207,21 +247,22 @@ pax::porc::proto::StripeFooter OrcFormatReader::ReadStripeFooter(
     data_buffer->ReSize(sf_length - sf_data_len);
   }
 
-  return ReadStripeFooter(data_buffer, sf_length, sf_offset, sf_data_len);
+  return ReadStripeFooter(data_buffer, sf_length, sf_offset, sf_data_len,
+                          group_index);
 }
 
 pax::porc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
     DataBuffer<char> *data_buffer,
     const ::pax::porc::proto::StripeInformation &stripe_info,
-    const bool *const proj_map, size_t proj_len) {
+    const bool *const proj_map, size_t proj_len, size_t group_index) {
   pax::porc::proto::StripeFooter stripe_footer;
   size_t stripe_footer_data_len;
-  size_t stripe_footer_offset;
+  off64_t stripe_footer_offset;
   size_t stripe_footer_length;
 
   size_t streams_index = 0;
   uint64_t batch_len = 0;
-  uint64_t batch_offset = 0;
+  off64_t batch_offset = 0;
   size_t index = 0;
 
   stripe_footer_data_len = stripe_info.datalength();
@@ -239,8 +280,12 @@ pax::porc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
         data_buffer->GetBuffer() + stripe_footer_data_len,
         stripe_footer_length - stripe_footer_data_len);
     if (!stripe_footer.ParseFromZeroCopyStream(&input_stream)) {
-      // fail to do memory io with protobuf
-      CBDB_RAISE(cbdb::CException::ExType::kExTypeIOError);
+      CBDB_RAISE(
+          cbdb::CException::ExType::kExTypeIOError,
+          fmt("Fail to parse the STRIPE FOOTER pb structure. [group index=%lu, "
+              "file=%s, offset=%ld, len=%lu], %s",
+              group_index, file_->GetPath().c_str(), stripe_footer_offset,
+              stripe_footer_length, file_->DebugString().c_str()));
     }
 
     return stripe_footer;
@@ -251,7 +296,7 @@ pax::porc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
    */
   stripe_footer =
       ReadStripeFooter(data_buffer, stripe_footer_length, stripe_footer_offset,
-                       stripe_footer_data_len);
+                       stripe_footer_data_len, group_index);
   data_buffer->BrushBackAll();
 
   batch_offset = stripe_footer_offset;
@@ -314,12 +359,16 @@ pax::porc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
       }
     } while ((++index) < column_types_.size() && proj_map[index]);
 
-    // There is only one situation where batch_len is equal to 0, that is, all
+    // There is only one situation where batch_len is equal to 0, that is all
     // values in this column are null. null_bitmap does not store data when it
     // is all 0, and data_streams does not store null values.
     // so if the batch_len of a column equals 0, we should check all_null flags
     if (unlikely(batch_len == 0)) {
-      CBDB_CHECK(all_null, cbdb::CException::kExTypeInvalidPORCFormat);
+      CBDB_CHECK(
+          all_null, cbdb::CException::kExTypeInvalidPORCFormat,
+          fmt("Current stripe data may broken. the length of data is 0, but "
+              "still has not null rows inside %s",
+              file_->DebugString().c_str()));
       continue;
     }
 
@@ -797,8 +846,8 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
    * And we don't have a decision that should we use `try...catch` at yet,
    * so it's ok that we just no catch here.
    */
-  stripe_footer =
-      ReadStripeWithProjection(data_buffer, stripe_info, proj_map, proj_len);
+  stripe_footer = ReadStripeWithProjection(data_buffer, stripe_info, proj_map,
+                                           proj_len, group_index);
 
   streams_size = stripe_footer.streams_size();
 
@@ -981,11 +1030,11 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
   AssertImply(!toast_file_, stripe_info.toastlength() == 0);
   // deal the toast part
   if (toast_file_ && stripe_info.toastlength() > 0) {
-    std::vector<std::pair<size_t, size_t>> projection_no_combine, projection;
+    std::vector<std::pair<off64_t, size_t>> projection_no_combine, projection;
     std::vector<size_t> column_ext_sizes;
     size_t toast_file_size;
     uint64 ext_total_size = 0;
-    uint64 curr_column_ext_offset = 0;
+    off64_t curr_column_ext_offset = 0;
     DataBuffer<char> *external_toast_buffer;
 
     Assert(stripe_info.numberoftoast() != 0);
@@ -1017,7 +1066,7 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
       uint64 t = projection_no_combine[i].second;
       uint64 j = i + 1;
       while (j < projection_no_combine.size() &&
-             projection_no_combine[j].first == t) {
+             (size_t)projection_no_combine[j].first == t) {
         t = projection_no_combine[j].second;
         j++;
       }
@@ -1033,7 +1082,15 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
           external_toast_buffer->Available() >= (range.second - range.first) &&
               range.second <= toast_file_size &&
               (range.second - range.first) <= stripe_info.toastlength(),
-          cbdb::CException::ExType::kExTypeInvalidExternalToast);
+          cbdb::CException::ExType::kExTypeInvalidExternalToast,
+          fmt("Failed to parse current external toast, [file size=%lu, total "
+              "size=%lu, stripe toast len=%lu, remain len=%lu, toast "
+              "offset=%ld, toast end pos=%lu], \n pax file: %s, \n toast file: "
+              "%s",
+              toast_file_size, ext_total_size, stripe_info.toastlength(),
+              external_toast_buffer->Available(), range.second, range.first,
+              file_->DebugString().c_str(),
+              toast_file_->DebugString().c_str()));
 
       toast_file_->PReadN(external_toast_buffer->GetAvailableBuffer(),
                           range.second - range.first,

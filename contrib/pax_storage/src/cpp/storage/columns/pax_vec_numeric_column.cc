@@ -72,7 +72,9 @@ void PaxShortNumericColumn::Append(char *buffer, size_t size) {
 std::pair<char *, size_t> PaxShortNumericColumn::GetRangeBuffer(
     size_t start_pos, size_t len) {
   CBDB_CHECK((start_pos + len) <= GetRows(),
-             cbdb::CException::ExType::kExTypeOutOfRange);
+             cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to get buffer [pos=%lu, len=%lu, total rows=%lu], \n %s",
+                 start_pos, len, GetRows(), DebugString().c_str()));
 
   return std::make_pair(data_->Start() + (width_ * start_pos), width_ * len);
 }
@@ -82,7 +84,9 @@ std::pair<char *, size_t> PaxShortNumericColumn::GetBuffer(size_t position) {
   Datum datum;
   struct varlena *vl;
 
-  CBDB_CHECK(position < GetRows(), cbdb::CException::ExType::kExTypeOutOfRange);
+  CBDB_CHECK(position < GetRows(), cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to get buffer [pos=%lu, total rows=%lu], \n %s",
+                 position, GetRows(), DebugString().c_str()));
 
   Assert(data_->Used() > position * width_);
 

@@ -3,6 +3,7 @@
 #include "comm/cbdb_api.h"
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/fmt.h"
 #include "comm/pax_memory.h"
 #include "storage/micro_partition_metadata.h"
 #include "storage/proto/proto_wrappers.h"
@@ -131,10 +132,17 @@ bool MicroPartitionStats::MicroPartitionStatisticsInfoCombine(
       if (left_column_data_stats->has_minimal()) {
         auto left_min_datum = MicroPartitionStats::FromValue(
             left_column_data_stats->minimal(), typlen, typbyval, &ok);
-        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError,
+                   fmt("Fail to parse the MIN datum in LEFT pb [typbyval=%d, "
+                       "typlen=%d, column_index=%d]",
+                       typbyval, typlen, i));
+
         auto right_min_datum = MicroPartitionStats::FromValue(
             right_column_data_stats->minimal(), typlen, typbyval, &ok);
-        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError,
+                   fmt("Fail to parse the MIN datum in RIGHT pb [typbyval=%d, "
+                       "typlen=%d, column_index=%d]",
+                       typbyval, typlen, i));
         bool min_rc = false;
 
         // can direct call the oper, no need check exist again
@@ -158,10 +166,17 @@ bool MicroPartitionStats::MicroPartitionStatisticsInfoCombine(
       if (left_column_data_stats->has_maximum()) {
         auto left_max_datum = MicroPartitionStats::FromValue(
             left_column_data_stats->maximum(), typlen, typbyval, &ok);
-        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError,
+                   fmt("Fail to parse the MAX datum in LEFT pb [typbyval=%d, "
+                       "typlen=%d, column_index=%d]",
+                       typbyval, typlen, i));
+
         auto right_max_datum = MicroPartitionStats::FromValue(
             right_column_data_stats->maximum(), typlen, typbyval, &ok);
-        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
+        CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError,
+                   fmt("Fail to parse the MAX datum in RIGHT pb [typbyval=%d, "
+                       "typlen=%d, column_index=%d]",
+                       typbyval, typlen, i));
         bool max_rc = false;
 
         if (funcs[i].second) {
@@ -267,7 +282,9 @@ void MicroPartitionStats::AddRow(TupleTableSlot *slot,
 
   Assert(initialized_);
   CBDB_CHECK(status_.size() == static_cast<size_t>(n),
-             cbdb::CException::ExType::kExTypeSchemaNotMatch);
+             cbdb::CException::ExType::kExTypeSchemaNotMatch,
+             fmt("Current stats initialized [N=%lu], in tuple desc [natts=%d] ",
+                 status_.size(), n));
   for (auto i = 0; i < n; i++) {
     AssertImply(tuple_desc_->attrs[i].attisdropped, slot->tts_isnull[i]);
     if (slot->tts_isnull[i])
@@ -595,7 +612,8 @@ std::string MicroPartitionStats::ToValue(Datum datum, int typlen,
         Assert(!"unexpected typbyval, len not in 1,2,4,8");
         break;
     }
-    CBDB_RAISE(cbdb::CException::kExTypeLogicError);
+    CBDB_RAISE(cbdb::CException::kExTypeLogicError,
+               fmt("Invalid typlen %d", typlen));
   }
 
   if (typlen == -1) {

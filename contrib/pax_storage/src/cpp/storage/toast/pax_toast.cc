@@ -1,5 +1,6 @@
 #include "storage/toast/pax_toast.h"
 
+#include "comm/fmt.h"
 #include "comm/pax_memory.h"
 #include "exceptions/CException.h"
 #include "storage/columns/pax_compress.h"
@@ -154,7 +155,8 @@ static Datum pax_make_compressed_toast(
       cmid = TOAST_LZ4_COMPRESSION_ID;
       break;
     default:
-      CBDB_RAISE(cbdb::CException::kExTypeToastInvalidCompressType);
+      CBDB_RAISE(cbdb::CException::kExTypeToastInvalidCompressType,
+                 fmt("Invalid toast compress method [cmethod=%c]", cmethod));
   }
 
   if (tmp == nullptr) return PointerGetDatum(nullptr);
@@ -377,7 +379,9 @@ size_t pax_decompress_buffer(ToastCompressionId cmid, char *dst_buff,
       rawsize =
           compressor.Decompress(dst_buff, dst_cap, src_buff, src_buff_size);
       if (compressor.IsError(rawsize)) {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeToastPGLZError);
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeToastPGLZError,
+                   fmt("Toast PGLZ decompress failed, %s",
+                       compressor.ErrorName(rawsize)));
       }
 
       return rawsize;
@@ -392,7 +396,9 @@ size_t pax_decompress_buffer(ToastCompressionId cmid, char *dst_buff,
       rawsize =
           compressor.Decompress(dst_buff, dst_cap, src_buff, src_buff_size);
       if (compressor.IsError(rawsize)) {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeToastLZ4Error);
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeToastLZ4Error,
+                   fmt("Toast LZ4 decompress failed, %s",
+                       compressor.ErrorName(rawsize)));
       }
 
       return rawsize;
@@ -428,7 +434,9 @@ size_t pax_detoast_raw(Datum d, char *dst_buff, size_t dst_cap, char *ext_buff,
   if (VARATT_IS_COMPRESSED(d)) {
     auto compress_toast_extsize = VARDATA_COMPRESSED_GET_EXTSIZE(d);
     CBDB_CHECK(dst_cap >= compress_toast_extsize,
-               cbdb::CException::ExType::kExTypeOutOfRange);
+               cbdb::CException::ExType::kExTypeOutOfRange,
+               fmt("Fail to detoast raw buffer [record size=%u, dst cap=%lu]",
+                   compress_toast_extsize, dst_cap));
     // only external toast exist invalid compress toast
     Assert((ToastCompressionId)(TOAST_COMPRESS_METHOD(d)) !=
            TOAST_INVALID_COMPRESSION_ID);
@@ -443,7 +451,10 @@ size_t pax_detoast_raw(Datum d, char *dst_buff, size_t dst_cap, char *ext_buff,
     auto origin_size = PAX_VARATT_EXTERNAL_ORIGIN_SIZE(d);
 
     CBDB_CHECK(dst_cap >= origin_size && offset + raw_size <= ext_buff_size,
-               cbdb::CException::ExType::kExTypeOutOfRange);
+               cbdb::CException::ExType::kExTypeOutOfRange,
+               fmt("Fail to detoast raw buffer [dst cap=%lu, origin size=%lu, "
+                   "off=%lu, raw size=%lu, external buff size=%lu]",
+                   dst_cap, origin_size, offset, raw_size, ext_buff_size));
 
     decompress_size =
         pax_decompress_buffer(PAX_VARATT_EXTERNAL_CMID(d), dst_buff,
@@ -478,7 +489,10 @@ Datum pax_detoast(Datum d, char *ext_buff, size_t ext_buff_size) {
     auto origin_size = PAX_VARATT_EXTERNAL_ORIGIN_SIZE(d);
 
     CBDB_CHECK(offset + raw_size <= ext_buff_size,
-               cbdb::CException::ExType::kExTypeOutOfRange);
+               cbdb::CException::ExType::kExTypeOutOfRange,
+               fmt("Fail to detoast [dst off=%lu, raw size=%lu, external "
+                   "buff size=%lu]",
+                   offset, raw_size, ext_buff_size));
 
     // allocate memory for the uncompressed data
     result = PAX_NEW_ARRAY<char>(origin_size + VARHDRSZ);

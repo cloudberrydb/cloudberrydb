@@ -235,12 +235,14 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
       PAX_LENGTHS_DEFAULT_COMPRESSTYPE, PAX_LENGTHS_DEFAULT_COMPRESSLEVEL);
   options.enable_min_max_col_idxs = GetMinMaxColumnIndexes();
 
-  file = file_system_->Open(options.file_name, fs::kWriteMode,
+  // should be kReadWriteMode here
+  // cause PAX may do read after write in partition logic
+  file = file_system_->Open(options.file_name, fs::kReadWriteMode,
                             file_system_options_);
   Assert(file);
 
   if (pax_enable_toast) {
-    toast_file = file_system_->Open(toast_file_path, fs::kWriteMode,
+    toast_file = file_system_->Open(toast_file_path, fs::kReadWriteMode,
                                     file_system_options_);
   }
 
@@ -376,15 +378,17 @@ bool TableReader::ReadTuple(TupleTableSlot *slot) {
 
 bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
                            size_t offset) {
-  Assert(direction == ForwardScanDirection);
-
   MicroPartitionReader::ReaderOptions options;
   ReaderFlags reader_flags = FLAGS_EMPTY;
   size_t row_index = current_block_row_index_;
-  size_t max_row_index = current_block_metadata_.GetTupleCount() - 1;
+  size_t max_row_index;
   size_t remaining_offset = offset;
   File *toast_file = nullptr;
   bool ok;
+
+  Assert(direction == ForwardScanDirection);
+  Assert(current_block_metadata_.GetTupleCount() >= 1);
+  max_row_index = current_block_metadata_.GetTupleCount() - 1;
 
   // The number of remaining rows in the current block is enough to satisfy the
   // offset
@@ -405,7 +409,12 @@ bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
   // through relation_estimate_size. The number of tuples is a correct number.
   // The target_tuple_id (the return blocknumber of BlockSampler_Next ) sampled
   // by analyze will not exceed the number of tuples.
-  CBDB_CHECK(iterator_->HasNext(), cbdb::CException::kExTypeLogicError);
+  CBDB_CHECK(
+      iterator_->HasNext(), cbdb::CException::kExTypeOutOfRange,
+      fmt("No more tuples to read. Invalid [target offsets=%lu, remain "
+          "offsets=%lu]. ",
+          offset, remaining_offset - current_block_metadata_.GetTupleCount()));
+
   while (iterator_->HasNext()) {
     current_block_metadata_ = iterator_->Next();
     if (current_block_metadata_.GetTupleCount() >= remaining_offset) {
@@ -417,7 +426,13 @@ bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
   // remain_offset must point to an existing tuple (whether it is valid or
   // invalid)
   CBDB_CHECK(current_block_metadata_.GetTupleCount() >= remaining_offset,
-             cbdb::CException::kExTypeLogicError);
+             cbdb::CException::kExTypeLogicError,
+             fmt("Invalid tuple counts in current block [block tuple counts= "
+                 "%ul, remain offsets=%lu]\n"
+                 "Meta data [name=%s, id=%s]. ",
+                 current_block_metadata_.GetTupleCount(), remaining_offset,
+                 current_block_metadata_.GetFileName().c_str(),
+                 current_block_metadata_.GetMicroPartitionId().c_str()));
 
   // close old reader
   if (reader_) {
@@ -608,7 +623,9 @@ void TableDeleter::DeleteWithVisibilityMap(TransactionId delete_xid) {
                     &blocknum, &generate, &xid);
         Assert(blocknum >= 0 && block_id == std::to_string(blocknum));
         (void)xid;
-        CBDB_CHECK(rc == 3, cbdb::CException::kExTypeLogicError);
+        CBDB_CHECK(rc == 3, cbdb::CException::kExTypeLogicError,
+                   fmt("Fail to sscanf [rc=%d, filename=%s, rel_path=%s]", rc,
+                       visibility_map_filename.c_str(), rel_path.c_str()));
       } else {
         visi_bitmap = delete_visi_bitmap;
       }

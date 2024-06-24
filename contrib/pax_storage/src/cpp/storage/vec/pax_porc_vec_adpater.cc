@@ -259,7 +259,10 @@ std::pair<size_t, size_t> VecAdapter::AppendPorcVecFormat(PaxColumns *columns) {
         break;
       }
       default: {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError,
+                   fmt("Invalid column [type=%d], PORC_VEC format won't create "
+                       "this type of column.",
+                       column->GetPaxColumnTypeInMem()));
       }
     }
   }

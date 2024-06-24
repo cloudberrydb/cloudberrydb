@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "comm/fmt.h"
 #include "comm/pax_memory.h"
 #include "storage/columns/pax_column_traits.h"
 #include "storage/toast/pax_toast.h"
@@ -149,7 +150,10 @@ void PaxColumns::SetExternalToastDataBuffer(
     }
 
     CBDB_CHECK(curr_offset + column_size <= external_toast_data->Used(),
-               cbdb::CException::ExType::kExTypeOutOfRange);
+               cbdb::CException::ExType::kExTypeOutOfRange,
+               fmt("Invalid toast desc [offset=%lu, size=%lu, toast buffer "
+                   "size=%lu]",
+                   curr_offset, column_size, external_toast_data->Used()));
 
     auto column_eb = PAX_NEW<DataBuffer<char>>(
         external_toast_data->Start() + curr_offset, column_size, false, false);
@@ -299,7 +303,9 @@ std::pair<char *, size_t> PaxColumns::GetBuffer() {
 
 std::pair<char *, size_t> PaxColumns::GetBuffer(size_t position) {
   if (position >= GetColumns()) {
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeOutOfRange);
+    CBDB_RAISE(
+        cbdb::CException::ExType::kExTypeOutOfRange,
+        fmt("The [position=%lu] out of [size=%lu] ", position, GetColumns()));
   }
   if (columns_[position]) {
     return columns_[position]->GetBuffer();
@@ -434,7 +440,9 @@ size_t PaxColumns::MeasureVecDataBuffer(
       case kTypeBpChar:
       case kTypeInvalid:
       default: {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
+        CBDB_RAISE(
+            cbdb::CException::ExType::kExTypeLogicError,
+            fmt("Invalid column type = %d", column->GetPaxColumnTypeInMem()));
         break;
       }
     }
@@ -537,7 +545,9 @@ size_t PaxColumns::MeasureOrcDataBuffer(
       case kTypeVecNoHeader:
       case kTypeInvalid:
       default: {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
+        CBDB_RAISE(
+            cbdb::CException::ExType::kExTypeLogicError,
+            fmt("Invalid column type = %d", column->GetPaxColumnTypeInMem()));
         break;
       }
     }
@@ -647,7 +657,9 @@ void PaxColumns::CombineVecDataBuffer() {
       case kTypeBpChar:
       case kTypeInvalid:
       default: {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
+        CBDB_RAISE(
+            cbdb::CException::ExType::kExTypeLogicError,
+            fmt("Invalid column type = %d", column->GetPaxColumnTypeInMem()));
         break;
       }
     }
@@ -736,7 +748,9 @@ void PaxColumns::CombineOrcDataBuffer() {
       case kTypeVecNoHeader:
       case kTypeInvalid:
       default: {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
+        CBDB_RAISE(
+            cbdb::CException::ExType::kExTypeLogicError,
+            fmt("Invalid column type = %d", column->GetPaxColumnTypeInMem()));
         break;
       }
     }

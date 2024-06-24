@@ -552,7 +552,8 @@ void VecAdapter::FillMissColumn(int index) {
       break;
     }
     default:
-      CBDB_RAISE(cbdb::CException::kExTypeInvalid);
+      CBDB_RAISE(cbdb::CException::kExTypeInvalid,
+                 fmt("Invalid porc [type=%d]", column_type_kind));
   }
 }
 
@@ -669,9 +670,13 @@ size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {
         break;
       }
     }
+
     // must the missing column found in relation tuple desc
     CBDB_CHECK(index_in_rel != (size_t)rel_tuple_desc_->natts,
-               cbdb::CException::kExTypeInvalid);
+               cbdb::CException::kExTypeInvalid,
+               fmt("Fail to found missing column in TupleDesc [missing column "
+                   "name=%s, index=%lu, size in desc=%d]",
+                   column_name, index, rel_tuple_desc_->natts));
   }
 
   Assert((int)schema_types.size() == natts);
@@ -707,7 +712,8 @@ size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {
       *arrow::struct_(std::move(schema_types)), &arrow_rb->schema);
 
   CBDB_CHECK(export_status.ok(),
-             cbdb::CException::ExType::kExTypeArrowExportError);
+             cbdb::CException::ExType::kExTypeArrowExportError,
+             "Fail to export arrow schema");
 
   // Don't use the `arrow::ExportArray`
   // Because it will cause memory leak when release call

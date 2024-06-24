@@ -4,6 +4,7 @@
 #include <cmath>
 #include <vector>
 
+#include "comm/fmt.h"
 #include "comm/pax_memory.h"
 
 namespace pax {
@@ -579,8 +580,8 @@ template <typename T>
 PaxDecoder *PaxOrcDecoder<T>::SetSrcBuffer(char *data, size_t data_len) {
   Assert(!data_buffer_);
   if (data) {
-    data_buffer_ =
-        PAX_NEW<TreatedDataBuffer<int64>>(reinterpret_cast<int64 *>(data), data_len);
+    data_buffer_ = PAX_NEW<TreatedDataBuffer<int64>>(
+        reinterpret_cast<int64 *>(data), data_len);
     copy_data_buffer_ =
         PAX_NEW<DataBuffer<int64>>(ORC_MAX_LITERAL_SIZE * sizeof(int64));
   }
@@ -684,7 +685,10 @@ size_t PaxOrcDecoder<T>::Decoding(const char *const not_null,
       n_read = Next(not_null);
 
       CBDB_CHECK(n_read <= result_cap,
-                 cbdb::CException::ExType::kExTypeOutOfRange);
+                 cbdb::CException::ExType::kExTypeOutOfRange,
+                 fmt("RLEV2 decoder, No enough memory in result buffer "
+                     "[n_read=%lu, result_cap=%lu]",
+                     n_read, result_cap));
     } while (n_read != last_read);
   }
 
@@ -836,7 +840,9 @@ uint64 PaxOrcDecoder<T>::NextDelta(TreatedDataBuffer<int64> *data_buffer,
     } else {
       prev_val = data[1] = prev_val + delta_base;
       if (data_lens < 2) {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalidPORCFormat);
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError,
+                   fmt("RLEV2 decode delta failed, [position=%lu]",
+                       data_buffer->Used()));
       }
 
       // write the unpacked values, add it to previous value and store final
@@ -876,7 +882,9 @@ uint64 PaxOrcDecoder<T>::NextDelta(TreatedDataBuffer<int64> *data_buffer,
   } else {
     prev_val = curr_literals[1] = prev_val + delta_base;
     if (data_lens < 2) {
-      CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalidPORCFormat);
+      CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError,
+                 fmt("RLEV2 decode delta failed, [position=%lu]",
+                     data_buffer->Used()));
     }
 
     ReadLongs(data_buffer, curr_literals, 2, data_lens - 2, bits, &bits_left);
@@ -927,7 +935,9 @@ uint64 PaxOrcDecoder<T>::NextPatched(TreatedDataBuffer<int64> *data_buffer,
 
   // extract the length of the patch list
   size_t pl = fourth_byte & 0x1f;
-  CBDB_CHECK(pl != 0, cbdb::CException::ExType::kExTypeInvalidPORCFormat);
+  CBDB_CHECK(
+      pl != 0, cbdb::CException::ExType::kExTypeCompressError,
+      fmt("RLEV2 decode patched failed, [position=%lu]", data_buffer->Used()));
 
   int64 base = ReadLongBE(data_buffer, byte_size);
   int64 mask = (static_cast<int64>(1) << ((byte_size * 8) - 1));
@@ -946,7 +956,9 @@ uint64 PaxOrcDecoder<T>::NextPatched(TreatedDataBuffer<int64> *data_buffer,
   bits_left = 0;
 
   if ((patch_bits + pgw) > 64) {
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalidPORCFormat);
+    CBDB_RAISE(cbdb::CException::ExType::kExTypeCompressError,
+               fmt("RLEV2 decode patched failed, [position=%lu]",
+                   data_buffer->Used()));
   }
 
   if (unpacked_data_ == nullptr) {
@@ -964,8 +976,10 @@ uint64 PaxOrcDecoder<T>::NextPatched(TreatedDataBuffer<int64> *data_buffer,
             &bits_left);
   size_t treaded_last_read = data_buffer->Treated() - old_treaded;
 
-  CBDB_CHECK(treaded_last_read < (pl * sizeof(int64)),
-             cbdb::CException::ExType::kExTypeOutOfRange);
+  CBDB_CHECK(
+      treaded_last_read < (pl * sizeof(int64)),
+      cbdb::CException::ExType::kExTypeOutOfRange,
+      fmt("RLEV2 decode patched failed, [position=%lu]", data_buffer->Used()));
 
   int64 patch_mask = ((static_cast<int64>(1) << patch_bits) - 1);
 

@@ -48,14 +48,21 @@ void PaxVecBpCharColumn::Append(char *buffer, size_t size) {
 
 std::pair<char *, size_t> PaxVecBpCharColumn::GetBuffer(size_t position) {
   CBDB_CHECK(position < offsets_->GetSize(),
-             cbdb::CException::ExType::kExTypeOutOfRange);
+             cbdb::CException::ExType::kExTypeOutOfRange,
+             fmt("Fail to get buffer [pos=%lu, total rows=%lu], \n %s",
+                 position, offsets_->GetSize(), DebugString().c_str()));
+
   if (number_of_char_ == NUMBER_OF_CHAR_UNINIT) {
     auto attr = GetAttribute(NUMBER_OF_CHAR_KEY);
-    CBDB_CHECK(attr.second, cbdb::CException::ExType::kExTypeInvalidPORCFormat);
+    CBDB_CHECK(attr.second, cbdb::CException::ExType::kExTypeInvalidPORCFormat,
+               fmt("No set the %s in attribute, \n %s", NUMBER_OF_CHAR_KEY,
+                   DebugString().c_str()));
     Assert(attr.first.length() > 0);
     number_of_char_ = atoll(attr.first.c_str());
     CBDB_CHECK(number_of_char_ > 0,
-               cbdb::CException::ExType::kExTypeInvalidPORCFormat);
+               cbdb::CException::ExType::kExTypeInvalidPORCFormat,
+               fmt("Invalid %s in attribute [value=%ld], \n %s",
+                   NUMBER_OF_CHAR_KEY, number_of_char_, DebugString().c_str()));
   }
 
   auto pair = PaxVecNonFixedColumn::GetBuffer(position);

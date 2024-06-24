@@ -50,6 +50,7 @@ class File {
   virtual void Close() = 0;
   virtual size_t FileLength() const = 0;
   virtual std::string GetPath() const = 0;
+  virtual std::string DebugString() const = 0;
 };
 
 class FileSystemOptions {

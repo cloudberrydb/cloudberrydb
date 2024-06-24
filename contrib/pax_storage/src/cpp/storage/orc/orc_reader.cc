@@ -106,7 +106,8 @@ void OrcReader::Open(const ReaderOptions &options) {
   Assert(is_closed_);
   if (options.reused_buffer) {
     CBDB_CHECK(options.reused_buffer->IsMemTakeOver(),
-               cbdb::CException::ExType::kExTypeLogicError);
+               cbdb::CException::ExType::kExTypeLogicError,
+               "Invalid memory owner in resued buffer");
     options.reused_buffer->BrushBackAll();
     format_reader_.SetReusedBuffer(options.reused_buffer);
   }
@@ -158,7 +159,10 @@ retry_read_group:
     // was done.
     CBDB_CHECK(columns->GetColumns() <=
                    static_cast<size_t>(slot->tts_tupleDescriptor->natts),
-               cbdb::CException::ExType::kExTypeSchemaNotMatch);
+               cbdb::CException::ExType::kExTypeSchemaNotMatch,
+               fmt("There are more number of column in the current file than "
+                   "in TupleDesc. [in file=%lu, in desc=%d]",
+                   columns->GetColumns(), slot->tts_tupleDescriptor->natts));
   }
 
   bool ok = false;

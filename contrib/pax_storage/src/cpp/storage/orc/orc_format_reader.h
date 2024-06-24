@@ -34,12 +34,13 @@ class OrcFormatReader final {
   pax::porc::proto::StripeFooter ReadStripeWithProjection(
       DataBuffer<char> *data_buffer,
       const ::pax::porc::proto::StripeInformation &stripe_info,
-      const bool *proj_map, size_t proj_len);
+      const bool *proj_map, size_t proj_len, size_t group_index);
 
   pax::porc::proto::StripeFooter ReadStripeFooter(DataBuffer<char> *data_buffer,
                                                   size_t sf_length,
-                                                  size_t sf_offset,
-                                                  size_t sf_data_len);
+                                                  off64_t sf_offset,
+                                                  size_t sf_data_len,
+                                                  size_t group_index);
 
   pax::porc::proto::StripeFooter ReadStripeFooter(DataBuffer<char> *data_buffer,
                                                   size_t stripe_index);
