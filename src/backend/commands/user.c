@@ -1451,45 +1451,6 @@ AlterRole(AlterRoleStmt *stmt)
 	{
 		char	   *shadow_pass;
 		char	   *logdetail;
-		Datum	   datum;
-		bool	   isnull;
-		bool	   setat_isnull;
-		TimestampTz	password_set_at = 0;
-		int32		profile_reuse_max = 0;
-		SysScanDesc	password_history_scan;
-		HeapTuple	profiletuple;
-
-		pg_profile_rel = table_open(ProfileRelationId, AccessShareLock);
-		pg_profile_dsc = RelationGetDescr(pg_profile_rel);
-
-		datum = SysCacheGetAttr(AUTHNAME, tuple,
-							Anum_pg_authid_rolprofile, &isnull);
-		Assert(!isnull);
-
-		profileid = DatumGetObjectId(datum);
-		profiletuple = SearchSysCache1(PROFILEID, ObjectIdGetDatum(profileid));
-		if (!HeapTupleIsValid(profiletuple))
-			ereport(ERROR,
-					(errcode(ERRCODE_UNDEFINED_OBJECT),
-					 errmsg("profile \"%d\" does not exist", profileid)));
-
-		/* Get PASSWORD_REUSE_MAX from profile tuple and transform it to normal value */
-		profileform = (Form_pg_profile) GETSTRUCT(profiletuple);
-		profile_reuse_max = tranformProfileValueToNormal(profileform->prfpasswordreusemax,
-						   Anum_pg_profile_prfpasswordreusemax);
-
-		ReleaseSysCache(profiletuple);
-
-		if (profile_reuse_max == 0)
-			ereport(ERROR,
-					(errcode(ERRCODE_INVALID_PASSWORD),
-					 errmsg("can't alter user password for profile's password_reuse_max is zero.")));
-
-		/*
-		 * Get shadow password from pg_authid
-		 */
-		datum = SysCacheGetAttr(AUTHNAME, tuple,
-							Anum_pg_authid_rolpassword, &isnull);
 
 		/* Like in CREATE USER, don't allow an empty password. */
 		if (password[0] == '\0' ||
@@ -1507,6 +1468,60 @@ AlterRole(AlterRoleStmt *stmt)
 			new_record[Anum_pg_authid_rolpassword - 1] =
 				CStringGetTextDatum(shadow_pass);
 		}
+		new_record_repl[Anum_pg_authid_rolpassword - 1] = true;
+	}
+
+	/* unset password */
+	if (dpassword && dpassword->arg == NULL)
+	{
+		new_record_repl[Anum_pg_authid_rolpassword - 1] = true;
+		new_record_nulls[Anum_pg_authid_rolpassword - 1] = true;
+	}
+
+
+	if ((password || (dpassword && dpassword->arg == NULL)) &&
+		(authform->rolenableprofile || enable_profile))
+	{
+		Datum	   datum;
+		bool	   isnull;
+		bool	   setat_isnull;
+		TimestampTz	password_set_at = 0;
+		int32		profile_reuse_max = 0;
+		SysScanDesc	password_history_scan;
+		HeapTuple	profiletuple;
+		char	   *logdetail;
+
+		pg_profile_rel = table_open(ProfileRelationId, AccessShareLock);
+		pg_profile_dsc = RelationGetDescr(pg_profile_rel);
+
+		datum = SysCacheGetAttr(AUTHNAME, tuple,
+								Anum_pg_authid_rolprofile, &isnull);
+		Assert(!isnull);
+
+		profileid = DatumGetObjectId(datum);
+		profiletuple = SearchSysCache1(PROFILEID, ObjectIdGetDatum(profileid));
+		if (!HeapTupleIsValid(profiletuple))
+			ereport(ERROR,
+						(errcode(ERRCODE_UNDEFINED_OBJECT),
+						 errmsg("profile \"%d\" does not exist", profileid)));
+
+		/* Get PASSWORD_REUSE_MAX from profile tuple and transform it to normal value */
+		profileform = (Form_pg_profile) GETSTRUCT(profiletuple);
+		profile_reuse_max = tranformProfileValueToNormal(profileform->prfpasswordreusemax,
+														 Anum_pg_profile_prfpasswordreusemax);
+
+		ReleaseSysCache(profiletuple);
+
+		if (profile_reuse_max == 0)
+			ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PASSWORD),
+						 errmsg("can't alter user password for profile's password_reuse_max is zero.")));
+
+		/*
+		 * Get shadow password from pg_authid
+		 */
+		datum = SysCacheGetAttr(AUTHNAME, tuple,
+								Anum_pg_authid_rolpassword, &isnull);
 
 		/*
 		 * Disallow to use recently passwords which controlled by
@@ -1535,7 +1550,7 @@ AlterRole(AlterRoleStmt *stmt)
 			history_shadow_pass = TextDatumGetCString(datum);
 
 			datum = SysCacheGetAttr(AUTHNAME, tuple,
-							Anum_pg_authid_rolpasswordsetat, &setat_isnull);
+									Anum_pg_authid_rolpasswordsetat, &setat_isnull);
 			Assert(!setat_isnull);
 			history_password_set_at = DatumGetInt64(datum);
 
@@ -1552,9 +1567,9 @@ AlterRole(AlterRoleStmt *stmt)
 
 			/* Form the insert tuple */
 			password_history_tuple = heap_form_tuple(pg_password_history_dsc,
-								 	password_history_record, password_nulls);
+													 password_history_record, password_nulls);
 
-			 /* Insert new record into the pg_password_history table */
+			/* Insert new record into the pg_password_history table */
 			CatalogTupleInsert(pg_password_history_rel, password_history_tuple);
 
 			/* Advance command counter so we can see new record */
@@ -1562,16 +1577,16 @@ AlterRole(AlterRoleStmt *stmt)
 
 			/* form a scan key */
 			ScanKeyInit(&skey,
-				    Anum_pg_password_history_passhistroleid,
-				    BTEqualStrategyNumber, F_OIDEQ,
-				    ObjectIdGetDatum(roleid));
+						Anum_pg_password_history_passhistroleid,
+						BTEqualStrategyNumber, F_OIDEQ,
+						ObjectIdGetDatum(roleid));
 
 			/*
 			 * Get only recently PASSWORD_REUSE_MAX tuples.
 			 */
 			password_history_scan = systable_beginscan_ordered(pg_password_history_rel,
-									   pg_password_history_passwordsetat_idx,
-									   NULL, 1, &skey);
+															   pg_password_history_passwordsetat_idx,
+															   NULL, 1, &skey);
 			for (i = 0; i < profile_reuse_max; i++)
 			{
 				password_history_tuple = systable_getnext_ordered(password_history_scan, BackwardScanDirection);
@@ -1580,7 +1595,7 @@ AlterRole(AlterRoleStmt *stmt)
 					break;
 
 				datum = heap_getattr(password_history_tuple, Anum_pg_password_history_passhistpassword,
-						     pg_password_history_dsc, &isnull);
+									 pg_password_history_dsc, &isnull);
 				Assert(!isnull);
 				history_shadow_pass = text_to_cstring(DatumGetTextP(datum));
 
@@ -1588,11 +1603,12 @@ AlterRole(AlterRoleStmt *stmt)
 				 * Use password verify function to check whether password
 				 * has been recorded in pg_password_history.
 				 */
-				if (plain_crypt_verify(rolename, history_shadow_pass, password, &logdetail) == STATUS_OK)
+				if (password &&
+					plain_crypt_verify(rolename, history_shadow_pass, password, &logdetail) == STATUS_OK)
 					ereport(ERROR,
-							(errcode(ERRCODE_INVALID_PASSWORD),
-							 errmsg("The new password should not be the same with latest %d history password",
-							       profile_reuse_max)));
+								(errcode(ERRCODE_INVALID_PASSWORD),
+								 errmsg("The new password should not be the same with latest %d history password",
+									    profile_reuse_max)));
 			}
 
 			systable_endscan_ordered(password_history_scan);
@@ -1605,16 +1621,8 @@ AlterRole(AlterRoleStmt *stmt)
 		new_record[Anum_pg_authid_rolpasswordsetat - 1] =
 			Int64GetDatum(password_set_at);
 		new_record_repl[Anum_pg_authid_rolpasswordsetat - 1] = true;
-		new_record_repl[Anum_pg_authid_rolpassword - 1] = true;
 
 		table_close(pg_profile_rel, NoLock);
-	}
-
-	/* unset password */
-	if (dpassword && dpassword->arg == NULL)
-	{
-		new_record_repl[Anum_pg_authid_rolpassword - 1] = true;
-		new_record_nulls[Anum_pg_authid_rolpassword - 1] = true;
 	}
 
 	/* valid until */
