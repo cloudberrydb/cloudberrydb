@@ -1,0 +1,5 @@
+# file_content extension
+comment = 'get file content for directory table file'
+default_version = '1.0'
+module_pathname = '$libdir/file_content'
+relocatable = true

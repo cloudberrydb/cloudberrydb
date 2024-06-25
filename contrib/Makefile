@@ -67,7 +67,8 @@ SUBDIRS += \
 		vbf \
 		dfs-tablespace-ext \
 		pg_gophermeta \
-		vectorization
+		vectorization \
+		file_content
 		
 
 ifeq ($(with_ssl),openssl)

@@ -214,8 +214,8 @@ remoteFileClose(UFile *file)
 static int
 remoteFileSync(UFile *file)
 {
-    elog(ERROR, "remote file not support sync");
-    return -1;
+    elog(WARNING, "remote file not support sync");
+    return 0;
 }
 
 static int
