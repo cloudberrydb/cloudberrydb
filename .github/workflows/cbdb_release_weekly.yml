@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: cbdb-release-weekly
+          ref: main
           fetch-depth: 0
       - name: Environment Setup
         run: |
@@ -102,4 +102,4 @@ jobs:
           prerelease: true
           generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_NIGHTLY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
