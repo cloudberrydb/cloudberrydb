@@ -220,11 +220,14 @@ select count(*) from uao_table_tupcount_changes_after_delete;
 (1 row)
 
 vacuum full uao_table_tupcount_changes_after_delete;
-select sum(tupcount) from gp_toolkit.__gp_aoseg('uao_table_tupcount_changes_after_delete');
- sum 
------
-   9
-(1 row)
+select segno,hidden_tupcount from gp_toolkit.__gp_aovisimap_hidden_info('uao_table_tupcount_changes_after_delete'::regclass);
+ segno | hidden_tupcount 
+-------+-----------------
+     1 |               0
+     1 |               0
+     1 |               0
+     2 |               0
+(4 rows)
 
 select count(*) from uao_table_tupcount_changes_after_delete;
  count 
@@ -262,11 +265,14 @@ select count(*) from uao_table_tupcount_changes_after_update;
 (1 row)
 
 vacuum full uao_table_tupcount_changes_after_update;
-select sum(tupcount) from gp_toolkit.__gp_aoseg('uao_table_tupcount_changes_after_update');
- sum 
------
-  10
-(1 row)
+select segno,hidden_tupcount from gp_toolkit.__gp_aovisimap_hidden_info('uao_table_tupcount_changes_after_update'::regclass);
+ segno | hidden_tupcount 
+-------+-----------------
+     1 |               0
+     1 |               0
+     1 |               0
+     2 |               0
+(4 rows)
 
 select count(*) from uao_table_tupcount_changes_after_update;
  count 
@@ -295,16 +301,23 @@ select * from gp_toolkit.__gp_aovisimap_hidden_info('uao_table_check_hidden_tup_
 (3 rows)
 
 vacuum full uao_table_check_hidden_tup_count_after_delete;
-select * from gp_toolkit.__gp_aovisimap_hidden_info('uao_table_check_hidden_tup_count_after_delete'::regclass);
- segno | hidden_tupcount | total_tupcount 
--------+-----------------+----------------
-     1 |               0 |              0
-     2 |               0 |              0
-     1 |               0 |              0
-     2 |               0 |              0
-     1 |               0 |              0
-     2 |               0 |              0
+select segno,hidden_tupcount from gp_toolkit.__gp_aovisimap_hidden_info('uao_table_check_hidden_tup_count_after_delete'::regclass);
+ segno | hidden_tupcount 
+-------+-----------------
+     1 |               0
+     2 |               0
+     1 |               0
+     2 |               0
+     1 |               0
+     2 |               0
 (6 rows)
+
+select * from uao_table_check_hidden_tup_count_after_delete;
+NOTICE:  One or more columns in the following table(s) do not have statistics: uao_table_check_hidden_tup_count_after_delete
+HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
+ i | j | k 
+---+---+---
+(0 rows)
 
 -- Verify the hidden tup_count using UDF gp_aovisimap_hidden_info(oid) for uao relation after update and vacuum
 create table uao_table_check_hidden_tup_count_after_update(i int, j varchar(20), k int ) with (appendonly=true) DISTRIBUTED BY (i);
@@ -327,14 +340,31 @@ select * from gp_toolkit.__gp_aovisimap_hidden_info('uao_table_check_hidden_tup_
 (3 rows)
 
 vacuum full uao_table_check_hidden_tup_count_after_update;
-select * from gp_toolkit.__gp_aovisimap_hidden_info('uao_table_check_hidden_tup_count_after_update'::regclass);
- segno | hidden_tupcount | total_tupcount 
--------+-----------------+----------------
-     1 |               0 |              0
-     2 |               0 |              5
-     1 |               0 |              0
-     2 |               0 |              4
-     1 |               0 |              0
-     2 |               0 |              1
+select segno,hidden_tupcount from gp_toolkit.__gp_aovisimap_hidden_info('uao_table_check_hidden_tup_count_after_update'::regclass);
+ segno | hidden_tupcount 
+-------+-----------------
+     1 |               0
+     2 |               0
+     1 |               0
+     2 |               0
+     1 |               0
+     2 |               0
 (6 rows)
+
+select * from uao_table_check_hidden_tup_count_after_update;
+NOTICE:  One or more columns in the following table(s) do not have statistics: uao_table_check_hidden_tup_count_after_update
+HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
+ i  |   j    | k  
+----+--------+----
+  5 | test21 | 15
+  6 | test21 | 16
+  9 | test21 | 19
+ 10 | test21 | 20
+  2 | test21 | 12
+  3 | test21 | 13
+  4 | test21 | 14
+  7 | test21 | 17
+  8 | test21 | 18
+  1 | test21 | 11
+(10 rows)
 

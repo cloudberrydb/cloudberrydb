@@ -28,7 +28,8 @@ select * from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tu
 delete from uaocs_table_check_hidden_tup_count_after_delete where i = 1;
 select * from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tup_count_after_delete'::regclass);
 vacuum full uaocs_table_check_hidden_tup_count_after_delete;
-select * from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tup_count_after_delete'::regclass);
+select segno,hidden_tupcount from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tup_count_after_delete'::regclass);
+select * from uaocs_table_check_hidden_tup_count_after_delete;
 
 -- Verify the hidden tup_count using UDF gp_aovisimap_hidden_info(oid) for uaocs relation after update and vacuum
 create table uaocs_table_check_hidden_tup_count_after_update(i int, j varchar(20), k int ) with (appendonly=true, orientation=column) DISTRIBUTED BY (i);
@@ -37,4 +38,5 @@ select * from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tu
 update uaocs_table_check_hidden_tup_count_after_update set j = 'test_update';
 select * from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tup_count_after_update'::regclass);
 vacuum full uaocs_table_check_hidden_tup_count_after_update;
-select * from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tup_count_after_update'::regclass);
+select segno,hidden_tupcount from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tup_count_after_update'::regclass);
+select * from uaocs_table_check_hidden_tup_count_after_update;

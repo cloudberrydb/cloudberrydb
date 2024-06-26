@@ -45,14 +45,30 @@ select * from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tu
 (3 rows)
 
 vacuum full uaocs_table_check_hidden_tup_count_after_delete;
-select * from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tup_count_after_delete'::regclass);
- segno | hidden_tupcount | total_tupcount 
--------+-----------------+----------------
-     1 |               0 |              5
-     1 |               0 |              0
-     2 |               0 |              0
-     1 |               0 |              4
+select segno,hidden_tupcount from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tup_count_after_delete'::regclass);
+ segno | hidden_tupcount 
+-------+-----------------
+     1 |               0
+     2 |               0
+     1 |               0
+     1 |               0
 (4 rows)
+
+select * from uaocs_table_check_hidden_tup_count_after_delete;
+NOTICE:  One or more columns in the following table(s) do not have statistics: uaocs_table_check_hidden_tup_count_after_delete
+HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
+ i  |  j   | k  
+----+------+----
+  2 | aa2  | 12
+  3 | aa3  | 13
+  4 | aa4  | 14
+  7 | aa7  | 17
+  8 | aa8  | 18
+  5 | aa5  | 15
+  6 | aa6  | 16
+  9 | aa9  | 19
+ 10 | aa10 | 20
+(9 rows)
 
 -- Verify the hidden tup_count using UDF gp_aovisimap_hidden_info(oid) for uaocs relation after update and vacuum
 create table uaocs_table_check_hidden_tup_count_after_update(i int, j varchar(20), k int ) with (appendonly=true, orientation=column) DISTRIBUTED BY (i);
@@ -75,14 +91,31 @@ select * from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tu
 (3 rows)
 
 vacuum full uaocs_table_check_hidden_tup_count_after_update;
-select * from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tup_count_after_update'::regclass);
- segno | hidden_tupcount | total_tupcount 
--------+-----------------+----------------
-     1 |               0 |              0
-     2 |               0 |              4
-     1 |               0 |              0
-     2 |               0 |              5
-     1 |               0 |              0
-     2 |               0 |              1
+select segno,hidden_tupcount from gp_toolkit.__gp_aovisimap_hidden_info('uaocs_table_check_hidden_tup_count_after_update'::regclass);
+ segno | hidden_tupcount 
+-------+-----------------
+     1 |               0
+     2 |               0
+     1 |               0
+     2 |               0
+     1 |               0
+     2 |               0
 (6 rows)
+
+select * from uaocs_table_check_hidden_tup_count_after_update;
+NOTICE:  One or more columns in the following table(s) do not have statistics: uaocs_table_check_hidden_tup_count_after_update
+HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
+ i  |      j      | k  
+----+-------------+----
+  5 | test_update | 15
+  6 | test_update | 16
+  9 | test_update | 19
+ 10 | test_update | 20
+  2 | test_update | 12
+  3 | test_update | 13
+  4 | test_update | 14
+  7 | test_update | 17
+  8 | test_update | 18
+  1 | test_update | 11
+(10 rows)
 
