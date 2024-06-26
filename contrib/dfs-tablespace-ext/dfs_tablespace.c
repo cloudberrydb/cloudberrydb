@@ -386,7 +386,7 @@ isDropDfsTableSpaceStmt(DropTableSpaceStmt *stmt)
 	TableScanDesc	scandesc;
 	HeapTuple	tuple;
 	ScanKeyData	entry[1];
-	bool	isnull;
+	bool	isnull = true;
 
 	/*
 	 * Search pg_tablespace.  We use a heapscan here even though there is an
@@ -405,8 +405,6 @@ isDropDfsTableSpaceStmt(DropTableSpaceStmt *stmt)
 	if (HeapTupleIsValid(tuple))
 		heap_getattr(tuple, Anum_pg_tablespace_spcfilehandlersrc,
 					 RelationGetDescr(rel), &isnull);
-	else
-		return false;
 
 	table_endscan(scandesc);
 	table_close(rel, AccessShareLock);

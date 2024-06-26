@@ -1,0 +1,43 @@
+-- cleaning
+DROP TABLE IF EXISTS tab_test_oss;
+DROP TABLESPACE IF EXISTS oss_test;
+DROP STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER test_server;
+DROP STORAGE SERVER IF EXISTS test_server;
+DROP EXTENSION IF EXISTS dfs_tablespace;
+
+-- create objects
+CREATE EXTENSION dfs_tablespace;
+CREATE STORAGE SERVER test_server OPTIONS(protocol 'huawei', endpoint 'obs.cn-north-4.myhuaweicloud.com', https 'false', virtual_host 'false');
+CREATE STORAGE USER MAPPING FOR CURRENT_USER STORAGE SERVER test_server OPTIONS (accesskey 'TDZZA4TRBD16GP9D0YLN', secretkey 'rtvRIvb6HMnePuAN3EnmEwbR3ZAJgvXnqn32wlDN');
+CREATE TABLESPACE oss_test location '/kfs-test1/master_cluster' server test_server handler '$libdir/dfs_tablespace, remote_file_handler';
+-- show objects
+SELECT srvname, srvacl, srvoptions
+FROM gp_storage_server
+WHERE srvname = 'test_server';
+SELECT spcname, spcacl, spcoptions
+FROM pg_tablespace
+WHERE spcname = 'oss_test';
+
+-- test oss api of ufs
+CREATE DIRECTORY TABLE tab_test_oss TABLESPACE oss_test;
+COPY BINARY tab_test_oss FROM '@abs_srcdir@/data/text0.csv' 'text0';
+COPY BINARY tab_test_oss FROM '@abs_srcdir@/data/text1.csv' 'dir1/text1';
+COPY BINARY tab_test_oss FROM '@abs_srcdir@/data/text1.csv' 'dir1/text1';   -- failed
+COPY BINARY tab_test_oss FROM '@abs_srcdir@/data/text2.csv' 'dir1/dir2/text2' with TAG 'test';
+SELECT relative_path, size, md5, tag FROM tab_test_oss;
+
+SELECT relative_path, size, md5, tag, content FROM directory_table('tab_test_oss') ORDER BY 1;
+SELECT remove_file('tab_test_oss', 'text0');
+SELECT remove_file('tab_test_oss', 'text0');    -- failed
+SELECT remove_file('tab_test_oss', 'dir1/dir2/text2');
+SELECT remove_file('tab_test_oss', 'dir1/dir2/text2');  -- failed
+SELECT relative_path, size, md5, tag, content FROM directory_table('tab_test_oss') ORDER BY 1;
+
+-- cleanup
+DROP TABLESPACE oss_test;   -- should fail
+DROP DIRECTORY TABLE tab_test_oss;
+
+DROP TABLESPACE oss_test;
+DROP STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER test_server;
+DROP STORAGE SERVER test_server;
+DROP EXTENSION IF EXISTS dfs_tablespace;

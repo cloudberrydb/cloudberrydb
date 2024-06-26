@@ -1,0 +1,99 @@
+-- cleaning
+DROP TABLE IF EXISTS tab_test_oss;
+NOTICE:  table "tab_test_oss" does not exist, skipping
+DROP TABLESPACE IF EXISTS oss_test;
+NOTICE:  tablespace "oss_test" does not exist, skipping
+DROP STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER test_server;
+NOTICE:  storage server "test_server" does not exist, skipping
+DROP STORAGE SERVER IF EXISTS test_server;
+NOTICE:  storage server "test_server" not exists, skipping
+DROP EXTENSION IF EXISTS dfs_tablespace;
+NOTICE:  extension "dfs_tablespace" does not exist, skipping
+-- create objects
+CREATE EXTENSION dfs_tablespace;
+CREATE STORAGE SERVER test_server OPTIONS(protocol 'huawei', endpoint 'obs.cn-north-4.myhuaweicloud.com', https 'false', virtual_host 'false');
+CREATE STORAGE USER MAPPING FOR CURRENT_USER STORAGE SERVER test_server OPTIONS (accesskey 'TDZZA4TRBD16GP9D0YLN', secretkey 'rtvRIvb6HMnePuAN3EnmEwbR3ZAJgvXnqn32wlDN');
+CREATE TABLESPACE oss_test location '/kfs-test1/master_cluster' server test_server handler '$libdir/dfs_tablespace, remote_file_handler';
+-- show objects
+SELECT srvname, srvacl, srvoptions
+FROM gp_storage_server
+WHERE srvname = 'test_server';
+   srvname   | srvacl |                                  srvoptions                                   
+-------------+--------+-------------------------------------------------------------------------------
+ test_server |        | {protocol=qingstor,endpoint=pek3b.qingstor.com,https=true,virtual_host=false}
+(1 row)
+
+SELECT spcname, spcacl, spcoptions
+FROM pg_tablespace
+WHERE spcname = 'oss_test';
+ spcname  | spcacl |                          spcoptions                           
+----------+--------+---------------------------------------------------------------
+ oss_test |        | {server=test_server,path=/tbs-49560-0-mgq-multi/tablespace-a}
+(1 row)
+
+-- test oss api of ufs
+CREATE DIRECTORY TABLE tab_test_oss TABLESPACE oss_test;
+COPY BINARY tab_test_oss FROM '@abs_srcdir@/data/text0.csv' 'text0';
+WARNING:  remote file not support sync  (seg0 127.0.1.1:7002 pid=23088)
+COPY BINARY tab_test_oss FROM '@abs_srcdir@/data/text1.csv' 'dir1/text1';
+WARNING:  remote file not support sync  (seg1 127.0.1.1:7003 pid=23089)
+COPY BINARY tab_test_oss FROM '@abs_srcdir@/data/text1.csv' 'dir1/text1';   -- failed
+ERROR:  duplicate key value violates unique constraint "tab_test_oss_pkey"
+DETAIL:  Key (relative_path)=(dir1/text1) already exists.
+COPY BINARY tab_test_oss FROM '@abs_srcdir@/data/text2.csv' 'dir1/dir2/text2' with TAG 'test';
+WARNING:  remote file not support sync  (seg1 127.0.1.1:7003 pid=23089)
+SELECT relative_path, size, md5, tag FROM tab_test_oss;
+  relative_path  | size |               md5                | tag  
+-----------------+------+----------------------------------+------
+ dir1/text1      |    8 | 1010c0a1e80dcbcc5f2669a2f94ed3aa | 
+ dir1/dir2/text2 |    8 | fcefd36fa3c820c7d88d88321a73a775 | test
+ text0           |    8 | 99eb597ab8c4973e742f37eed128766b | 
+(3 rows)
+
+SELECT relative_path, size, md5, tag, content FROM directory_table('tab_test_oss') ORDER BY 1;
+  relative_path  | size |               md5                | tag  |      content       
+-----------------+------+----------------------------------+------+--------------------
+ dir1/dir2/text2 |    8 | fcefd36fa3c820c7d88d88321a73a775 | test | \x464f4f2c6261720a
+ dir1/text1      |    8 | 1010c0a1e80dcbcc5f2669a2f94ed3aa |      | \x4242422c6162630a
+ text0           |    8 | 99eb597ab8c4973e742f37eed128766b |      | \x4141412c6161610a
+(3 rows)
+
+SELECT remove_file('tab_test_oss', 'text0');
+ remove_file 
+-------------
+ t
+(1 row)
+
+SELECT remove_file('tab_test_oss', 'text0');    -- failed
+ remove_file 
+-------------
+ f
+(1 row)
+
+SELECT remove_file('tab_test_oss', 'dir1/dir2/text2');
+ remove_file 
+-------------
+ t
+(1 row)
+
+SELECT remove_file('tab_test_oss', 'dir1/dir2/text2');  -- failed
+ remove_file 
+-------------
+ f
+(1 row)
+
+SELECT relative_path, size, md5, tag, content FROM directory_table('tab_test_oss') ORDER BY 1;
+ relative_path | size |               md5                | tag |      content       
+---------------+------+----------------------------------+-----+--------------------
+ dir1/text1    |    8 | 1010c0a1e80dcbcc5f2669a2f94ed3aa |     | \x4242422c6162630a
+(1 row)
+
+-- cleanup
+DROP TABLESPACE oss_test;   -- should fail
+ERROR:  tablespace "oss_test" cannot be dropped because some objects depend on it
+DETAIL:  tablespace for directory table tab_test_oss
+DROP DIRECTORY TABLE tab_test_oss;
+DROP TABLESPACE oss_test;
+DROP STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER test_server;
+DROP STORAGE SERVER test_server;
+DROP EXTENSION IF EXISTS dfs_tablespace;

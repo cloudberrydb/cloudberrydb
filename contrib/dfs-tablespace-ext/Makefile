@@ -12,6 +12,10 @@ EXTENSION = dfs_tablespace
 DATA = dfs_tablespace--1.0.sql
 PGFILEDESC = "dfs_tablespace - dfs tablespace"
 
+REGRESS = dfs_tablespace
+
+EXTRA_CLEAN = sql/dfs_tablespace.sql expected/dfs_tablespace.out
+
 SHLIB_LINK += -lgopher
 
 ifdef USE_PGXS
