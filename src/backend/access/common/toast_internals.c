@@ -438,7 +438,7 @@ toast_delete_datum(Relation rel, Datum value, bool is_speculative)
 		if (is_speculative)
 			heap_abort_speculative(toastrel, &toasttup->t_self);
 		else
-			simple_heap_delete(toastrel, &toasttup->t_self);
+			simple_table_tuple_delete(toastrel, &toasttup->t_self);
 	}
 
 	/*

@@ -968,7 +968,7 @@ objectsInSchemaToOids(ObjectType objtype, List *nspnames)
 					rel = table_open(ProcedureRelationId, AccessShareLock);
 					scan = table_beginscan_catalog(rel, keycount, key);
 
-					while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+					while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 					{
 						Oid			oid = ((Form_pg_proc) GETSTRUCT(tuple))->oid;
 
@@ -1015,7 +1015,7 @@ getRelationsInNamespace(Oid namespaceId, char relkind)
 	rel = table_open(RelationRelationId, AccessShareLock);
 	scan = table_beginscan_catalog(rel, 2, key);
 
-	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		Oid			oid = ((Form_pg_class) GETSTRUCT(tuple))->oid;
 

@@ -1349,7 +1349,7 @@ pgstat_collect_oids(Oid catalogid, AttrNumber anum_oid)
 	rel = table_open(catalogid, AccessShareLock);
 	snapshot = RegisterSnapshot(GetLatestSnapshot());
 	scan = table_beginscan(rel, snapshot, 0, NULL);
-	while ((tup = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((tup = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		Oid			thisoid;
 		bool		isnull;

@@ -2997,7 +2997,7 @@ index_update_stats(Relation rel,
 					ObjectIdGetDatum(relid));
 
 		pg_class_scan = table_beginscan_catalog(pg_class, 1, key);
-		tuple = heap_getnext(pg_class_scan, ForwardScanDirection);
+		tuple = table_scan_getnext(pg_class_scan, ForwardScanDirection);
 		tuple = heap_copytuple(tuple);
 		table_endscan(pg_class_scan);
 	}
@@ -3070,7 +3070,7 @@ index_update_stats(Relation rel,
 	 */
 	if (dirty)
 	{
-		heap_inplace_update(pg_class, tuple);
+		inplace_table_tuple_update(pg_class, tuple);
 		/* the above sends a cache inval message */
 	}
 	else

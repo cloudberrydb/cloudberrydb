@@ -2199,18 +2199,48 @@ table_scan_sample_next_tuple(TableScanDesc scan,
 														   slot);
 }
 
+/* ----------------------------------------------------------------------------
+ * Special access method routinue for catalog
+ * ----------------------------------------------------------------------------
+ */
+typedef struct CatalogAmHookRoutine
+{
+	HeapTuple (*getnext) (TableScanDesc scan, ScanDirection direction);
+	void (*frozen_insert) (Relation relation, HeapTuple tuple);
+	void (*inplace_update) (Relation relation, HeapTuple tuple);
+	void (*simple_insert) (Relation rel, HeapTuple tuple);
+	void (*simple_update) (Relation rel, ItemPointer otid, HeapTuple tuple);
+} CatalogAmHookRoutine;
+
+extern PGDLLIMPORT CatalogAmHookRoutine* catam_hook_routinue;
+
+/* ----------------------------------------------------------------------------
+ * Functions for special catalog access.
+ * ----------------------------------------------------------------------------
+ */
+
+extern HeapTuple table_scan_getnext(TableScanDesc scan,
+									ScanDirection direction);
+extern void frozen_table_tuple_insert(Relation relation, HeapTuple tuple);
+extern void inplace_table_tuple_update(Relation relation, HeapTuple tuple);
+
 
 /* ----------------------------------------------------------------------------
  * Functions to make modifications a bit simpler.
  * ----------------------------------------------------------------------------
  */
 
-extern void simple_table_tuple_insert(Relation rel, TupleTableSlot *slot);
-extern void simple_table_tuple_delete(Relation rel, ItemPointer tid,
-									  Snapshot snapshot);
+extern void simple_table_tuple_insert(Relation rel, HeapTuple tuple);
+extern void simple_table_tuple_delete(Relation rel, ItemPointer tid);
 extern void simple_table_tuple_update(Relation rel, ItemPointer otid,
-									  TupleTableSlot *slot, Snapshot snapshot,
-									  bool *update_indexes);
+									  HeapTuple tuple);
+
+extern void simple_tuple_slot_insert(Relation rel, TupleTableSlot *slot);
+extern void simple_tuple_slot_delete(Relation rel, ItemPointer tid,
+									 Snapshot snapshot);
+extern void simple_tuple_slot_update(Relation rel, ItemPointer otid,
+									 TupleTableSlot *slot, Snapshot snapshot,
+									 bool *update_indexes);
 
 
 /* ----------------------------------------------------------------------------

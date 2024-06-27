@@ -535,7 +535,7 @@ MarkAOCSFileSegInfoAwaitingDrop(Relation prel, int segno)
 	 * LockRelationAppendOnlySegmentFile) we can use SnapshotNow.
 	 */
 	scan = table_beginscan_catalog(segrel, 0, NULL);
-	while (segno != tuple_segno && (oldtup = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while (segno != tuple_segno && (oldtup = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		tuple_segno = DatumGetInt32(fastgetattr(oldtup, Anum_pg_aocs_segno, tupdesc, &isNull));
 		if (isNull)
@@ -569,7 +569,7 @@ MarkAOCSFileSegInfoAwaitingDrop(Relation prel, int segno)
 
 	newtup = heap_modify_tuple(oldtup, tupdesc, d, null, repl);
 
-	simple_heap_update(segrel, &oldtup->t_self, newtup);
+	simple_table_tuple_update(segrel, &oldtup->t_self, newtup);
 
 	pfree(newtup);
 
@@ -628,7 +628,7 @@ ClearAOCSFileSegInfo(Relation prel, int segno)
 	 * LockRelationAppendOnlySegmentFile) we can use SnapshotNow.
 	 */
 	scan = table_beginscan_catalog(segrel, 0, NULL);
-	while (segno != tuple_segno && (oldtup = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while (segno != tuple_segno && (oldtup = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		tuple_segno = DatumGetInt32(fastgetattr(oldtup, Anum_pg_aocs_segno, tupdesc, &isNull));
 		if (isNull)
@@ -681,7 +681,7 @@ ClearAOCSFileSegInfo(Relation prel, int segno)
 
 	newtup = heap_modify_tuple(oldtup, tupdesc, d, null, repl);
 
-	simple_heap_update(segrel, &oldtup->t_self, newtup);
+	simple_table_tuple_update(segrel, &oldtup->t_self, newtup);
 
 	pfree(newtup);
 	pfree(vpinfo);
@@ -844,7 +844,7 @@ UpdateAOCSFileSegInfo(AOCSInsertDesc idesc)
 
 	newtup = heap_modify_tuple(oldtup, tupdesc, d, null, repl);
 
-	simple_heap_update(segrel, &oldtup->t_self, newtup);
+	simple_table_tuple_update(segrel, &oldtup->t_self, newtup);
 
 	pfree(newtup);
 	pfree(vpinfo);
@@ -992,7 +992,7 @@ AOCSFileSegInfoAddVpe(Relation prel, int32 segno,
 
 	newtup = heap_modify_tuple(oldtup, tupdesc, d, null, repl);
 
-	simple_heap_update(segrel, &oldtup->t_self, newtup);
+	simple_table_tuple_update(segrel, &oldtup->t_self, newtup);
 
 	pfree(newtup);
 	pfree(newvpinfo);
@@ -1090,7 +1090,7 @@ AOCSFileSegInfoAddCount(Relation prel, int32 segno,
 
 	newtup = heap_modify_tuple(oldtup, tupdesc, d, null, repl);
 
-	simple_heap_update(segrel, &oldtup->t_self, newtup);
+	simple_table_tuple_update(segrel, &oldtup->t_self, newtup);
 
 	heap_freetuple(newtup);
 

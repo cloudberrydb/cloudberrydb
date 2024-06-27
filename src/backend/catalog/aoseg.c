@@ -178,7 +178,7 @@ AlterTableCreateAoSegTable(Oid relOid)
 	else
 	{
 		/* While bootstrapping, we cannot UPDATE, so overwrite in-place */
-		heap_inplace_update(class_rel, reltup);
+		inplace_table_tuple_update(class_rel, reltup);
 	}
 
 	heap_freetuple(reltup);

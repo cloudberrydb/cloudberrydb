@@ -422,7 +422,7 @@ RemoveAppendonlyEntry(Oid relid)
 	/*
 	 * Delete the appendonly table entry from the catalog (pg_appendonly).
 	 */
-	simple_heap_delete(pg_appendonly_rel, &tuple->t_self);
+	simple_table_tuple_delete(pg_appendonly_rel, &tuple->t_self);
 	
 	/* Finish up scan and close appendonly catalog. */
 	systable_endscan(scan);
@@ -574,8 +574,8 @@ SwapAppendonlyEntries(Oid entryRelId1, Oid entryRelId2)
 	}
 
 	/* Since gp_fastsequence entry is referenced by aosegrelid, it rides along  */
-	simple_heap_delete(pg_appendonly_rel, &tupleCopy1->t_self);
-	simple_heap_delete(pg_appendonly_rel, &tupleCopy2->t_self);
+	simple_table_tuple_delete(pg_appendonly_rel, &tupleCopy1->t_self);
+	simple_table_tuple_delete(pg_appendonly_rel, &tupleCopy2->t_self);
 
 	/*
 	 * (Re)insert.

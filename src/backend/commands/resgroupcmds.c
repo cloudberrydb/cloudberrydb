@@ -316,7 +316,7 @@ DropResourceGroup(DropResourceGroupStmt *stmt)
 	/*
 	 * Delete the resource group from the catalog.
 	 */
-	simple_heap_delete(pg_resgroup_rel, &tuple->t_self);
+	simple_table_tuple_delete(pg_resgroup_rel, &tuple->t_self);
 	systable_endscan(sscan);
 	heap_close(pg_resgroup_rel, NoLock);
 
@@ -1300,7 +1300,7 @@ deleteResgroupCapabilities(Oid groupid)
 							   true, NULL, 1, &scankey);
 
 	while ((tuple = systable_getnext(sscan)) != NULL)
-		simple_heap_delete(resgroup_capability_rel, &tuple->t_self);
+		simple_table_tuple_delete(resgroup_capability_rel, &tuple->t_self);
 
 	systable_endscan(sscan);
 

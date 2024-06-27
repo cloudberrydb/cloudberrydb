@@ -1058,7 +1058,7 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 				{
 					aorel = table_open(AppendOnlyRelationId, RowExclusiveLock);
 					aoform->segfilecount = ao_segfile_count;
-					heap_inplace_update(aorel, aotup);
+					inplace_table_tuple_update(aorel, aotup);
 					table_close(aorel, RowExclusiveLock);
 				}
 			}

@@ -346,7 +346,7 @@ pgstat_heap(Relation rel, FunctionCallInfo fcinfo)
 	nblocks = hscan->rs_nblocks;	/* # blocks to be scanned */
 
 	/* scan the relation */
-	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		CHECK_FOR_INTERRUPTS();
 

@@ -3499,7 +3499,7 @@ ReindexMultipleTables(ReindexStmt *stmt, ReindexParams *params)
 	 */
 	relationRelation = table_open(RelationRelationId, AccessShareLock);
 	scan = table_beginscan_catalog(relationRelation, num_keys, scan_keys);
-	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		Form_pg_class classtuple = (Form_pg_class) GETSTRUCT(tuple);
 		Oid			relid = classtuple->oid;

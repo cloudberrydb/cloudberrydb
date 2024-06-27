@@ -144,7 +144,7 @@ pgrowlocks(PG_FUNCTION_ARGS)
 
 	values = (char **) palloc(tupdesc->natts * sizeof(char *));
 
-	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		TM_Result	htsu;
 		TransactionId xmax;

@@ -1998,7 +1998,7 @@ get_database_list(void)
 	rel = table_open(DatabaseRelationId, AccessShareLock);
 	scan = table_beginscan_catalog(rel, 0, NULL);
 
-	while (HeapTupleIsValid(tup = heap_getnext(scan, ForwardScanDirection)))
+	while (HeapTupleIsValid(tup = table_scan_getnext(scan, ForwardScanDirection)))
 	{
 		Form_pg_database pgdatabase = (Form_pg_database) GETSTRUCT(tup);
 		avw_dbase  *avdb;
@@ -2162,7 +2162,7 @@ do_autovacuum(void)
 	 * On the first pass, we collect main tables to vacuum, and also the main
 	 * table relid to TOAST relid mapping.
 	 */
-	while ((tuple = heap_getnext(relScan, ForwardScanDirection)) != NULL)
+	while ((tuple = table_scan_getnext(relScan, ForwardScanDirection)) != NULL)
 	{
 		Form_pg_class classForm = (Form_pg_class) GETSTRUCT(tuple);
 		PgStat_StatTabEntry *tabentry;
@@ -2266,7 +2266,7 @@ do_autovacuum(void)
 				CharGetDatum(RELKIND_TOASTVALUE));
 
 	relScan = table_beginscan_catalog(classRel, 1, &key);
-	while ((tuple = heap_getnext(relScan, ForwardScanDirection)) != NULL)
+	while ((tuple = table_scan_getnext(relScan, ForwardScanDirection)) != NULL)
 	{
 		Form_pg_class classForm = (Form_pg_class) GETSTRUCT(tuple);
 		PgStat_StatTabEntry *tabentry;

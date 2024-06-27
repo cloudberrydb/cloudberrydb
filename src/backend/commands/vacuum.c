@@ -1114,7 +1114,7 @@ get_all_vacuum_rels(int options)
 	pgclass = table_open(RelationRelationId, AccessShareLock);
 	scan = table_beginscan_catalog(pgclass, 0, NULL);
 
-	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		Form_pg_class classForm = (Form_pg_class) GETSTRUCT(tuple);
 		MemoryContext oldcontext;
@@ -1725,7 +1725,7 @@ vac_update_relstats(Relation relation,
 
 	/* If anything changed, write out the tuple. */
 	if (dirty)
-		heap_inplace_update(rd, ctup);
+		inplace_table_tuple_update(rd, ctup);
 
 	table_close(rd, RowExclusiveLock);
 }
@@ -1981,7 +1981,7 @@ vac_update_datfrozenxid(void)
 		* https://github.com/greenplum-db/gpdb/commit/373e676de819fc0cdadfb59d35d9279abe3d11d9 
 		*/
 
-		heap_inplace_update(relation, tuple);
+		inplace_table_tuple_update(relation, tuple);
 #ifdef FAULT_INJECTOR
 		FaultInjector_InjectFaultIfSet(
 			"vacuum_update_dat_frozen_xid", DDLNotSpecified,
@@ -2064,7 +2064,7 @@ vac_truncate_clog(TransactionId frozenXID,
 
 	scan = table_beginscan_catalog(relation, 0, NULL);
 
-	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		volatile FormData_pg_database *dbform = (Form_pg_database) GETSTRUCT(tuple);
 		TransactionId datfrozenxid = dbform->datfrozenxid;
@@ -3221,7 +3221,7 @@ vac_update_relstats_from_list(VacuumStatsContext *stats_context)
 			{
 				aorel = table_open(AppendOnlyRelationId, RowExclusiveLock);
 				aoform->segfilecount = ao_segfile_count;
-				heap_inplace_update(aorel, aotup);
+				inplace_table_tuple_update(aorel, aotup);
 				table_close(aorel, RowExclusiveLock);
 			}
 			ReleaseSysCache(aotup);

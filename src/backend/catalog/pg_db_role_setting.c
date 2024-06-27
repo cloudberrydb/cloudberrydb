@@ -317,7 +317,7 @@ DropSetting(Oid databaseid, Oid roleid)
 	}
 
 	scan = table_beginscan_catalog(relsetting, numkeys, keys);
-	while (HeapTupleIsValid(tup = heap_getnext(scan, ForwardScanDirection)))
+	while (HeapTupleIsValid(tup = table_scan_getnext(scan, ForwardScanDirection)))
 	{
 		CatalogTupleDelete(relsetting, &tup->t_self);
 	}

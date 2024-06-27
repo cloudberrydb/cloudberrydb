@@ -1337,7 +1337,7 @@ heapam_index_build_range_scan(Relation heapRelation,
 	/*
 	 * Scan all tuples in the base relation.
 	 */
-	while ((heapTuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((heapTuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		bool		tupleIsAlive;
 
@@ -1819,7 +1819,7 @@ heapam_index_validate_scan(Relation heapRelation,
 	/*
 	 * Scan all tuples matching the snapshot.
 	 */
-	while ((heapTuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((heapTuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		ItemPointer heapcursor = &heapTuple->t_self;
 		ItemPointerData rootTuple;

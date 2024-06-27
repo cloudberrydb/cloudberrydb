@@ -64,7 +64,7 @@ deleteProcCallbacks(Oid profnoid)
 							  NULL, 1, &skey);
 
 	while (HeapTupleIsValid(tup = systable_getnext(scan)))
-		simple_heap_delete(rel, &tup->t_self);
+		simple_table_tuple_delete(rel, &tup->t_self);
 
 	systable_endscan(scan);
 
