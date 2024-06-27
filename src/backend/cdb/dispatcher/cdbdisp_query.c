@@ -42,6 +42,7 @@
 #include "mb/pg_wchar.h"
 
 #include "cdb/cdbdisp.h"
+#include "cdb/cdbdisp_extra.h"
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbdisp_dtx.h"	/* for qdSerializeDtxContextInfo() */
 #include "cdb/cdbdispatchresult.h"
@@ -876,6 +877,9 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 	int			total_query_len;
 	char	   *shared_query,
 			   *pos;
+	char	   *extraMsgs;
+	int			extraLen;
+
 	MemoryContext oldContext;
 
 	/*
@@ -921,6 +925,9 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 		sizeof(numsegments) +
 		sizeof(resgroupInfo.len) +
 		resgroupInfo.len;
+
+	extraMsgs = PackExtraMsgs(&extraLen);
+	total_query_len += extraLen;
 
 	shared_query = palloc(total_query_len);
 
@@ -1013,6 +1020,13 @@ buildGpQueryString(DispatchCommandQueryParms *pQueryParms,
 	{
 		memcpy(pos, resgroupInfo.data, resgroupInfo.len);
 		pos += resgroupInfo.len;
+	}
+
+	if (extraLen > 0)
+	{
+		memcpy(pos, extraMsgs, extraLen);
+		pos += extraLen;
+		pfree(extraMsgs);
 	}
 
 	len = pos - shared_query - 1;
