@@ -1,0 +1,31 @@
+-- CRETE EXTENSION
+CREATE EXTENSION file_content;
+CREATE EXTENSION dfs_tablespace;
+
+-- CREATE
+CREATE STORAGE SERVER test_server OPTIONS(protocol 'huawei', endpoint 'obs.cn-north-4.myhuaweicloud.com', https 'false', virtual_host 'false');
+CREATE STORAGE USER MAPPING FOR CURRENT_USER STORAGE SERVER test_server OPTIONS (accesskey 'TDZZA4TRBD16GP9D0YLN', secretkey 'rtvRIvb6HMnePuAN3EnmEwbR3ZAJgvXnqn32wlDN');
+CREATE TABLESPACE oss_test location '/kfs-test1/master_cluster' server test_server handler '$libdir/dfs_tablespace, remote_file_handler';
+CREATE DIRECTORY TABLE test_file_content TABLESPACE oss_test;
+
+-- COPY FROM
+COPY BINARY test_file_content FROM '@abs_srcdir@/data/text0.csv' 'text0';
+COPY BINARY test_file_content FROM '@abs_srcdir@/data/text1.csv' 'dir1/text1';
+COPY BINARY test_file_content FROM '@abs_srcdir@/data/text1.csv' 'dir1/text1';   -- failed
+COPY BINARY test_file_content FROM '@abs_srcdir@/data/text2.csv' 'dir1/dir2/text2' with TAG 'test';
+SELECT relative_path, size, md5, tag FROM test_file_content;
+
+-- Test directory_table_without_content() and file_content()
+SELECT relative_path, size, md5, tag
+FROM directory_table_without_content('test_file_content') ORDER BY 1;
+
+SELECT relative_path, size, file_content(scoped_file_url)
+FROM directory_table_without_content('test_file_content') ORDER BY 1;
+
+-- cleanup
+DROP DIRECTORY TABLE test_file_content;
+DROP TABLESPACE oss_test;
+DROP STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER test_server;
+DROP STORAGE SERVER test_server;
+DROP EXTENSION file_content;
+DROP EXTENSION dfs_tablespace;
