@@ -3640,23 +3640,21 @@ create_foreignscan_path(PlannerInfo *root, RelOptInfo *rel,
 	pathnode->path.total_cost = total_cost;
 	pathnode->path.pathkeys = pathkeys;
 
-	switch (rel->exec_location)
+	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		ForeignServer *server = NULL;
-
 		switch (rel->exec_location)
 		{
-		case FTEXECLOCATION_ANY:
-			CdbPathLocus_MakeGeneral(&(pathnode->path.locus));
-			break;
-		case FTEXECLOCATION_ALL_SEGMENTS:
-			CdbPathLocus_MakeStrewn(&(pathnode->path.locus), rel->num_segments, 0);
-			break;
-		case FTEXECLOCATION_COORDINATOR:
-			CdbPathLocus_MakeEntry(&(pathnode->path.locus));
-			break;
-		default:
-			elog(ERROR, "unrecognized exec_location '%c'", rel->exec_location);
+			case FTEXECLOCATION_ANY:
+				CdbPathLocus_MakeGeneral(&(pathnode->path.locus));
+				break;
+			case FTEXECLOCATION_ALL_SEGMENTS:
+				CdbPathLocus_MakeStrewn(&(pathnode->path.locus), rel->num_segments, 0);
+				break;
+			case FTEXECLOCATION_COORDINATOR:
+				CdbPathLocus_MakeEntry(&(pathnode->path.locus));
+				break;
+			default:
+				elog(ERROR, "unrecognized exec_location '%c'", rel->exec_location);
 		}
 	}
 	else
