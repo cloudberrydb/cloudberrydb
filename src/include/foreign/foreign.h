@@ -59,7 +59,8 @@ typedef struct ForeignTable
 	Oid			relid;			/* relation Oid */
 	Oid			serverid;		/* server Oid */
 	List	   *options;		/* ftoptions as DefElem list */
-	char		exec_location;  /* execute on COORDINATOR, ANY or ALL SEGMENTS, Greenplum MPP specific */
+	char		exec_location;  /* execute on COORDINATOR, ANY or ALL SEGMENTS, Cloudberry MPP specific */
+	int32		num_segments;	/* the number of segments of the foreign table */
 } ForeignTable;
 
 /* Flags for GetForeignServerExtended */
