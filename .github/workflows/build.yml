@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }} # from https://stackoverflow.com/a/72408109/8711684
+  cancel-in-progress: true
 env:
   BUILD_TYPE: "debug"
   FTS_MODE: "internal_fts"
