@@ -7,7 +7,9 @@
 -- end_matchsubs
 
 -- Let FTS detect/declare failure sooner 
+-- start_ignore
 !\retcode gpconfig -c gp_fts_probe_interval -v 10 --masteronly;
+-- end_ignore
 !\retcode gpstop -u;
 
 -- Let the background writer sleep 27 seconds to delay the resetting.
