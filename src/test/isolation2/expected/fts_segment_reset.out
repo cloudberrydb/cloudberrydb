@@ -6,11 +6,14 @@
 -- s/seg0 [0-9.]+:\d+/seg0 IP:PORT/
 -- end_matchsubs
 
+-- start_ignore
 -- Let FTS detect/declare failure sooner
 !\retcode gpconfig -c gp_fts_probe_interval -v 10 --masteronly;
 (exited with code 0)
+--end_ignore
 !\retcode gpstop -u;
 (exited with code 0)
+
 
 -- Let the background writer sleep 27 seconds to delay the resetting.
 -- This number is selected because there's a slight chance that FTS senses
