@@ -5920,6 +5920,7 @@ get_variable_numdistinct(VariableStatData *vardata, bool *isdefault)
 					stadistinct = 1.0;	/* only 1 value */
 					break;
 				case GpSegmentIdAttributeNumber:   /*CDB*/
+				case GpForeignServerAttributeNumber:
 					stadistinct = getgpsegmentCount();
 					break;
 				default:

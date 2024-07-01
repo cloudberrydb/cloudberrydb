@@ -62,6 +62,7 @@
 #include "catalog/pg_database.h"
 #include "catalog/pg_directory_table.h"
 #include "catalog/pg_foreign_table.h"
+#include "catalog/pg_foreign_table_seg.h"
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_opclass.h"
@@ -270,7 +271,7 @@ static const FormData_pg_attribute a6 = {
 };
 
 /*CDB*/
-static FormData_pg_attribute a8 = {
+static FormData_pg_attribute a7 = {
 	.attname = {"gp_segment_id"},
 	.atttypid = INT4OID,
 	.attlen = sizeof(int32),
@@ -284,7 +285,21 @@ static FormData_pg_attribute a8 = {
 	.attislocal = true,
 };
 
-static const FormData_pg_attribute *SysAtt[] = {&a1, &a2, &a3, &a4, &a5, &a6, &a8};
+static FormData_pg_attribute a8 = {
+	.attname = {"gp_foreign_server"},
+	.atttypid = OIDOID,
+	.attlen = sizeof(Oid),
+	.attnum = GpForeignServerAttributeNumber,
+	.attcacheoff = -1,
+	.atttypmod = -1,
+	.attbyval = true,
+	.attstorage = 'p',
+	.attalign = 'i',
+	.attnotnull = true,
+	.attislocal = true,
+};
+
+static const FormData_pg_attribute *SysAtt[] = {&a1, &a2, &a3, &a4, &a5, &a6, &a7, &a8};
 
 /*
  * This function returns a Form_pg_attribute pointer for a system attribute.
@@ -2446,6 +2461,26 @@ heap_drop_with_catalog(Oid relid)
 	{
 		Relation	rel;
 		HeapTuple	tuple;
+		ScanKeyData	ftkey;
+		SysScanDesc	ftscan;
+
+		/*
+		 * Drop the record on pg_foreign_table_seg
+		 */
+		rel = table_open(ForeignTableRelationSegId, RowExclusiveLock);
+
+		ScanKeyInit(&ftkey,
+					Anum_pg_foreign_table_seg_ftsrelid,
+					BTEqualStrategyNumber, F_OIDEQ,
+					ObjectIdGetDatum(relid));
+
+		ftscan = systable_beginscan(rel, InvalidOid, false, NULL, 1, &ftkey);
+
+		while (HeapTupleIsValid(tuple = systable_getnext(ftscan)))
+			CatalogTupleDelete(rel, &tuple->t_self);
+
+		systable_endscan(ftscan);
+		table_close(rel, RowExclusiveLock);
 
 		rel = table_open(ForeignTableRelationId, RowExclusiveLock);
 

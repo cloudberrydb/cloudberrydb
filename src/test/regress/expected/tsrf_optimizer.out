@@ -92,7 +92,7 @@ SELECT unnest(ARRAY[1, 2]) FROM few WHERE false;
  ProjectSet
    Output: unnest('{1,2}'::integer[])
    ->  Result
-         Output: NULL::integer, NULL::tid, NULL::xid, NULL::cid, NULL::xid, NULL::cid, NULL::oid, NULL::integer
+         Output: NULL::integer, NULL::tid, NULL::xid, NULL::cid, NULL::xid, NULL::cid, NULL::oid, NULL::integer, NULL::integer
          One-Time Filter: false
  Optimizer: Pivotal Optimizer (GPORCA)
 (6 rows)
@@ -120,7 +120,7 @@ SELECT * FROM few f1,
                ->  ProjectSet
                      Output: unnest('{1,2}'::integer[])
                      ->  Result
-                           Output: NULL::integer, NULL::tid, NULL::xid, NULL::cid, NULL::xid, NULL::cid, NULL::oid, NULL::integer
+                           Output: NULL::integer, NULL::tid, NULL::xid, NULL::cid, NULL::xid, NULL::cid, NULL::oid, NULL::integer, NULL::integer
                            One-Time Filter: false
  Optimizer: Pivotal Optimizer (GPORCA)
 (15 rows)
