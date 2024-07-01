@@ -1804,6 +1804,7 @@ _copyIntoClause(const IntoClause *from)
 	COPY_STRING_FIELD(tableSpaceName);
 	COPY_NODE_FIELD(viewQuery);
 	COPY_SCALAR_FIELD(skipData);
+	COPY_SCALAR_FIELD(defer);
 	COPY_NODE_FIELD(distributedBy);
 	COPY_SCALAR_FIELD(ivm);
 	COPY_SCALAR_FIELD(matviewOid);
@@ -1954,6 +1955,7 @@ _copyAggref(const Aggref *from)
 	COPY_SCALAR_FIELD(aggtransno);
 	COPY_LOCATION_FIELD(location);
 	COPY_SCALAR_FIELD(agg_expr_id);
+	COPY_SCALAR_FIELD(extrasplit);
 
 	return newnode;
 }
@@ -3012,6 +3014,7 @@ _copyRangeTblEntry(const RangeTblEntry *from)
 	COPY_SCALAR_FIELD(self_reference);
 
 	COPY_SCALAR_FIELD(forceDistRandom);
+	COPY_NODE_FIELD(version);
 
 	return newnode;
 }
@@ -4777,6 +4780,7 @@ _copyRefreshMatViewStmt(const RefreshMatViewStmt *from)
 	COPY_SCALAR_FIELD(concurrent);
 	COPY_SCALAR_FIELD(skipData);
 	COPY_NODE_FIELD(relation);
+	COPY_SCALAR_FIELD(incremental);
 
 	return newnode;
 }

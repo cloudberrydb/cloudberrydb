@@ -31,6 +31,7 @@
 
 #include "access/htup_details.h"
 #include "catalog/pg_authid.h"
+#include "catalog/gp_warehouse.h"
 #include "common/file_perm.h"
 #include "libpq/libpq.h"
 #include "libpq/pqsignal.h"
@@ -986,6 +987,7 @@ SetCurrentWarehouseId(Oid warehouseid)
 	AssertArg(OidIsValid(warehouseid));
 	CurrentWarehouseId = warehouseid;
 }
+
 
 /*-------------------------------------------------------------------------
  *				Interlock-file support

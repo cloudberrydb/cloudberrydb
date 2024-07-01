@@ -38,6 +38,7 @@ typedef struct CronJob
 	char *userName;
 	bool active;
 	char *jobName;
+	char *warehouse;
 } CronJob;
 
 extern bool CronJobCacheValid;
@@ -57,7 +58,8 @@ extern char *GetCronStatus(CronStatus cronstatus);
 
 extern int64 ScheduleCronJob(text *scheduleText, text *commandText,
 							 text *databaseText, text *usernameText,
-							 bool active, text *jobnameText);
+							 bool active, text *jobnameText,
+							 const char* warehouse);
 
 extern Oid UnscheduleCronJob(const char *jobname, const char *username, Oid jobid, bool missing_ok);
 

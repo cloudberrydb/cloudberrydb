@@ -35,9 +35,11 @@ DefineTask(ParseState *pstate, CreateTaskStmt *stmt)
     ObjectAddress address;
     char          *dbname = NULL;
     char          *username = NULL;
+    char          *warehosue = NULL;
     ListCell      *option;
     DefElem       *d_dbname = NULL;
     DefElem       *d_username = NULL;
+    DefElem       *d_warehouse = NULL;
     Oid           jobid = InvalidOid;
     AclResult     aclresult;
 
@@ -68,6 +70,15 @@ DefineTask(ParseState *pstate, CreateTaskStmt *stmt)
                          parser_errposition(pstate, defel->location)));
             d_username = defel;
         }
+        else if (strcmp(defel->defname, "warehouse") == 0)
+        {
+            if (d_warehouse)
+                ereport(ERROR,
+                        (errcode(ERRCODE_SYNTAX_ERROR),
+                         errmsg("conflicting or redundant options"),
+                         parser_errposition(pstate, defel->location)));
+            d_warehouse = defel;
+        }
         else
 			elog(ERROR, "option \"%s\" not recognized",
 				 defel->defname);
@@ -91,6 +102,9 @@ DefineTask(ParseState *pstate, CreateTaskStmt *stmt)
     else
         dbname = get_database_name(MyDatabaseId);
 
+    if (d_warehouse != NULL && d_warehouse->arg)
+        warehosue = defGetString(d_warehouse);
+
     if (!OidIsValid(get_database_oid(dbname, true)))
         ereport(ERROR,
                 (errcode(ERRCODE_UNDEFINED_DATABASE),
@@ -111,7 +125,7 @@ DefineTask(ParseState *pstate, CreateTaskStmt *stmt)
 
     jobid = ScheduleCronJob(cstring_to_text(stmt->schedule), cstring_to_text(stmt->sql),
                             cstring_to_text(dbname), cstring_to_text(username),
-                            true, cstring_to_text(stmt->taskname));
+                            true, cstring_to_text(stmt->taskname), warehosue);
 
     /* Depend on owner. */
     recordDependencyOnOwner(TaskRelationId, jobid, get_role_oid(username, false));

@@ -33,7 +33,7 @@ Oid
 TaskCreate(const char *schedule, const char *command,
 		   const char *nodename, int32 nodeport,
 		   const char *database, const char *username,
-		   bool active, const char *jobname)
+		   bool active, const char *jobname, const char* warehouse)
 {
 	Relation 	pg_task;
 	HeapTuple	tup;
@@ -60,6 +60,10 @@ TaskCreate(const char *schedule, const char *command,
 		values[Anum_pg_task_jobname - 1] = CStringGetTextDatum(jobname);
 	else
 		nulls[Anum_pg_task_jobname - 1] = true;
+	if (warehouse)
+		values[Anum_pg_task_warehouse - 1] = CStringGetTextDatum(warehouse);
+	else
+		nulls[Anum_pg_task_warehouse - 1] = true;
 
 	tup = heap_form_tuple(RelationGetDescr(pg_task), values, nulls);
 	CatalogTupleInsert(pg_task, tup);

@@ -495,7 +495,12 @@ ExplainOneQuery(Query *query, int cursorOptions,
 		 * to correctly set the into-clause and into-policy of the PlannedStmt.
 		 */
 		if (into != NULL)
+		{
 			plan->intoClause = copyObject(into);
+			if (into->ivm && es->analyze)
+				ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							errmsg("IVM is not supported with EXPLAIN ANALYZE")));
+		}
 
 		/* calc differences of buffer counters. */
 		if (es->buffers)

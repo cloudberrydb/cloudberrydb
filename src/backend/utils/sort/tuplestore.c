@@ -1992,5 +1992,5 @@ void
 tuplestore_set_flags(Tuplestorestate *state, bool isTemp)
 {
 	/* Set the file as a temporary file */
-	BufFileSetIsTempFile(state->myfile, true);
+	BufFileSetIsTempFile(state->myfile, isTemp);
 }
