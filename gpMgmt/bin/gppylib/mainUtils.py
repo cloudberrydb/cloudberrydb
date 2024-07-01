@@ -467,9 +467,10 @@ def parseStatusLine(line, isStart = False, isStop = False):
     return reasonCode, reasonStr, started, dir
 
 def check_deployment_mode(program_name):
-    deploymentMode = subprocess.check_output("gpconfig -s gp_cbdb_deploy | grep 'Coordinator value'| awk '{print $3}'", shell=True).decode().strip()
-    if deploymentMode == "cloud":
-        raise gp.GpError("%s is not supported in cloud deployment mode" % program_name)
+    if is_external_fts() is True:
+        deploymentMode = subprocess.check_output("gpconfig -s gp_cbdb_deploy | grep 'Coordinator value'| awk '{print $3}'", shell=True).decode().strip()
+        if deploymentMode == "cloud":
+            raise gp.GpError("%s is not supported in cloud deployment mode" % program_name)
     
 def check_fts(fts):
     fts_check_cmd= "ps -ef | awk '{print \$2, \$8}' | grep gpfts | grep -v grep"
