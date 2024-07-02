@@ -28,9 +28,11 @@
 #include "catalog/oid_dispatch.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_namespace.h"
+#include "catalog/pg_tag.h"
 #include "commands/dbcommands.h"
 #include "commands/event_trigger.h"
 #include "commands/schemacmds.h"
+#include "commands/tag.h"
 #include "miscadmin.h"
 #include "parser/parse_utilcmd.h"
 #include "tcop/utility.h"
@@ -170,6 +172,18 @@ CreateSchemaCommand(CreateSchemaStmt *stmt, const char *queryString,
 	{
 		namespaceId = NamespaceCreate(schemaName, owner_uid, false);
 
+		/*
+		 * Create tag description.
+		 */
+		if (stmt->tags)
+		{
+			AddTagDescriptions(stmt->tags,
+							   MyDatabaseId,
+							   NamespaceRelationId,
+							   namespaceId,
+							   stmt->schemaname);
+		}
+
 		if (shouldDispatch)
 		{
 			elog(DEBUG5, "shouldDispatch = true, namespaceOid = %d", namespaceId);
@@ -198,6 +212,18 @@ CreateSchemaCommand(CreateSchemaStmt *stmt, const char *queryString,
 	else
 	{
 		namespaceId = NamespaceCreate(schemaName, owner_uid, false);
+
+		/*
+		 * Create tag description.
+		 */
+		if (stmt->tags)
+		{
+			AddTagDescriptions(stmt->tags,
+							   MyDatabaseId,
+							   NamespaceRelationId,
+							   namespaceId,
+							   stmt->schemaname);
+		}
 	}
 
 	/*
@@ -305,6 +331,58 @@ CreateSchemaCommand(CreateSchemaStmt *stmt, const char *queryString,
 	SetUserIdAndSecContext(saved_uid, save_sec_context);
 
 	return namespaceId;
+}
+
+/*
+ * Alter Schema tag
+ * 
+ * Alter a schema to change it's tag.
+ */
+void
+AlterSchemaCommand(AlterSchemaStmt *stmt)
+{
+	Oid			namespaceId;
+	HeapTuple	tuple;
+	Form_pg_namespace	namespaceform;
+	
+	tuple = SearchSysCache1(NAMESPACENAME, CStringGetDatum(stmt->schemaname));
+	if (!HeapTupleIsValid(tuple))
+		elog(ERROR, "cache lookup failed for namespace %s", stmt->schemaname);
+
+	namespaceform = (Form_pg_namespace) GETSTRUCT(tuple);
+	namespaceId = namespaceform->oid;
+
+	if (stmt->tags)
+	{
+		if (!stmt->unsettag)
+		{
+			AlterTagDescriptions(stmt->tags,
+								 MyDatabaseId,
+								 NamespaceRelationId,
+								 namespaceId,
+								 stmt->schemaname);
+		}
+
+		if (stmt->unsettag)
+		{
+			UnsetTagDescriptions(stmt->tags,
+								 MyDatabaseId,
+								 NamespaceRelationId,
+								 namespaceId,
+								 stmt->schemaname);
+		}
+	}
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_CANCEL_ON_ERROR |
+									DF_WITH_SNAPSHOT |
+									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
+									NULL);
+	}
+	ReleaseSysCache(tuple);
 }
 
 /*

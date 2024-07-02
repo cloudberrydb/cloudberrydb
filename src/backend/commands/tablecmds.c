@@ -73,6 +73,7 @@
 #include "commands/sequence.h"
 #include "commands/tablecmds.h"
 #include "commands/tablespace.h"
+#include "commands/tag.h"
 #include "commands/trigger.h"
 #include "commands/typecmds.h"
 #include "commands/user.h"
@@ -267,6 +268,7 @@ struct DropRelationCallbackState
 #define		ATT_FOREIGN_TABLE		0x0020
 #define		ATT_PARTITIONED_INDEX	0x0040
 #define		ATT_DIRECTORY_TABLE		0x0080
+#define		ATT_SEQUENCE			0x0100
 
 /*
  * ForeignTruncateInfo
@@ -568,6 +570,8 @@ static void refuseDupeIndexAttach(Relation parentIdx, Relation partIdx,
 static List *GetParentedForeignKeyRefs(Relation partition);
 static void ATDetachCheckNoForeignKeyRefs(Relation partition);
 static char GetAttributeCompression(Oid atttypid, char *compression);
+
+static void ATSetTags(Relation rel, List *tags, bool unset);
 
 static RangeVar *make_temp_table_name(Relation rel, BackendId id);
 static bool prebuild_temp_table(Relation rel, RangeVar *tmpname, DistributedBy *distro,
@@ -1162,6 +1166,20 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 										  typaddress,
 										  valid_opts);
 
+	/*
+	 * Create tag description.
+	 */
+	if (stmt->tags &&
+		stmt->relation->relpersistence != RELPERSISTENCE_TEMP)
+	{
+		
+		AddTagDescriptions(stmt->tags,
+						   MyDatabaseId,
+						   RelationRelationId,
+						   relationId,
+						   relname);
+	}
+	
 	/*
 	 * We must bump the command counter to make the newly-created relation
 	 * tuple visible for opening.
@@ -4996,6 +5014,11 @@ AlterTableGetLockLevel(List *cmds)
 				cmd_lockmode = AccessExclusiveLock;
 				break;
 
+			case AT_SetTags:
+			case AT_UnsetTags:
+				cmd_lockmode = ShareUpdateExclusiveLock;
+				break;
+
 			default:			/* oops */
 				elog(ERROR, "unrecognized alter table type: %d",
 					 (int) cmd->subtype);
@@ -5665,6 +5688,12 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 			/* No command-specific prep needed */
 			pass = AT_PASS_MISC;
 			break;
+		case AT_SetTags:
+		case AT_UnsetTags:
+			ATSimplePermissions(rel, ATT_TABLE | ATT_FOREIGN_TABLE | ATT_INDEX | ATT_SEQUENCE | ATT_VIEW | ATT_MATVIEW);
+			/* No command-specific prep needed */
+			pass = AT_PASS_MISC;
+			break;
 		default:				/* oops */
 			elog(ERROR, "unrecognized alter table type: %d",
 				 (int) cmd->subtype);
@@ -6108,6 +6137,12 @@ ATExecCmd(List **wqueue, AlteredTableInfo *tab,
 			break;
 		case AT_DetachPartitionFinalize:
 			ATExecDetachPartitionFinalize(rel, ((PartitionCmd *) cmd->def)->name);
+			break;
+		case AT_SetTags:
+			ATSetTags(rel, cmd->tags, cmd->unsettag);
+			break;
+		case AT_UnsetTags:
+			ATSetTags(rel, cmd->tags, cmd->unsettag);
 			break;
 		default:				/* oops */
 			elog(ERROR, "unrecognized alter table type: %d",
@@ -7501,6 +7536,9 @@ ATSimplePermissions(Relation rel, int allowed_targets)
 		case RELKIND_DIRECTORY_TABLE:
 			actual_target = ATT_DIRECTORY_TABLE;
 			break;
+		case RELKIND_SEQUENCE:
+			actual_target = ATT_SEQUENCE;
+			break;
 
 		case RELKIND_AOSEGMENTS:
 		case RELKIND_AOBLOCKDIR:
@@ -7602,6 +7640,9 @@ ATWrongRelkindError(Relation rel, int allowed_targets)
 			break;
 		case ATT_DIRECTORY_TABLE:
 			msg = _("\"%s\" is not a directory table");
+			break;
+		case ATT_TABLE | ATT_FOREIGN_TABLE | ATT_INDEX | ATT_SEQUENCE | ATT_VIEW | ATT_MATVIEW:
+			msg = _("\"%s\" is not a table, foreign table, index, sequence, view or materialized view");
 			break;
 		default:
 			/* shouldn't get here, add all necessary cases above */
@@ -14150,6 +14191,8 @@ ATExecAlterColumnType(AlteredTableInfo *tab, Relation rel,
 			case OCLASS_PASSWORDHISTORY:
 			case OCLASS_STORAGE_SERVER:
 			case OCLASS_STORAGE_USER_MAPPING:
+			case OCLASS_TAG:
+			case OCLASS_TAG_DESCRIPTION:
 
 				/*
 				 * We don't expect any of these sorts of objects to depend on
@@ -22698,4 +22741,32 @@ GetAttributeCompression(Oid atttypid, char *compression)
 				 errmsg("invalid compression method \"%s\"", compression)));
 
 	return cmethod;
+}
+
+static void
+ATSetTags(Relation rel, List *tags, bool unset)
+{
+	Oid relid;
+	
+	relid = RelationGetRelid(rel);
+	
+	if (rel->rd_rel->relpersistence == RELPERSISTENCE_TEMP)
+		return;
+
+	if (!unset)
+	{
+		AlterTagDescriptions(tags,
+							 MyDatabaseId,
+							 RelationRelationId,
+							 relid,
+							 RelationGetRelationName(rel));
+	}
+	else
+	{
+		UnsetTagDescriptions(tags,
+							 MyDatabaseId,
+							 RelationRelationId,
+							 relid,
+							 RelationGetRelationName(rel));
+	}
 }

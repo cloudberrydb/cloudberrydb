@@ -66,7 +66,8 @@ OBJS = \
 	variable.o \
 	view.o \
 	pg_profile.o \
-	storagecmds.o
+	storagecmds.o \
+	tag.o
 
 OBJS += analyzefuncs.o analyzeutils.o extprotocolcmds.o exttablecmds.o queue.o
 OBJS += resgroupcmds.o tablecmds_gp.o vacuum_ao.o taskcmds.o

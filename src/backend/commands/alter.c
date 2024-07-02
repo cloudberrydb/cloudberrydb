@@ -58,6 +58,7 @@
 #include "commands/subscriptioncmds.h"
 #include "commands/tablecmds.h"
 #include "commands/tablespace.h"
+#include "commands/tag.h"
 #include "commands/trigger.h"
 #include "commands/typecmds.h"
 #include "commands/user.h"
@@ -359,6 +360,9 @@ ExecRenameStmt_internal(RenameStmt *stmt)
 		case OBJECT_TABLESPACE:
 			return RenameTableSpace(stmt->subname, stmt->newname);
 
+		case OBJECT_TAG:
+			return RenameTag(stmt->subname, stmt->newname);
+			
 		case OBJECT_TABLE:
 		case OBJECT_SEQUENCE:
 		case OBJECT_VIEW:
@@ -736,6 +740,8 @@ AlterObjectNamespace_oid(Oid classId, Oid objid, Oid nspOid,
 		case OCLASS_PASSWORDHISTORY:
 		case OCLASS_STORAGE_SERVER:
 		case OCLASS_STORAGE_USER_MAPPING:
+		case OCLASS_TAG:
+		case OCLASS_TAG_DESCRIPTION:
 			/* ignore object types that don't have schema-qualified names */
 			break;
 
@@ -964,6 +970,7 @@ ExecAlterOwnerStmt_internal(AlterOwnerStmt *stmt)
 		case OBJECT_ROUTINE:
 		case OBJECT_STATISTIC_EXT:
 		case OBJECT_TABLESPACE:
+		case OBJECT_TAG:
 		case OBJECT_TSDICTIONARY:
 		case OBJECT_TSCONFIGURATION:
 			{

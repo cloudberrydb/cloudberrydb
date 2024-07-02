@@ -385,6 +385,8 @@ _readAlterRoleStmt(void)
 	READ_NODE_FIELD(role);
 	READ_NODE_FIELD(options);
 	READ_INT_FIELD(action);
+	READ_NODE_FIELD(tags);
+	READ_BOOL_FIELD(unsettag);
 
 	READ_DONE();
 }
@@ -453,6 +455,8 @@ _readAlterTableCmd(void)
 
 	READ_INT_FIELD(backendId);
 	READ_NODE_FIELD(policy);
+	READ_NODE_FIELD(tags);
+	READ_BOOL_FIELD(unsettag);
 
 	READ_DONE();
 }
@@ -765,6 +769,7 @@ _readCreateExternalStmt(void)
 	READ_NODE_FIELD(extOptions);
 	READ_NODE_FIELD(encoding);
 	READ_NODE_FIELD(distributedBy);
+	READ_NODE_FIELD(tags);
 
 	READ_DONE();
 }
@@ -877,6 +882,7 @@ _readCreateRoleStmt(void)
 	READ_ENUM_FIELD(stmt_type, RoleStmtType);
 	READ_STRING_FIELD(role);
 	READ_NODE_FIELD(options);
+	READ_NODE_FIELD(tags);
 
 	READ_DONE();
 }
@@ -902,7 +908,57 @@ _readCreateSchemaStmt(void)
 	local_node->schemaElts = 0;
 	READ_BOOL_FIELD(istemp);
 	READ_BOOL_FIELD(pop_search_path);
+	READ_NODE_FIELD(tags);
 
+	READ_DONE();
+}
+
+static AlterSchemaStmt *
+_readAlterSchemaStmt(void)
+{
+	READ_LOCALS(AlterSchemaStmt);
+	
+	READ_STRING_FIELD(schemaname);
+	READ_NODE_FIELD(tags);
+	READ_BOOL_FIELD(unsettag);
+	
+	READ_DONE();
+}
+
+static CreateTagStmt *
+_readCreateTagStmt(void)
+{
+	READ_LOCALS(CreateTagStmt);
+	
+	READ_STRING_FIELD(tag_name);
+	READ_BOOL_FIELD(missing_ok);
+	READ_NODE_FIELD(allowed_values);
+	
+	READ_DONE();
+}
+
+static AlterTagStmt *
+_readAlterTagStmt(void)
+{
+	READ_LOCALS(AlterTagStmt);
+	
+	READ_STRING_FIELD(tag_name);
+	READ_INT_FIELD(action);
+	READ_NODE_FIELD(tag_values);
+	READ_BOOL_FIELD(missing_ok);
+	READ_BOOL_FIELD(unset);
+	
+	READ_DONE();
+}
+
+static DropTagStmt *
+_readDropTagStmt(void)
+{
+	READ_LOCALS(DropTagStmt);
+	
+	READ_NODE_FIELD(tags);
+	READ_BOOL_FIELD(missing_ok);
+	
 	READ_DONE();
 }
 
@@ -915,6 +971,7 @@ _readCreateSeqStmt(void)
 	READ_OID_FIELD(ownerId);
 	READ_BOOL_FIELD(for_identity);
 	READ_BOOL_FIELD(if_not_exists);
+	READ_NODE_FIELD(tags);
 
 	READ_DONE();
 }
@@ -961,6 +1018,7 @@ _readCreatedbStmt(void)
 
 	READ_STRING_FIELD(dbname);
 	READ_NODE_FIELD(options);
+	READ_NODE_FIELD(tags);
 
 	READ_DONE();
 }
@@ -1266,6 +1324,7 @@ _readIndexStmt(void)
 	READ_BOOL_FIELD(reset_default_tblspc);
 	READ_ENUM_FIELD(concurrentlyPhase,IndexConcurrentlyPhase);
 	READ_OID_FIELD(indexRelationOid);
+	READ_NODE_FIELD(tags);
 
 	READ_DONE();
 }
@@ -1713,6 +1772,7 @@ _readViewStmt(void)
 	READ_NODE_FIELD(query);
 	READ_BOOL_FIELD(replace);
 	READ_NODE_FIELD(options);
+	READ_NODE_FIELD(tags);
 
 	READ_DONE();
 }

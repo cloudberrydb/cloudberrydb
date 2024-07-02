@@ -94,6 +94,7 @@ typedef enum SharedDependencyType
 	SHARED_DEPENDENCY_TABLESPACE = 't',
 	SHARED_DEPENDENCY_PROFILE = 'f',
 	SHARED_DEPENDENCY_STORAGE_SERVER = 's',
+	SHARED_DEPENDENCY_TAG = 'g',
 	SHARED_DEPENDENCY_INVALID = 0
 } SharedDependencyType;
 
@@ -151,6 +152,8 @@ typedef enum ObjectClass
 	OCLASS_DIRTABLE,			/* pg_directory_table */
 	OCLASS_STORAGE_SERVER,		/* gp_storage_server */
 	OCLASS_STORAGE_USER_MAPPING,	/* gp_storage_user_mapping */
+	OCLASS_TAG,					/* pg_tag */
+	OCLASS_TAG_DESCRIPTION,		/* pg_tag_description */
 	OCLASS_EXTPROTOCOL,			/* pg_extprotocol */
 	OCLASS_TASK,				/* pg_task */
 } ObjectClass;
@@ -299,6 +302,8 @@ extern void recordProfileDependency(Oid roleId, Oid profileId);
 extern void changeProfileDependency(Oid roleId, Oid profileId);
 
 extern void recordStorageServerDependency(Oid classId, Oid objectId, Oid srvId);
+
+extern void recordTagDependency(Oid classId, Oid objectId, Oid tagId);
 
 /* Custom object class */
 struct StringInfoData;

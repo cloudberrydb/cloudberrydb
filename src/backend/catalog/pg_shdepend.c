@@ -46,6 +46,7 @@
 #include "catalog/pg_statistic_ext.h"
 #include "catalog/pg_subscription.h"
 #include "catalog/pg_tablespace.h"
+#include "catalog/pg_tag.h"
 #include "catalog/pg_ts_config.h"
 #include "catalog/pg_ts_dict.h"
 #include "catalog/pg_type.h"
@@ -1243,6 +1244,15 @@ shdepLockAndCheckObject(Oid classId, Oid objectId)
 				break;
 			}
 
+		case TagRelationId:
+			{
+				if (!SearchSysCacheExists1(TAGOID, ObjectIdGetDatum(objectId)))
+					ereport(ERROR,
+							(errcode(ERRCODE_UNDEFINED_OBJECT),
+							 errmsg("tag %u was concurrently dropped",
+									objectId)));
+				break;
+			}
 
 		default:
 			elog(ERROR, "unrecognized shared classId: %u", classId);
@@ -1299,6 +1309,8 @@ storeObjectDescription(StringInfo descs,
 				appendStringInfo(descs, _("profile of %s"), objdesc);
 			else if (deptype == SHARED_DEPENDENCY_STORAGE_SERVER)
 				appendStringInfo(descs, _("storage server of %s"), objdesc);
+			else if (deptype == SHARED_DEPENDENCY_TAG)
+				appendStringInfo(descs, _("tag of %s"), objdesc);
 			else
 				elog(ERROR, "unrecognized dependency type: %d",
 					 (int) deptype);
@@ -1785,4 +1797,22 @@ recordStorageServerDependency(Oid classId, Oid objectId, Oid srvId)
 	ObjectAddressSet(referenced, StorageServerRelationId, srvId);
 
 	recordSharedDependencyOn(&myself, &referenced, SHARED_DEPENDENCY_STORAGE_SERVER);
+}
+
+/*
+ * recordTagDependency
+ * 
+ * A convenient wrapper of recoredSharedDependencyOn -- register the specified
+ * tag description of attached to tag.
+ */
+void
+recordTagDependency(Oid classId, Oid objectId, Oid tagId)
+{
+	ObjectAddress myself,
+		referenced;
+	
+	ObjectAddressSet(myself, classId, objectId);
+	ObjectAddressSet(referenced, TagRelationId, tagId);
+	
+	recordSharedDependencyOn(&myself, &referenced, SHARED_DEPENDENCY_TAG);
 }

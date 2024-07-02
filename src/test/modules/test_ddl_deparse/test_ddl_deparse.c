@@ -279,6 +279,12 @@ get_altertable_subcmdtypes(PG_FUNCTION_ARGS)
 			case AT_GenericOptions:
 				strtype = "SET OPTIONS";
 				break;
+			case AT_SetTags:
+				strtype = "SET TAGS";
+				break;
+			case AT_UnsetTags:
+				strtype = "UNSET TAGS";
+				break;
 			default:
 				strtype = "unrecognized";
 				break;
