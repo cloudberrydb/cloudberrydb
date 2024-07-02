@@ -546,7 +546,7 @@ INSERT INTO test_parse_arr (b)
                                   ORDER BY x
                                 ) AS q;
 SELECT a FROM test_parse_arr ORDER BY a;
- a
+ a 
 ---
  1
  2
@@ -554,11 +554,11 @@ SELECT a FROM test_parse_arr ORDER BY a;
 (3 rows)
 
 SELECT b FROM test_parse_arr ORDER BY b;
-     b
+     b     
 -----------
  {{1,2,3}}
  {{4,5,6}}
-
+ 
 (3 rows)
 
 --
