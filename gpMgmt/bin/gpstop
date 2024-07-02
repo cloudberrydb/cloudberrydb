@@ -978,6 +978,4 @@ class GpStop:
                       is_external_fts=external_fts)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2 or sys.argv[1] != "-u":
-        check_deployment_mode("gpstop")
     simple_main(GpStop.createParser, GpStop.createProgram)

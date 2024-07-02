@@ -32,7 +32,6 @@
 #define GP_ETCD_ACCOUNT_ID_DEFAULT "00000000-0000-0000-0000-000000000000"
 #define GP_ETCD_CLUSTER_ID_DEFAULT "00000000-0000-0000-0000-000000000000"
 #define GP_ETCD_ENDPOINTS_DEFAULT "localhost:2379"
-#define GP_CBDB_DEPLOY "onpromise"
 
 typedef struct etcdlib_endpoint {
     char *etcd_host;
