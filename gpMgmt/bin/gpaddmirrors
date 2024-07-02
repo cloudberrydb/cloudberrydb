@@ -14,5 +14,4 @@ from gppylib.programs.clsAddMirrors import *
 
 #-------------------------------------------------------------------------
 if __name__ == '__main__':
-    check_deployment_mode('gpaddmirrors')
     simple_main( GpAddMirrorsProgram.createParser, GpAddMirrorsProgram.createProgram)

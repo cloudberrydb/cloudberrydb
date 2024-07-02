@@ -4726,16 +4726,6 @@ struct config_string ConfigureNamesString_gp[] =
 		"localhost:2379",
 		NULL, NULL, NULL
 	},
-	{
-		{"gp_cbdb_deploy", PGC_BACKEND, CUSTOM_OPTIONS,
-			gettext_noop("CBDB deploy environment setup."),
-			gettext_noop("This indicates the cbdb is deployed with onpromise or cloud environment. Default is onpromise"),
-			GUC_SUPERUSER_ONLY
-		},
-		&gp_cbdb_deploy,
-		"onpromise",
-		NULL, NULL, NULL
-	},
 #endif
 #ifdef ENABLE_IC_PROXY
 	{

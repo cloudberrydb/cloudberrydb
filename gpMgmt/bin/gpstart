@@ -927,5 +927,4 @@ class GpStart:
 
 
 if __name__ == '__main__':
-    check_deployment_mode('gpstart')
     simple_main(GpStart.createParser, GpStart.createProgram)
