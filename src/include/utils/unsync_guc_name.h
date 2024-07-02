@@ -211,7 +211,6 @@
 		"gp_etcd_cluster_id",
 		"gp_etcd_namespace",
 		"gp_etcd_endpoints",
-		"gp_cbdb_deploy",
 #endif
 		"gp_force_random_redistribution",
 		"gp_gang_creation_retry_count",
