@@ -4569,6 +4569,26 @@ CopyStmt:	COPY opt_binary qualified_name opt_column_list
 					 * not fair very well with \' or \( \) chars.
 					 */
 				}
+            | COPY BINARY DIRECTORY TABLE qualified_name Sconst TO opt_program copy_file_name
+                {
+                    CopyStmt *n = makeNode(CopyStmt);
+                    n->relation = $5;
+                    n->query = NULL;
+                    n->attlist = NIL;
+                    n->is_from = false;
+                    n->is_program = $8;
+                    n->filename = $9;
+                    n->dirfilename = $6;
+                    n->options = lappend(n->options, makeDefElem("format", (Node *)makeString("binary"), @2));
+                    
+                    if (n->is_program && n->filename == NULL)
+                        ereport(ERROR,
+                                (errcode(ERRCODE_SYNTAX_ERROR),
+                                 errmsg("STDIN/STDOUT not allowed with PROGRAM"),
+                                 parser_errposition(@7)));
+
+                    $$ = (Node *)n;
+                }
 		;
 
 copy_from:
@@ -19010,7 +19030,6 @@ unreserved_keyword:
 			| DEPTH
 			| DETACH
 			| DICTIONARY
-			| DIRECTORY
 			| DISABLE_P
 			| DISCARD
 			| DOCUMENT_P
@@ -19747,6 +19766,7 @@ reserved_keyword:
 			| DEFAULT
 			| DEFERRABLE
 			| DESC
+			| DIRECTORY
 			| DISTINCT
 			| DISTRIBUTED /* gp */
 			| DO

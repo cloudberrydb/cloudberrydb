@@ -552,7 +552,7 @@ SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname
 (12 rows)
 
 \d+ dir_table1;
-                                        Directory able "public.dir_table1"
+                                        Directory table "public.dir_table1"
     Column     |           Type           | Collation | Nullable | Default | Storage  | Stats target | Description 
 ---------------+--------------------------+-----------+----------+---------+----------+--------------+-------------
  relative_path | text                     |           |          |         | extended |              | 
@@ -565,7 +565,7 @@ Indexes:
 Distributed by: (relative_path)
 
 \d+ dir_table2;
-                                        Directory able "public.dir_table2"
+                                        Directory table "public.dir_table2"
     Column     |           Type           | Collation | Nullable | Default | Storage  | Stats target | Description 
 ---------------+--------------------------+-----------+----------+---------+----------+--------------+-------------
  relative_path | text                     |           |          |         | extended |              | 
@@ -578,7 +578,7 @@ Indexes:
 Distributed by: (relative_path)
 
 \d+ dir_table3;
-                                        Directory able "public.dir_table3"
+                                        Directory table "public.dir_table3"
     Column     |           Type           | Collation | Nullable | Default | Storage  | Stats target | Description 
 ---------------+--------------------------+-----------+----------+---------+----------+--------------+-------------
  relative_path | text                     |           |          |         | extended |              | 
@@ -659,18 +659,49 @@ SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname
 \c regression
 -- Test CREATE/DROP/REINDEX on DIRECTORY SCHEMA TABLE
 -- Test CREATE INDEX on DIRECTORY SCHEMA TABLE
-CREATE INDEX dirtable1_relative_path_idx on dir_table1(relative_path);    -- fail
-ERROR:  Disallowed to create index on directory table "dir_table1". (indexcmds.c:709)
-CREATE INDEX dirtable1_size_idx on dir_table1(size);  -- fail
-ERROR:  Disallowed to create index on directory table "dir_table1". (indexcmds.c:709)
-CREATE INDEX dirtable1_last_modified_idx on dir_table1(last_modified);    -- fail
-ERROR:  Disallowed to create index on directory table "dir_table1". (indexcmds.c:709)
-CREATE INDEX dirtable1_md5_idx on dir_table1(md5);    -- fail
-ERROR:  Disallowed to create index on directory table "dir_table1". (indexcmds.c:709)
-CREATE INDEX dirtable1_tag_idx on dir_table1(tag);    -- fail
-ERROR:  Disallowed to create index on directory table "dir_table1". (indexcmds.c:709)
+CREATE INDEX dirtable1_relative_path_idx on dir_table1(relative_path);
+CREATE INDEX dirtable1_size_idx on dir_table1(size);
+CREATE INDEX dirtable1_last_modified_idx on dir_table1(last_modified);
+CREATE INDEX dirtable1_md5_idx on dir_table1(md5);
+CREATE INDEX dirtable1_tag_idx on dir_table1(tag);
 \d+ dir_table1;
-                                        Directory able "public.dir_table1"
+                                        Directory table "public.dir_table1"
+    Column     |           Type           | Collation | Nullable | Default | Storage  | Stats target | Description 
+---------------+--------------------------+-----------+----------+---------+----------+--------------+-------------
+ relative_path | text                     |           |          |         | extended |              | 
+ size          | bigint                   |           |          |         | plain    |              | 
+ last_modified | timestamp with time zone |           |          |         | plain    |              | 
+ md5           | text                     |           |          |         | extended |              | 
+ tag           | text                     |           |          |         | extended |              | 
+Indexes:
+    "dir_table1_pkey" PRIMARY KEY, btree (relative_path)
+    "dirtable1_last_modified_idx" btree (last_modified)
+    "dirtable1_md5_idx" btree (md5)
+    "dirtable1_relative_path_idx" btree (relative_path)
+    "dirtable1_size_idx" btree (size)
+    "dirtable1_tag_idx" btree (tag)
+Distributed by: (relative_path)
+
+-- Test DROP INDEX on DIRECTORY SCHEMA TABLE
+DROP INDEX dir_table1_pkey; -- fail
+ERROR:  Disallowed to drop primary index "dir_table1_pkey" on directory table "dir_table1"
+DROP INDEX dir_table2_pkey; -- fail
+ERROR:  Disallowed to drop primary index "dir_table2_pkey" on directory table "dir_table2"
+DROP INDEX dir_table3_pkey; -- fail
+ERROR:  Disallowed to drop primary index "dir_table3_pkey" on directory table "dir_table3"
+DROP INDEX dir_table4_pkey; -- fail
+ERROR:  index "dir_table4_pkey" does not exist
+DROP INDEX dir_table5_pkey; -- fail
+ERROR:  index "dir_table5_pkey" does not exist
+DROP INDEX dir_table6_pkey; -- fail
+ERROR:  Disallowed to drop primary index "dir_table6_pkey" on directory table "dir_table6"
+DROP INDEX dirtable1_relative_path_idx; -- OK
+DROP INDEX dirtable1_size_idx;  -- OK
+DROP INDEX dirtable1_last_modified_idx; -- OK
+DROP INDEX dirtable1_md5_idx;   -- OK
+DROP INDEX dirtable1_tag_idx;   -- OK
+\d+ dir_table1;
+                                        Directory table "public.dir_table1"
     Column     |           Type           | Collation | Nullable | Default | Storage  | Stats target | Description 
 ---------------+--------------------------+-----------+----------+---------+----------+--------------+-------------
  relative_path | text                     |           |          |         | extended |              | 
@@ -682,19 +713,6 @@ Indexes:
     "dir_table1_pkey" PRIMARY KEY, btree (relative_path)
 Distributed by: (relative_path)
 
--- Test DROP INDEX on DIRECTORY SCHEMA TABLE
-DROP INDEX dir_table1_pkey; -- fail
-ERROR:  Disallowed to drop index "dir_table1_pkey" on directory table "dir_table1"
-DROP INDEX dir_table2_pkey; -- fail
-ERROR:  Disallowed to drop index "dir_table2_pkey" on directory table "dir_table2"
-DROP INDEX dir_table3_pkey; -- fail
-ERROR:  Disallowed to drop index "dir_table3_pkey" on directory table "dir_table3"
-DROP INDEX dir_table4_pkey; -- fail
-ERROR:  index "dir_table4_pkey" does not exist
-DROP INDEX dir_table5_pkey; -- fail
-ERROR:  index "dir_table5_pkey" does not exist
-DROP INDEX dir_table6_pkey; -- fail
-ERROR:  Disallowed to drop index "dir_table6_pkey" on directory table "dir_table6"
 -- Test REINDEX on DIRECTORY SCHEMA TABLE
 REINDEX INDEX dir_table1_pkey;
 REINDEX INDEX dir_table2_pkey;
@@ -713,21 +731,20 @@ REINDEX TABLE dir_table5;
 ERROR:  relation "dir_table5" does not exist
 REINDEX TABLE dir_table6;
 -- Test triggers
-DROP FUNCTION IF EXISTS trigtest;
-create function trigtest() returns trigger as $$
+create function triggertest() returns trigger as $$
 begin
 	raise notice '% % % %', TG_TABLE_NAME, TG_OP, TG_WHEN, TG_LEVEL;
 	return new;
 end;$$ language plpgsql;
 create trigger trigtest_b_row_tg_dirtable_1 before insert or update or delete on dir_table1
-for each row execute procedure trigtest();
+for each row execute procedure triggertest();
 create trigger trigtest_a_row_tg_dirtable_1 after insert or update or delete on dir_table1
-for each row execute procedure trigtest();
+for each row execute procedure triggertest();
 create trigger trigtest_b_stmt_tg_dirtable_1 before insert or update or delete on dir_table1
-for each statement execute procedure trigtest();
+for each statement execute procedure triggertest();
 ERROR:  Triggers for statements are not yet supported
 create trigger trigtest_a_stmt_tg_dirtable_1 after insert or update or delete on dir_table1
-for each statement execute procedure trigtest();
+for each statement execute procedure triggertest();
 ERROR:  Triggers for statements are not yet supported
 -- Test COPY DIRECTORY TABLE syntax
 SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
@@ -747,7 +764,7 @@ ERROR:  Only support copy binary from directory table.
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv';    -- fail
 ERROR:  Copy from directory table file name can't be null.
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation1';
-NOTICE:  dir_table1 INSERT AFTER ROW  (seg1 127.0.1.1:7003 pid=15072)
+NOTICE:  dir_table1 INSERT AFTER ROW  (seg1 127.0.1.1:7003 pid=31193)
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation1'; -- fail
 ERROR:  duplicate key value violates unique constraint "dir_table1_pkey"
 DETAIL:  Key (relative_path)=(nation1) already exists.
@@ -756,9 +773,9 @@ ERROR:  syntax error at or near "'nation2'"
 LINE 1: COPY BINARY dir_table1 FROM STDIN 'nation2' 'nation2'; -- fa...
                                                     ^
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation2';
-NOTICE:  dir_table1 INSERT AFTER ROW  (seg2 127.0.1.1:7004 pid=15073)
+NOTICE:  dir_table1 INSERT AFTER ROW  (seg2 127.0.1.1:7004 pid=31192)
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';
-NOTICE:  dir_table1 INSERT AFTER ROW  (seg1 127.0.1.1:7003 pid=15072)
+NOTICE:  dir_table1 INSERT AFTER ROW  (seg1 127.0.1.1:7003 pid=31193)
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';    -- fail
 ERROR:  duplicate key value violates unique constraint "dir_table1_pkey"
 DETAIL:  Key (relative_path)=(nation3) already exists.
@@ -766,7 +783,7 @@ DETAIL:  Key (relative_path)=(nation3) already exists.
 ERROR:  duplicate key value violates unique constraint "dir_table1_pkey"
 DETAIL:  Key (relative_path)=(nation3) already exists.
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation4' WITH TAG 'nation';
-NOTICE:  dir_table1 INSERT AFTER ROW  (seg2 127.0.1.1:7004 pid=15073)
+NOTICE:  dir_table1 INSERT AFTER ROW  (seg2 127.0.1.1:7004 pid=31192)
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation5' WITH TAG 'nation' WITH TAG 'nation2';    -- fail
 ERROR:  syntax error at or near "WITH"
 LINE 1: ...dir_table1 FROM STDIN 'nation5' WITH TAG 'nation' WITH TAG '...
@@ -789,26 +806,24 @@ SELECT relative_path, content FROM directory_table('dir_table1') ORDER BY 1;
  nation4       | \x307c414c47455249417c307c20686167676c652e206361726566756c6c792066696e616c206465706f736974732064657465637420736c796c7920616761690a317c415247454e54494e417c317c616c20666f7865732070726f6d69736520736c796c79206163636f7264696e6720746f2074686520726567756c6172206163636f756e74732e20626f6c6420726571756573747320616c6f6e0a327c4252415a494c7c317c7920616c6f6e6773696465206f66207468652070656e64696e67206465706f736974732e206361726566756c6c79207370656369616c207061636b61676573206172652061626f7574207468652069726f6e696320666f726765732e20736c796c79207370656369616c200a337c43414e4144417c317c6561732068616e672069726f6e69632c2073696c656e74207061636b616765732e20736c796c7920726567756c6172207061636b616765732061726520667572696f75736c79206f76657220746865207469746865732e20666c756666696c7920626f6c640a347c45475950547c347c792061626f766520746865206361726566756c6c7920756e757375616c207468656f646f6c697465732e2066696e616c206475676f7574732061726520717569636b6c79206163726f73732074686520667572696f75736c7920726567756c617220640a357c455448494f5049417c307c76656e207061636b616765732077616b6520717569636b6c792e20726567750a367c4652414e43457c337c726566756c6c792066696e616c2072657175657374732e20726567756c61722c2069726f6e690a377c4745524d414e597c337c6c20706c6174656c6574732e20726567756c6172206163636f756e747320782d7261793a20756e757375616c2c20726567756c6172206163636f0a387c494e4449417c327c737320657863757365732063616a6f6c6520736c796c79206163726f737320746865207061636b616765732e206465706f73697473207072696e742061726f756e0a397c494e444f4e455349417c327c20736c796c792065787072657373206173796d70746f7465732e20726567756c6172206465706f7369747320686167676c6520736c796c792e206361726566756c6c792069726f6e696320686f636b657920706c617965727320736c65657020626c697468656c792e206361726566756c6c0a31307c4952414e7c347c6566756c6c7920616c6f6e6773696465206f662074686520736c796c792066696e616c20646570656e64656e636965732e200a31317c495241517c347c6e6963206465706f7369747320626f6f73742061746f702074686520717569636b6c792066696e616c2072657175657374733f20717569636b6c7920726567756c610a31327c4a4150414e7c327c6f75736c792e2066696e616c2c20657870726573732067696674732063616a6f6c6520610a31337c4a4f5244414e7c347c6963206465706f736974732061726520626c697468656c792061626f757420746865206361726566756c6c7920726567756c61722070610a31347c4b454e59417c307c2070656e64696e67206578637573657320686167676c6520667572696f75736c79206465706f736974732e2070656e64696e672c20657870726573732070696e746f206265616e732077616b6520666c756666696c79207061737420740a31357c4d4f524f43434f7c307c726e732e20626c697468656c7920626f6c6420636f7572747320616d6f6e672074686520636c6f73656c7920726567756c6172207061636b616765732075736520667572696f75736c7920626f6c6420706c6174656c6574733f0a31367c4d4f5a414d42495155457c307c732e2069726f6e69632c20756e757375616c206173796d70746f7465732077616b6520626c697468656c7920720a31377c504552557c317c706c6174656c6574732e20626c697468656c792070656e64696e6720646570656e64656e636965732075736520666c756666696c79206163726f737320746865206576656e2070696e746f206265616e732e206361726566756c6c792073696c656e74206163636f756e0a31387c4348494e417c327c6320646570656e64656e636965732e20667572696f75736c792065787072657373206e6f746f726e697320736c65657020736c796c7920726567756c6172206163636f756e74732e20696465617320736c6565702e206465706f730a31397c524f4d414e49417c337c756c6172206173796d70746f746573206172652061626f75742074686520667572696f7573206d756c7469706c696572732e206578707265737320646570656e64656e63696573206e61672061626f7665207468652069726f6e6963616c6c792069726f6e6963206163636f756e740a32307c5341554449204152414249417c347c74732e2073696c656e7420726571756573747320686167676c652e20636c6f73656c792065787072657373207061636b6167657320736c656570206163726f73732074686520626c697468656c790a32317c564945544e414d7c327c68656c7920656e746963696e676c792065787072657373206163636f756e74732e206576656e2c2066696e616c200a32327c5255535349417c337c20726571756573747320616761696e73742074686520706c6174656c65747320757365206e65766572206163636f7264696e6720746f2074686520717569636b6c7920726567756c61722070696e740a32337c554e49544544204b494e47444f4d7c337c65616e7320626f6f7374206361726566756c6c79207370656369616c2072657175657374732e206163636f756e7473206172652e206361726566756c6c0a32347c554e49544544205354415445537c317c792066696e616c207061636b616765732e20736c6f7720666f7865732063616a6f6c6520717569636b6c792e20717569636b6c792073696c656e7420706c6174656c657473206272656163682069726f6e6963206163636f756e74732e20756e757375616c2070696e746f2062650a
 (4 rows)
 
-COPY dir_table2 FROM '@abs_srcdir@/data/nation.csv';     -- fail
+COPY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv';     -- fail
 ERROR:  Copy from directory table file name can't be null.
-COPY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation';  -- fail
+COPY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation';  -- fail
 ERROR:  Only support copy binary from directory table.
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv';     -- fail
-ERROR:  Copy from directory table file name can't be null.
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation1';
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation1'; -- fail
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation1';
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation1'; -- fail
 ERROR:  duplicate key value violates unique constraint "dir_table2_pkey"
 DETAIL:  Key (relative_path)=(nation1) already exists.
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation2';
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';    -- fail
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation2';
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';    -- fail
 ERROR:  duplicate key value violates unique constraint "dir_table2_pkey"
 DETAIL:  Key (relative_path)=(nation3) already exists.
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation2';    -- fail
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation2';    -- fail
 ERROR:  duplicate key value violates unique constraint "dir_table2_pkey"
 DETAIL:  Key (relative_path)=(nation3) already exists.
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation4' WITH TAG 'nation';
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation5' WITH TAG 'nation' WITH TAG 'nation2';    -- fail
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation4' WITH TAG 'nation';
+COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation5' WITH TAG 'nation' WITH TAG 'nation2';    -- fail
 ERROR:  syntax error at or near "WITH"
 LINE 1: ...ress/data/nation.csv' 'nation5' WITH TAG 'nation' WITH TAG '...
                                                              ^
@@ -1006,23 +1021,135 @@ SELECT md5_equal('dir_table2', 'nation4');
  t
 (1 row)
 
--- Does not support copy to
+-- Test Copy To directory table
 \COPY dir_table1 TO '@abs_srcdir@/data/dir_table1';  -- fail
-ERROR:  cannot copy from non-table relation "dir_table1"
+ERROR:  COPY to directory table must specify the relative_path name.
 \COPY BINARY dir_table1 TO '@abs_srcdir@/data/dir_table1';  -- fail
-ERROR:  cannot copy from non-table relation "dir_table1"
+ERROR:  COPY to directory table must specify the relative_path name.
 COPY dir_table1 TO '@abs_srcdir@/data/dir_table1';  -- fail
-ERROR:  cannot copy from non-table relation "dir_table1"
+ERROR:  COPY to directory table must specify the relative_path name.
 COPY BINARY dir_table1 TO '@abs_srcdir@/data/dir_table1';  -- fail
-ERROR:  cannot copy from non-table relation "dir_table1"
+ERROR:  COPY to directory table must specify the relative_path name.
 \COPY dir_table2 TO '@abs_srcdir@/data/dir_table2';  -- fail
-ERROR:  cannot copy from non-table relation "dir_table2"
+ERROR:  COPY to directory table must specify the relative_path name.
 \COPY BINARY dir_table2 TO '@abs_srcdir@/data/dir_table2';  -- fail
-ERROR:  cannot copy from non-table relation "dir_table2"
+ERROR:  COPY to directory table must specify the relative_path name.
 COPY dir_table2 TO '@abs_srcdir@/data/dir_table2';  -- fail
-ERROR:  cannot copy from non-table relation "dir_table2"
+ERROR:  COPY to directory table must specify the relative_path name.
 COPY BINARY dir_table2 TO '@abs_srcdir@/data/dir_table2';  -- fail
-ERROR:  cannot copy from non-table relation "dir_table2"
+ERROR:  COPY to directory table must specify the relative_path name.
+\COPY BINARY dir_table1 TO '@abs_srcdir@/data/dir_table1';   -- fail
+ERROR:  COPY to directory table must specify the relative_path name.
+COPY BINARY dir_table1 TO '@abs_srcdir@/data/dir_table1';   -- fail
+ERROR:  COPY to directory table must specify the relative_path name.
+\COPY BINARY DIRECTORY TABLE dir_table1 'nation1' TO '@abs_srcdir@/data/nation1';   -- OK
+COPY BINARY DIRECTORY TABLE dir_table1 'nation1' TO '@abs_srcdir@/data/nation1';   -- OK
+\COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdin; -- OK
+0|ALGERIA|0| haggle. carefully final deposits detect slyly agai
+1|ARGENTINA|1|al foxes promise slyly according to the regular accounts. bold requests alon
+2|BRAZIL|1|y alongside of the pending deposits. carefully special packages are about the ironic forges. slyly special 
+3|CANADA|1|eas hang ironic, silent packages. slyly regular packages are furiously over the tithes. fluffily bold
+4|EGYPT|4|y above the carefully unusual theodolites. final dugouts are quickly across the furiously regular d
+5|ETHIOPIA|0|ven packages wake quickly. regu
+6|FRANCE|3|refully final requests. regular, ironi
+7|GERMANY|3|l platelets. regular accounts x-ray: unusual, regular acco
+8|INDIA|2|ss excuses cajole slyly across the packages. deposits print aroun
+9|INDONESIA|2| slyly express asymptotes. regular deposits haggle slyly. carefully ironic hockey players sleep blithely. carefull
+10|IRAN|4|efully alongside of the slyly final dependencies. 
+11|IRAQ|4|nic deposits boost atop the quickly final requests? quickly regula
+12|JAPAN|2|ously. final, express gifts cajole a
+13|JORDAN|4|ic deposits are blithely about the carefully regular pa
+14|KENYA|0| pending excuses haggle furiously deposits. pending, express pinto beans wake fluffily past t
+15|MOROCCO|0|rns. blithely bold courts among the closely regular packages use furiously bold platelets?
+16|MOZAMBIQUE|0|s. ironic, unusual asymptotes wake blithely r
+17|PERU|1|platelets. blithely pending dependencies use fluffily across the even pinto beans. carefully silent accoun
+18|CHINA|2|c dependencies. furiously express notornis sleep slyly regular accounts. ideas sleep. depos
+19|ROMANIA|3|ular asymptotes are about the furious multipliers. express dependencies nag above the ironically ironic account
+20|SAUDI ARABIA|4|ts. silent requests haggle. closely express packages sleep across the blithely
+21|VIETNAM|2|hely enticingly express accounts. even, final 
+22|RUSSIA|3| requests against the platelets use never according to the quickly regular pint
+23|UNITED KINGDOM|3|eans boost carefully special requests. accounts are. carefull
+24|UNITED STATES|1|y final packages. slow foxes cajole quickly. quickly silent platelets breach ironic accounts. unusual pinto be
+COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdin; -- OK
+0|ALGERIA|0| haggle. carefully final deposits detect slyly agai
+1|ARGENTINA|1|al foxes promise slyly according to the regular accounts. bold requests alon
+2|BRAZIL|1|y alongside of the pending deposits. carefully special packages are about the ironic forges. slyly special 
+3|CANADA|1|eas hang ironic, silent packages. slyly regular packages are furiously over the tithes. fluffily bold
+4|EGYPT|4|y above the carefully unusual theodolites. final dugouts are quickly across the furiously regular d
+5|ETHIOPIA|0|ven packages wake quickly. regu
+6|FRANCE|3|refully final requests. regular, ironi
+7|GERMANY|3|l platelets. regular accounts x-ray: unusual, regular acco
+8|INDIA|2|ss excuses cajole slyly across the packages. deposits print aroun
+9|INDONESIA|2| slyly express asymptotes. regular deposits haggle slyly. carefully ironic hockey players sleep blithely. carefull
+10|IRAN|4|efully alongside of the slyly final dependencies. 
+11|IRAQ|4|nic deposits boost atop the quickly final requests? quickly regula
+12|JAPAN|2|ously. final, express gifts cajole a
+13|JORDAN|4|ic deposits are blithely about the carefully regular pa
+14|KENYA|0| pending excuses haggle furiously deposits. pending, express pinto beans wake fluffily past t
+15|MOROCCO|0|rns. blithely bold courts among the closely regular packages use furiously bold platelets?
+16|MOZAMBIQUE|0|s. ironic, unusual asymptotes wake blithely r
+17|PERU|1|platelets. blithely pending dependencies use fluffily across the even pinto beans. carefully silent accoun
+18|CHINA|2|c dependencies. furiously express notornis sleep slyly regular accounts. ideas sleep. depos
+19|ROMANIA|3|ular asymptotes are about the furious multipliers. express dependencies nag above the ironically ironic account
+20|SAUDI ARABIA|4|ts. silent requests haggle. closely express packages sleep across the blithely
+21|VIETNAM|2|hely enticingly express accounts. even, final 
+22|RUSSIA|3| requests against the platelets use never according to the quickly regular pint
+23|UNITED KINGDOM|3|eans boost carefully special requests. accounts are. carefull
+24|UNITED STATES|1|y final packages. slow foxes cajole quickly. quickly silent platelets breach ironic accounts. unusual pinto be
+\COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdout; -- OK
+0|ALGERIA|0| haggle. carefully final deposits detect slyly agai
+1|ARGENTINA|1|al foxes promise slyly according to the regular accounts. bold requests alon
+2|BRAZIL|1|y alongside of the pending deposits. carefully special packages are about the ironic forges. slyly special 
+3|CANADA|1|eas hang ironic, silent packages. slyly regular packages are furiously over the tithes. fluffily bold
+4|EGYPT|4|y above the carefully unusual theodolites. final dugouts are quickly across the furiously regular d
+5|ETHIOPIA|0|ven packages wake quickly. regu
+6|FRANCE|3|refully final requests. regular, ironi
+7|GERMANY|3|l platelets. regular accounts x-ray: unusual, regular acco
+8|INDIA|2|ss excuses cajole slyly across the packages. deposits print aroun
+9|INDONESIA|2| slyly express asymptotes. regular deposits haggle slyly. carefully ironic hockey players sleep blithely. carefull
+10|IRAN|4|efully alongside of the slyly final dependencies. 
+11|IRAQ|4|nic deposits boost atop the quickly final requests? quickly regula
+12|JAPAN|2|ously. final, express gifts cajole a
+13|JORDAN|4|ic deposits are blithely about the carefully regular pa
+14|KENYA|0| pending excuses haggle furiously deposits. pending, express pinto beans wake fluffily past t
+15|MOROCCO|0|rns. blithely bold courts among the closely regular packages use furiously bold platelets?
+16|MOZAMBIQUE|0|s. ironic, unusual asymptotes wake blithely r
+17|PERU|1|platelets. blithely pending dependencies use fluffily across the even pinto beans. carefully silent accoun
+18|CHINA|2|c dependencies. furiously express notornis sleep slyly regular accounts. ideas sleep. depos
+19|ROMANIA|3|ular asymptotes are about the furious multipliers. express dependencies nag above the ironically ironic account
+20|SAUDI ARABIA|4|ts. silent requests haggle. closely express packages sleep across the blithely
+21|VIETNAM|2|hely enticingly express accounts. even, final 
+22|RUSSIA|3| requests against the platelets use never according to the quickly regular pint
+23|UNITED KINGDOM|3|eans boost carefully special requests. accounts are. carefull
+24|UNITED STATES|1|y final packages. slow foxes cajole quickly. quickly silent platelets breach ironic accounts. unusual pinto be
+COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdout; -- OK
+0|ALGERIA|0| haggle. carefully final deposits detect slyly agai
+1|ARGENTINA|1|al foxes promise slyly according to the regular accounts. bold requests alon
+2|BRAZIL|1|y alongside of the pending deposits. carefully special packages are about the ironic forges. slyly special 
+3|CANADA|1|eas hang ironic, silent packages. slyly regular packages are furiously over the tithes. fluffily bold
+4|EGYPT|4|y above the carefully unusual theodolites. final dugouts are quickly across the furiously regular d
+5|ETHIOPIA|0|ven packages wake quickly. regu
+6|FRANCE|3|refully final requests. regular, ironi
+7|GERMANY|3|l platelets. regular accounts x-ray: unusual, regular acco
+8|INDIA|2|ss excuses cajole slyly across the packages. deposits print aroun
+9|INDONESIA|2| slyly express asymptotes. regular deposits haggle slyly. carefully ironic hockey players sleep blithely. carefull
+10|IRAN|4|efully alongside of the slyly final dependencies. 
+11|IRAQ|4|nic deposits boost atop the quickly final requests? quickly regula
+12|JAPAN|2|ously. final, express gifts cajole a
+13|JORDAN|4|ic deposits are blithely about the carefully regular pa
+14|KENYA|0| pending excuses haggle furiously deposits. pending, express pinto beans wake fluffily past t
+15|MOROCCO|0|rns. blithely bold courts among the closely regular packages use furiously bold platelets?
+16|MOZAMBIQUE|0|s. ironic, unusual asymptotes wake blithely r
+17|PERU|1|platelets. blithely pending dependencies use fluffily across the even pinto beans. carefully silent accoun
+18|CHINA|2|c dependencies. furiously express notornis sleep slyly regular accounts. ideas sleep. depos
+19|ROMANIA|3|ular asymptotes are about the furious multipliers. express dependencies nag above the ironically ironic account
+20|SAUDI ARABIA|4|ts. silent requests haggle. closely express packages sleep across the blithely
+21|VIETNAM|2|hely enticingly express accounts. even, final 
+22|RUSSIA|3| requests against the platelets use never according to the quickly regular pint
+23|UNITED KINGDOM|3|eans boost carefully special requests. accounts are. carefull
+24|UNITED STATES|1|y final packages. slow foxes cajole quickly. quickly silent platelets breach ironic accounts. unusual pinto be
+\COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO PROGRAM 'gzip -c -1 > @abs_srcdir@/data/nation2.gz';   -- OK
+COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO PROGRAM 'gzip -c -1 > @abs_srcdir@/data/nation2.gz';   -- OK
 SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
  relative_path | size |  tag   
 ---------------+------+--------
@@ -1046,8 +1173,8 @@ ANALYZE dir_table1;
 ANALYZE dir_table2;
 EXPLAIN (COSTS OFF) SELECT dir_table1.relative_path FROM dir_table1, dir_table2
 WHERE dir_table1.relative_path = dir_table2.relative_path ORDER BY 1;
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: dir_table1.relative_path
    ->  Sort
@@ -1057,7 +1184,7 @@ WHERE dir_table1.relative_path = dir_table2.relative_path ORDER BY 1;
                ->  Seq Scan on dir_table1
                ->  Hash
                      ->  Seq Scan on dir_table2
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (10 rows)
 
 SELECT dir_table1.relative_path FROM dir_table1, dir_table2
@@ -1072,8 +1199,8 @@ WHERE dir_table1.relative_path = dir_table2.relative_path ORDER BY 1;
 
 EXPLAIN (COSTS OFF) SELECT dir_table1.relative_path FROM dir_table1, dir_table2
 WHERE dir_table1.size = dir_table2.size ORDER BY 1 LIMIT 1;
-                                     QUERY PLAN                                     
-------------------------------------------------------------------------------------
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: dir_table1.relative_path
@@ -1089,7 +1216,7 @@ WHERE dir_table1.size = dir_table2.size ORDER BY 1 LIMIT 1;
                                  ->  Redistribute Motion 3:3  (slice3; segments: 3)
                                        Hash Key: dir_table2.size
                                        ->  Seq Scan on dir_table2
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (16 rows)
 
 SELECT dir_table1.relative_path FROM dir_table1, dir_table2
@@ -1101,8 +1228,8 @@ WHERE dir_table1.size = dir_table2.size ORDER BY 1 LIMIT 1;
 
 EXPLAIN (COSTS OFF) SELECT dir_table1.relative_path FROM dir_table1, dir_table2
 WHERE dir_table1.md5 = dir_table2.md5 ORDER BY 1 LIMIT 1;
-                                     QUERY PLAN                                     
-------------------------------------------------------------------------------------
+                            QUERY PLAN                            
+------------------------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: dir_table1.relative_path
@@ -1118,7 +1245,6 @@ WHERE dir_table1.md5 = dir_table2.md5 ORDER BY 1 LIMIT 1;
                                  ->  Redistribute Motion 3:3  (slice3; segments: 3)
                                        Hash Key: dir_table2.md5
                                        ->  Seq Scan on dir_table2
- Optimizer: Postgres query optimizer
 (16 rows)
 
 SELECT dir_table1.relative_path FROM dir_table1, dir_table2
@@ -1130,8 +1256,8 @@ WHERE dir_table1.md5 = dir_table2.md5 ORDER BY 1 LIMIT 1;
 
 EXPLAIN (COSTS OFF) SELECT dir_table1.relative_path FROM dir_table1, dir_table2
 WHERE dir_table1.tag = dir_table2.tag ORDER BY 1;
-                          QUERY PLAN                           
----------------------------------------------------------------
+                               QUERY PLAN                               
+------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: dir_table1.relative_path
    ->  Sort
@@ -1142,7 +1268,7 @@ WHERE dir_table1.tag = dir_table2.tag ORDER BY 1;
                      ->  Seq Scan on dir_table2
                ->  Hash
                      ->  Seq Scan on dir_table1
- Optimizer: Postgres query optimizer
+ Optimizer: Pivotal Optimizer (GPORCA)
 (11 rows)
 
 SELECT dir_table1.relative_path FROM dir_table1, dir_table2
@@ -1217,17 +1343,17 @@ ERROR:  Only allow to update directory "tag" column.
 UPDATE dir_table2 SET md5 = '70f09140d1b83eb3ecf9a0e28494d2a4' WHERE relative_path = 'nation4'; -- fail
 ERROR:  Only allow to update directory "tag" column.
 UPDATE dir_table1 SET tag = 'nation_new_tag';  -- ok
-NOTICE:  dir_table1 UPDATE BEFORE ROW  (seg1 127.0.1.1:7003 pid=15072)
-NOTICE:  dir_table1 UPDATE BEFORE ROW  (seg1 127.0.1.1:7003 pid=15072)
-NOTICE:  dir_table1 UPDATE BEFORE ROW  (seg2 127.0.1.1:7004 pid=15073)
-NOTICE:  dir_table1 UPDATE AFTER ROW  (seg1 127.0.1.1:7003 pid=15072)
-NOTICE:  dir_table1 UPDATE AFTER ROW  (seg1 127.0.1.1:7003 pid=15072)
-NOTICE:  dir_table1 UPDATE BEFORE ROW  (seg2 127.0.1.1:7004 pid=15073)
-NOTICE:  dir_table1 UPDATE AFTER ROW  (seg2 127.0.1.1:7004 pid=15073)
-NOTICE:  dir_table1 UPDATE AFTER ROW  (seg2 127.0.1.1:7004 pid=15073)
+NOTICE:  dir_table1 UPDATE BEFORE ROW  (seg1 127.0.1.1:7003 pid=31193)
+NOTICE:  dir_table1 UPDATE BEFORE ROW  (seg2 127.0.1.1:7004 pid=31192)
+NOTICE:  dir_table1 UPDATE BEFORE ROW  (seg1 127.0.1.1:7003 pid=31193)
+NOTICE:  dir_table1 UPDATE BEFORE ROW  (seg2 127.0.1.1:7004 pid=31192)
+NOTICE:  dir_table1 UPDATE AFTER ROW  (seg1 127.0.1.1:7003 pid=31193)
+NOTICE:  dir_table1 UPDATE AFTER ROW  (seg2 127.0.1.1:7004 pid=31192)
+NOTICE:  dir_table1 UPDATE AFTER ROW  (seg1 127.0.1.1:7003 pid=31193)
+NOTICE:  dir_table1 UPDATE AFTER ROW  (seg2 127.0.1.1:7004 pid=31192)
 UPDATE dir_table1 SET tag = 'nation2_new_tag' WHERE relative_path = 'nation2';  -- ok
-NOTICE:  dir_table1 UPDATE BEFORE ROW  (seg2 127.0.1.1:7004 pid=15073)
-NOTICE:  dir_table1 UPDATE AFTER ROW  (seg2 127.0.1.1:7004 pid=15073)
+NOTICE:  dir_table1 UPDATE BEFORE ROW  (seg2 127.0.1.1:7004 pid=31192)
+NOTICE:  dir_table1 UPDATE AFTER ROW  (seg2 127.0.1.1:7004 pid=31192)
 UPDATE dir_table2 SET tag = 'nation4_new_tag' WHERE relative_path = 'nation3';  -- ok
 UPDATE dir_table1 SET tag = 'failed_tag' WHERE relative_path = 'not_exist_path';
 UPDATE dir_table2 SET tag = 'no_tag' WHERE relative_path = 'not_exist_path';
@@ -1759,7 +1885,7 @@ DROP DIRECTORY TABLE IF EXISTS dir_table4;
 DROP DIRECTORY TABLE IF EXISTS dir_table5;
 NOTICE:  directory table "dir_table5" does not exist, skipping
 DROP DIRECTORY TABLE IF EXISTS dir_table6;
-DROP FUNCTION IF EXISTS trigtest;
+DROP FUNCTION IF EXISTS triggertest;
 DROP STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER oss_server1;
 DROP STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER oss_server2;
 NOTICE:  storage user mapping for "gpadmin" does not exist for storage server "oss_server2", skipping

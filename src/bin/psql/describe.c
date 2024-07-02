@@ -2470,7 +2470,7 @@ describeOneTableDetails(const char *schemaname,
 								  schemaname, relationname);
 			break;
 		case RELKIND_DIRECTORY_TABLE:
-				printfPQExpBuffer(&title, _("Directory able \"%s.%s\""),
+				printfPQExpBuffer(&title, _("Directory table \"%s.%s\""),
 								  schemaname, relationname);
 			break;
 		case RELKIND_VIEW:
