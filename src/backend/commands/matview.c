@@ -155,6 +155,7 @@ typedef enum
 #define OLD_DELTA_ENRNAME "old_delta"
 
 static int	matview_maintenance_depth = 0;
+static int  saved_matview_maintenance_depth = 0;
 
 static RefreshClause* MakeRefreshClause(bool concurrent, bool skipData, RangeVar *relation);
 static IntoClause* makeIvmIntoClause(const char *enrname, Relation matviewRel);
@@ -171,11 +172,7 @@ static uint64 refresh_matview_memoryfill(DestReceiver *dest,Query *query,
 static char *make_temptable_name_n(char *tempname, int n);
 static void refresh_by_match_merge(Oid matviewOid, Oid tempOid, Oid relowner,
 								   int save_sec_context);
-static void refresh_by_heap_swap(Oid matviewOid, Oid OIDNewHeap, char relpersistence);
 static bool is_usable_unique_index(Relation indexRel);
-static void OpenMatViewIncrementalMaintenance(void);
-static void CloseMatViewIncrementalMaintenance(void);
-static Query *get_matview_query(Relation matviewRel);
 
 static Query *rewrite_query_for_preupdate_state(Query *query, List *tables,
 								  ParseState *pstate, Oid matviewid);
@@ -292,7 +289,7 @@ MakeRefreshClause(bool concurrent, bool skipData, RangeVar *relation)
  * NOTE: caller must be holding an appropriate lock on the relation.
  */
 void
-SetMatViewIVMState(Relation relation, bool newstate)
+SetMatViewIVMState(Relation relation, char newstate)
 {
 	Relation	pgrel;
 	HeapTuple	tuple;
@@ -418,7 +415,7 @@ ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 
 	/* For IMMV, we need to rewrite matview query */
 	if (!stmt->skipData && RelationIsIVM(matviewRel))
-		dataQuery = rewriteQueryForIMMV(viewQuery,NIL);
+		dataQuery = rewriteQueryForIMMV(viewQuery,NIL, RelationIsDefer(matviewRel));
 	else
 		dataQuery = viewQuery;
 
@@ -635,7 +632,7 @@ ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 
 	if (!stmt->skipData && RelationIsIVM(matviewRel) && !oldPopulated)
 	{
-		CreateIvmTriggersOnBaseTables(dataQuery, matviewOid);
+		CreateIvmTriggersOnBaseTables(dataQuery, matviewOid, RelationIsDefer(matviewRel), false);
 	}
 
 	table_close(matviewRel, NoLock);
@@ -1282,7 +1279,7 @@ refresh_by_match_merge(Oid matviewOid, Oid tempOid, Oid relowner,
  * the target's indexes and throw away the transient table.  Security context
  * swapping is handled by the called function, so it is not needed here.
  */
-static void
+void
 refresh_by_heap_swap(Oid matviewOid, Oid OIDNewHeap, char relpersistence)
 {
 	finish_heap_swap(matviewOid, OIDNewHeap,
@@ -1361,23 +1358,33 @@ MatViewIncrementalMaintenanceIsEnabled(void)
 		return matview_maintenance_depth > 0;
 }
 
-static void
+void
 OpenMatViewIncrementalMaintenance(void)
 {
 	matview_maintenance_depth++;
 }
 
-static void
+void
 CloseMatViewIncrementalMaintenance(void)
 {
 	matview_maintenance_depth--;
 	Assert(matview_maintenance_depth >= 0);
 }
 
+void SaveMatViewMaintenanceDepth(void)
+{
+	saved_matview_maintenance_depth = matview_maintenance_depth;
+}
+
+void RestoreMatViewMaintenanceDepth(void)
+{
+	matview_maintenance_depth = saved_matview_maintenance_depth;
+}
+
 /*
  * get_matview_query - get the Query from a matview's _RETURN rule.
  */
-static Query *
+Query *
 get_matview_query(Relation matviewRel)
 {
 	RewriteRule *rule;
@@ -3687,7 +3694,7 @@ ExecuteTruncateGuts_IVM(Relation matviewRel,
 	Oid			OIDNewHeap;
 	DestReceiver *dest;
 	uint64		processed = 0;
-	Query		*dataQuery = rewriteQueryForIMMV(query, NIL);
+	Query		*dataQuery = rewriteQueryForIMMV(query, NIL, false);
 	char		relpersistence = matviewRel->rd_rel->relpersistence;
 	RefreshClause *refreshClause;
 	/*
@@ -3776,6 +3783,7 @@ makeIvmIntoClause(const char *enrname, Relation matviewRel)
 {
 	IntoClause *intoClause = makeNode(IntoClause);
 	intoClause->ivm = true;
+	intoClause->defer = false;
 	/* rel is NULL means put tuples into memory.*/
 	intoClause->rel = NULL;
 	intoClause->enrname = (char*) enrname;
@@ -3812,7 +3820,8 @@ transientenr_init(QueryDesc *queryDesc)
 											entry->resowner,
 											entry->context,
 											true,
-											into->enrname);
+											into->enrname,
+											into->defer);
 }
 
 /*

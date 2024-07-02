@@ -33,6 +33,7 @@ CATALOG(pg_task,9637,TaskRelationId) BKI_SHARED_RELATION
 	text		username;
 	bool		active BKI_DEFAULT(t);
 	text		jobname;
+	text		warehouse;
 } FormData_pg_task;
 
 typedef FormData_pg_task *Form_pg_task;
@@ -45,7 +46,7 @@ DECLARE_UNIQUE_INDEX_PKEY(pg_task_jobid_index, 8916, on pg_task using btree(jobi
 extern Oid TaskCreate(const char *schedule, const char *command,
 					  const char *nodename, int32 nodeport,
 					  const char *database, const char *username,
-					  bool active, const char *jobname);
+					  bool active, const char *jobname, const char* warehouse);
 
 extern void TaskUpdate(Oid jobid, const char *schedule,
 					   const char *command, const char *database,

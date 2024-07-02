@@ -172,6 +172,7 @@ _equalIntoClause(const IntoClause *a, const IntoClause *b)
 	COMPARE_STRING_FIELD(tableSpaceName);
 	COMPARE_NODE_FIELD(viewQuery);
 	COMPARE_SCALAR_FIELD(skipData);
+	COMPARE_SCALAR_FIELD(defer);
 	COMPARE_NODE_FIELD(distributedBy);
 	COMPARE_SCALAR_FIELD(ivm);
 	COMPARE_SCALAR_FIELD(matviewOid);
@@ -262,6 +263,7 @@ _equalAggref(const Aggref *a, const Aggref *b)
 	COMPARE_SCALAR_FIELD(aggno);
 	COMPARE_SCALAR_FIELD(aggtransno);
 	COMPARE_LOCATION_FIELD(location);
+	COMPARE_SCALAR_FIELD(extrasplit);
 
 	return true;
 }
@@ -1953,6 +1955,7 @@ _equalRefreshMatViewStmt(const RefreshMatViewStmt *a, const RefreshMatViewStmt *
 	COMPARE_SCALAR_FIELD(concurrent);
 	COMPARE_SCALAR_FIELD(skipData);
 	COMPARE_NODE_FIELD(relation);
+	COMPARE_SCALAR_FIELD(incremental);
 
 	return true;
 }
@@ -3105,6 +3108,7 @@ _equalRangeTblEntry(const RangeTblEntry *a, const RangeTblEntry *b)
 	COMPARE_BITMAPSET_FIELD(updatedCols);
 	COMPARE_BITMAPSET_FIELD(extraUpdatedCols);
 	COMPARE_NODE_FIELD(securityQuals);
+	COMPARE_NODE_FIELD(version);
 
 	return true;
 }

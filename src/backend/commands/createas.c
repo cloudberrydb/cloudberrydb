@@ -32,6 +32,7 @@
 #include "access/tableam.h"
 #include "access/xact.h"
 #include "access/xlog.h"
+#include "catalog/gp_matview_dependency.h"
 #include "catalog/namespace.h"
 #include "catalog/index.h"
 #include "catalog/pg_constraint.h"
@@ -44,6 +45,7 @@
 #include "commands/prepare.h"
 #include "commands/tablecmds.h"
 #include "commands/tablespace.h"
+#include "commands/taskcmds.h"
 #include "commands/trigger.h"
 #include "commands/view.h"
 #include "miscadmin.h"
@@ -96,6 +98,7 @@ typedef struct
 typedef struct
 {
 	bool	has_agg;
+	bool	defer;
 } check_ivm_restriction_context;
 
 static void intorel_startup_dummy(DestReceiver *self, int operation, TupleDesc typeinfo);
@@ -110,12 +113,12 @@ static void intorel_shutdown(DestReceiver *self);
 static void intorel_destroy(DestReceiver *self);
 
 static void CreateIvmTriggersOnBaseTablesRecurse(Query *qry, Node *node, Oid matviewOid,
-									 Relids *relids, bool ex_lock);
+									 Relids *relids, bool ex_lock, bool defer);
 static void CreateIvmTrigger(Oid relOid, Oid viewOid, int16 type, int16 timing, bool ex_lock);
-static void check_ivm_restriction(Node *node);
+static void check_ivm_restriction(Node *node, bool defer);
 static bool check_ivm_restriction_walker(Node *node, check_ivm_restriction_context *context);
 static Bitmapset *get_primary_key_attnos_from_query(Query *query, List **constraintList);
-static bool check_aggregate_supports_ivm(Oid aggfnoid);
+static bool check_aggregate_supports_ivm(Oid aggfnoid, bool defer);
 
 /*
  * create_ctas_internal
@@ -222,8 +225,13 @@ create_ctas_internal(List *attrList, IntoClause *into, QueryDesc *queryDesc, boo
 	if (is_matview)
 	{
 		/* StoreViewQuery scribbles on tree, so make a copy */
-		Query	   *query = (Query *) copyObject(into->viewQuery);
-
+		Query	*query = (Query *) copyObject(into->viewQuery);
+		if (into->ivm)
+		{
+			Relation matviewRel = table_open(intoRelationAddr.objectId, NoLock);
+			SetMatViewIVMState(matviewRel, into->defer ? MATVIEW_IVM_DEFERRED : MATVIEW_IVM_IMMEDIATE);
+			table_close(matviewRel, NoLock);
+		}
 		StoreViewQuery(intoRelationAddr.objectId, query, false);
 		CommandCounterIncrement();
 	}
@@ -336,6 +344,7 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 	Query	   *query_immv = NULL;
 	Oid         relationOid = InvalidOid;   /* relation that is modified */
 	AutoStatsCmdType cmdType = AUTOSTATS_CMDTYPE_SENTINEL;  /* command type */
+	bool		saveOptimizerGucValue = optimizer;
 
 	Assert(Gp_role != GP_ROLE_EXECUTE);
 
@@ -400,10 +409,11 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 					 errmsg("mutable function is not supported on incrementally maintainable materialized view"),
 					 errhint("functions must be marked IMMUTABLE")));
 
-		check_ivm_restriction((Node *) query);
-
+		check_ivm_restriction((Node *) query, into->defer);
+		/* close orca for rewrite agg functions */
+		optimizer = false;
 		/* For IMMV, we need to rewrite matview query */
-		query = rewriteQueryForIMMV(query, into->colNames);
+		query = rewriteQueryForIMMV(query, into->colNames, into->defer);
 		query_immv = copyObject(query);
 	}
 
@@ -521,13 +531,17 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 			/*
 			 * Mark relisivm field, if it's a matview and into->ivm is true.
 			 */
-			SetMatViewIVMState(matviewRel, true);
+			SetMatViewIVMState(matviewRel, into->defer ?
+								MATVIEW_IVM_DEFERRED : MATVIEW_IVM_IMMEDIATE);
 
-			if (!into->skipData)
+			if (!into->skipData || into->defer)
 			{
 				Assert(query_immv != NULL);
 				/* Create triggers on incremental maintainable materialized view */
-				CreateIvmTriggersOnBaseTables(query_immv, matviewOid);
+				CreateIvmTriggersOnBaseTables(query_immv, matviewOid, into->defer, true);
+				if (into->defer)
+					ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+									errmsg("incrementally maintainable materialized view with deferred refresh is not supported yet")));
 			}
 			table_close(matviewRel, NoLock);
 		}
@@ -539,6 +553,7 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 		FreeQueryDesc(queryDesc);
 
 		PopActiveSnapshot();
+		optimizer = saveOptimizerGucValue;
 	}
 
 
@@ -552,7 +567,7 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
  * Also, additional hidden columns are added for aggregate values.
  */
 Query *
-rewriteQueryForIMMV(Query *query, List *colNames)
+rewriteQueryForIMMV(Query *query, List *colNames, bool defer)
 {
 	Query *rewritten;
 
@@ -596,7 +611,25 @@ rewriteQueryForIMMV(Query *query, List *colNames)
 								tle->resname : strVal(list_nth(colNames, tle->resno - 1)));
 
 			if (IsA(tle->expr, Aggref))
-				makeIvmAggColumn(pstate, (Aggref *) tle->expr, resname, &next_resno, &aggs);
+			{
+				Aggref *aggref = (Aggref *) tle->expr;
+				Oid transtype = get_agg_transtype(aggref->aggfnoid);
+				if (defer)
+				{
+					if (transtype == INTERNALOID)
+					{
+						aggref->aggtype = BYTEAOID;
+					}
+					else
+					{
+						aggref->aggtype = transtype;
+					}
+					aggref->extrasplit = AGGSPLITOP_REPLACE_FINAL;
+					aggs = NIL;
+				}
+				else
+					makeIvmAggColumn(pstate, aggref, resname, &next_resno, &aggs);
+			}
 		}
 		rewritten->targetList = list_concat(rewritten->targetList, aggs);
 	}
@@ -1036,7 +1069,7 @@ GetIntoRelOid(QueryDesc *queryDesc)
  * CreateIvmTriggersOnBaseTables -- create IVM triggers on all base tables
  */
 void
-CreateIvmTriggersOnBaseTables(Query *qry, Oid matviewOid)
+CreateIvmTriggersOnBaseTables(Query *qry, Oid matviewOid, bool defer, bool create)
 {
 	Relids	relids = NULL;
 	bool	ex_lock = false;
@@ -1063,14 +1096,15 @@ CreateIvmTriggersOnBaseTables(Query *qry, Oid matviewOid)
 	if (list_length(qry->rtable) > 1 || rte->rtekind != RTE_RELATION)
 		ex_lock = true;
 
-	CreateIvmTriggersOnBaseTablesRecurse(qry, (Node *)qry, matviewOid, &relids, ex_lock);
-
+	CreateIvmTriggersOnBaseTablesRecurse(qry, (Node *)qry, matviewOid, &relids, ex_lock, defer);
+	if (create && defer)
+		create_matview_dependency_tuple(matviewOid, relids, true);
 	bms_free(relids);
 }
 
 static void
 CreateIvmTriggersOnBaseTablesRecurse(Query *qry, Node *node, Oid matviewOid,
-									 Relids *relids, bool ex_lock)
+									 Relids *relids, bool ex_lock, bool defer)
 {
 	if (node == NULL)
 		return;
@@ -1084,7 +1118,7 @@ CreateIvmTriggersOnBaseTablesRecurse(Query *qry, Node *node, Oid matviewOid,
 			{
 				Query *query = (Query *) node;
 
-				CreateIvmTriggersOnBaseTablesRecurse(qry, (Node *)query->jointree, matviewOid, relids, ex_lock);
+				CreateIvmTriggersOnBaseTablesRecurse(qry, (Node *)query->jointree, matviewOid, relids, ex_lock, defer);
 			}
 			break;
 
@@ -1095,14 +1129,17 @@ CreateIvmTriggersOnBaseTablesRecurse(Query *qry, Node *node, Oid matviewOid,
 
 				if (rte->rtekind == RTE_RELATION && !bms_is_member(rte->relid, *relids))
 				{
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_INSERT, TRIGGER_TYPE_BEFORE, ex_lock);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_DELETE, TRIGGER_TYPE_BEFORE, ex_lock);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_UPDATE, TRIGGER_TYPE_BEFORE, ex_lock);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_TRUNCATE, TRIGGER_TYPE_BEFORE, true);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_INSERT, TRIGGER_TYPE_AFTER, ex_lock);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_DELETE, TRIGGER_TYPE_AFTER, ex_lock);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_UPDATE, TRIGGER_TYPE_AFTER, ex_lock);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_TRUNCATE, TRIGGER_TYPE_AFTER, true);
+					if (!defer)
+					{
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_INSERT, TRIGGER_TYPE_BEFORE, ex_lock);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_DELETE, TRIGGER_TYPE_BEFORE, ex_lock);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_UPDATE, TRIGGER_TYPE_BEFORE, ex_lock);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_TRUNCATE, TRIGGER_TYPE_BEFORE, true);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_INSERT, TRIGGER_TYPE_AFTER, ex_lock);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_DELETE, TRIGGER_TYPE_AFTER, ex_lock);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_UPDATE, TRIGGER_TYPE_AFTER, ex_lock);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_TRUNCATE, TRIGGER_TYPE_AFTER, true);
+					}
 
 					*relids = bms_add_member(*relids, rte->relid);
 				}
@@ -1115,7 +1152,7 @@ CreateIvmTriggersOnBaseTablesRecurse(Query *qry, Node *node, Oid matviewOid,
 				ListCell   *l;
 
 				foreach(l, f->fromlist)
-					CreateIvmTriggersOnBaseTablesRecurse(qry, lfirst(l), matviewOid, relids, ex_lock);
+					CreateIvmTriggersOnBaseTablesRecurse(qry, lfirst(l), matviewOid, relids, ex_lock, defer);
 			}
 			break;
 
@@ -1123,8 +1160,8 @@ CreateIvmTriggersOnBaseTablesRecurse(Query *qry, Node *node, Oid matviewOid,
 			{
 				JoinExpr   *j = (JoinExpr *) node;
 
-				CreateIvmTriggersOnBaseTablesRecurse(qry, j->larg, matviewOid, relids, ex_lock);
-				CreateIvmTriggersOnBaseTablesRecurse(qry, j->rarg, matviewOid, relids, ex_lock);
+				CreateIvmTriggersOnBaseTablesRecurse(qry, j->larg, matviewOid, relids, ex_lock, defer);
+				CreateIvmTriggersOnBaseTablesRecurse(qry, j->rarg, matviewOid, relids, ex_lock, defer);
 			}
 			break;
 
@@ -1253,9 +1290,9 @@ CreateIvmTrigger(Oid relOid, Oid viewOid, int16 type, int16 timing, bool ex_lock
  * check_ivm_restriction --- look for specify nodes in the query tree
  */
 static void
-check_ivm_restriction(Node *node)
+check_ivm_restriction(Node *node, bool defer)
 {
-	check_ivm_restriction_context context = {false};
+	check_ivm_restriction_context context = {false, defer};
 
 	check_ivm_restriction_walker(node, &context);
 }
@@ -1290,6 +1327,10 @@ check_ivm_restriction_walker(Node *node, check_ivm_restriction_context *context)
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 							 errmsg("CTE is not supported on incrementally maintainable materialized view")));
+				if ((qry->groupClause == NIL || !qry->hasAggs) && context->defer)
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg(" Without aggregate and GROUP BY are not supported on incrementally maintainable materialized view")));
 				if (qry->groupClause != NIL && !qry->hasAggs)
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
@@ -1368,7 +1409,7 @@ check_ivm_restriction_walker(Node *node, check_ivm_restriction_context *context)
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 								 errmsg("partitioned table is not supported on incrementally maintainable materialized view")));
 
-					if (rte->relkind == RELKIND_RELATION && has_superclass(rte->relid))
+					if (rte->relkind == RELKIND_RELATION && has_superclass(rte->relid) && !context->defer)
 						ereport(ERROR,
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 								 errmsg("partitions is not supported on incrementally maintainable materialized view")));
@@ -1428,10 +1469,10 @@ check_ivm_restriction_walker(Node *node, check_ivm_restriction_context *context)
 			{
 				JoinExpr *joinexpr = (JoinExpr *)node;
 
-				if (joinexpr->jointype > JOIN_INNER)
+				if (joinexpr->jointype > JOIN_INNER || context->defer)
 						ereport(ERROR,
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-								 errmsg("OUTER JOIN is not supported on incrementally maintainable materialized view")));
+								 errmsg("The JOIN is not supported on incrementally maintainable materialized view")));
 
 				expression_tree_walker(node, check_ivm_restriction_walker, (void *) context);
 				break;
@@ -1457,7 +1498,7 @@ check_ivm_restriction_walker(Node *node, check_ivm_restriction_context *context)
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 							 errmsg("aggregate function with ORDER clause is not supported on incrementally maintainable materialized view")));
 
-				if (!check_aggregate_supports_ivm(aggref->aggfnoid))
+				if (!check_aggregate_supports_ivm(aggref->aggfnoid, context->defer))
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 							 errmsg("aggregate function %s is not supported on incrementally maintainable materialized view", aggname)));
@@ -1476,7 +1517,7 @@ check_ivm_restriction_walker(Node *node, check_ivm_restriction_context *context)
  * Check if the given aggregate function is supporting IVM
  */
 static bool
-check_aggregate_supports_ivm(Oid aggfnoid)
+check_aggregate_supports_ivm(Oid aggfnoid, bool defer)
 {
 	switch (aggfnoid)
 	{
@@ -1504,6 +1545,53 @@ check_aggregate_supports_ivm(Oid aggfnoid)
 		case F_AVG_INTERVAL:
 
 			return true;
+
+		/* min */
+		case F_MIN_ANYARRAY:
+		case F_MIN_INT8:
+		case F_MIN_INT4:
+		case F_MIN_INT2:
+		case F_MIN_OID:
+		case F_MIN_FLOAT4:
+		case F_MIN_FLOAT8:
+		case F_MIN_DATE:
+		case F_MIN_TIME:
+		case F_MIN_TIMETZ:
+		case F_MIN_MONEY:
+		case F_MIN_TIMESTAMP:
+		case F_MIN_TIMESTAMPTZ:
+		case F_MIN_INTERVAL:
+		case F_MIN_TEXT:
+		case F_MIN_NUMERIC:
+		case F_MIN_BPCHAR:
+		case F_MIN_TID:
+		case F_MIN_ANYENUM:
+		case F_MIN_INET:
+		case F_MIN_PG_LSN:
+
+		/* max */
+		case F_MAX_ANYARRAY:
+		case F_MAX_INT8:
+		case F_MAX_INT4:
+		case F_MAX_INT2:
+		case F_MAX_OID:
+		case F_MAX_FLOAT4:
+		case F_MAX_FLOAT8:
+		case F_MAX_DATE:
+		case F_MAX_TIME:
+		case F_MAX_TIMETZ:
+		case F_MAX_MONEY:
+		case F_MAX_TIMESTAMP:
+		case F_MAX_TIMESTAMPTZ:
+		case F_MAX_INTERVAL:
+		case F_MAX_TEXT:
+		case F_MAX_NUMERIC:
+		case F_MAX_BPCHAR:
+		case F_MAX_TID:
+		case F_MAX_ANYENUM:
+		case F_MAX_INET:
+		case F_MAX_PG_LSN:
+			return defer ? true : false;
 
 		default:
 			return false;

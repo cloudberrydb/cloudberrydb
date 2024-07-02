@@ -301,6 +301,7 @@ typedef struct PersistentTupleStore
 	const char *filename; /* filename for storing tuples */
 	bool		detoast;		/* were we told to detoast? */
 	bool 		initfile;		/* is this the first time to init file? */
+	bool		defer;			/* defer to refersh */
 	Datum	   *outvalues;		/* values array for result tuple */
 	Datum	   *tofree;			/* temp values to be pfree'd */
 } PersistentTupleStore;
@@ -454,7 +455,7 @@ persistentTstoreShutdownReceiver(DestReceiver *self)
 		tuplestore_freeze(myState->tstore);
 
 		/* Set file to temporary to release file as soon as possible. */
-		tuplestore_set_flags(myState->tstore, true);
+		tuplestore_set_flags(myState->tstore, !myState->defer);
 	}
 	/* Release workspace if any */
 	if (myState->outvalues)
@@ -491,7 +492,8 @@ SetPersistentTstoreDestReceiverParams(DestReceiver *self,
 								ResourceOwner owner,
 								MemoryContext tContext,
 								bool detoast,
-								const char *filename)
+								const char *filename,
+								bool defer)
 {
 	PersistentTupleStore *myState = (PersistentTupleStore *) self;
 
@@ -502,4 +504,5 @@ SetPersistentTstoreDestReceiverParams(DestReceiver *self,
 	myState->detoast = detoast;
 	myState->filename = filename;
 	myState->initfile = false;
+	myState->defer = defer;
 }

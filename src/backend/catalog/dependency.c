@@ -20,6 +20,7 @@
 #include "access/table.h"
 #include "access/xact.h"
 #include "catalog/dependency.h"
+#include "catalog/gp_matview_dependency.h"
 #include "catalog/gp_storage_server.h"
 #include "catalog/gp_storage_user_mapping.h"
 #include "catalog/heap.h"
@@ -1475,6 +1476,10 @@ doDeletion(const ObjectAddress *object, int flags)
 				}
 				else
 				{
+					if (relKind == RELKIND_MATVIEW)
+					{
+						remove_matview_dependency_byoid(object->objectId);
+					}
 					if (object->objectSubId != 0)
 						RemoveAttributeById(object->objectId,
 											object->objectSubId);

@@ -1926,7 +1926,7 @@ describeOneTableDetails(const char *schemaname,
 		char		relpersistence;
 		char		relreplident;
 		char	   *relam;
-		bool		isivm;
+		char		isivm;
 
 		char	   *compressionType;
 		char	   *compressionLevel;
@@ -2154,7 +2154,7 @@ describeOneTableDetails(const char *schemaname,
 			(char *) NULL : pg_strdup(PQgetvalue(res, 0, 14));
 	else
 		tableinfo.relam = NULL;
-	tableinfo.isivm = strcmp(PQgetvalue(res, 0, 15), "t") == 0;
+	tableinfo.isivm = *(PQgetvalue(res, 0, 15));
 
 	/* GPDB Only:  relstorage  */
 	if (pset.sversion < 120000 && isGPDB())
@@ -4112,9 +4112,10 @@ describeOneTableDetails(const char *schemaname,
 		}
 
 		/* Incremental view maintance info */
-		if (verbose && tableinfo.relkind == RELKIND_MATVIEW && tableinfo.isivm)
+		if (verbose && tableinfo.relkind == RELKIND_MATVIEW && tableinfo.isivm != MATVIEW_IVM_NOTHING)
 		{
-			printTableAddFooter(&cont, _("Incremental view maintenance: yes"));
+			printfPQExpBuffer(&buf, _("Incremental view maintenance: %c"), tableinfo.isivm);
+			printTableAddFooter(&cont, buf.data);
 		}
 	}
 

@@ -391,11 +391,21 @@ DefineQueryRewrite(const char *rulename,
 		 * ... the targetlist of the SELECT action must exactly match the
 		 * event relation, ...
 		 */
-		checkRuleResultList(query->targetList,
+		if (RelationIsDefer(event_relation))
+		{
+			/*
+			 * For deferred materialized views, we don't check the targetlist
+			 * because it might contain special columns for IVM.
+			 */
+		}
+		else
+		{
+			checkRuleResultList(query->targetList,
 							RelationGetDescr(event_relation),
 							true,
 							event_relation->rd_rel->relkind !=
 							RELKIND_MATVIEW);
+		}
 
 		/*
 		 * ... there must not be another ON SELECT rule already ...

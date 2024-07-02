@@ -3922,6 +3922,13 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 		else
 			peragg->finalfn_oid = finalfn_oid = aggform->aggfinalfn;
 
+		/* Check extrasplit for replace final aggregate function */
+		if (DO_AGGSPLIT_REPLACE_FINAL(aggref->extrasplit))
+		{
+			AssertImply(aggtranstype == INTERNALOID, aggform->aggserialfn);
+			peragg->finalfn_oid = finalfn_oid = aggform->aggserialfn;
+		}
+
 		serialfn_oid = InvalidOid;
 		deserialfn_oid = InvalidOid;
 

@@ -53,7 +53,7 @@ OBJS += pg_extprotocol.o \
        oid_dispatch.o aocatalog.o storage_tablespace.o storage_database.o \
        storage_tablespace_twophase.o storage_tablespace_xact.o \
        gp_partition_template.o pg_task.o pg_task_run_history.o \
-       pg_directory_table.o storage_directory_table.o
+       pg_directory_table.o storage_directory_table.o gp_matview_dependency.o
 
 CATALOG_JSON:= $(addprefix $(top_srcdir)/gpMgmt/bin/gppylib/data/, $(addsuffix .json,$(GP_MAJORVERSION)))
 
@@ -79,7 +79,7 @@ CATALOG_HEADERS := \
 	pg_resqueue.h pg_resqueuecapability.h pg_resourcetype.h \
 	pg_resgroup.h pg_resgroupcapability.h \
 	gp_configuration_history.h gp_id.h gp_distribution_policy.h gp_version_at_initdb.h \
-	gp_warehouse.h \
+	gp_warehouse.h gp_matview_dependency.h \
 	pg_appendonly.h \
 	gp_fastsequence.h pg_extprotocol.h \
 	pg_attribute_encoding.h \

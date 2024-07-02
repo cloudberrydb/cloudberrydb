@@ -846,7 +846,7 @@ SELECT * FROM mv_mytype;
 ROLLBACK;
 -- outer join is not supported
 CREATE INCREMENTAL MATERIALIZED VIEW mv(a,b) AS SELECT a.i, b.i FROM mv_base_a a LEFT JOIN mv_base_b b ON a.i=b.i;
-ERROR:  OUTER JOIN is not supported on incrementally maintainable materialized view
+ERROR:  The JOIN is not supported on incrementally maintainable materialized view
 -- CTE is not supported
 CREATE INCREMENTAL MATERIALIZED VIEW mv AS
     WITH b AS ( SELECT * FROM mv_base_b) SELECT a.i,a.j FROM mv_base_a a, b WHERE a.i = b.i;

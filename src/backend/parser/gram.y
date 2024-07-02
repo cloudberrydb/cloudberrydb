@@ -151,6 +151,13 @@ typedef struct GroupClause
 	List   *list;
 } GroupClause;
 
+/* Private struct for the result of OptRefreshOption production */
+typedef struct RefreshOption
+{
+	bool		deferred;
+	char		*interval;
+} RefreshOption;
+
 /* ConstraintAttributeSpec yields an integer bitmask of these flags: */
 #define CAS_NOT_DEFERRABLE			0x01
 #define CAS_DEFERRABLE				0x02
@@ -276,6 +283,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 	DistributionKeyElem *dkelem;
 	SetQuantifier	 setquantifier;
 	struct GroupClause  *groupclause;
+	struct RefreshOption *refresh_option;
 }
 
 %type <node>	stmt toplevel_stmt schema_stmt routine_body_stmt
@@ -482,6 +490,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 
 %type <node>	opt_routine_body
 %type <groupclause> group_clause
+%type <refresh_option> OptRefreshOption
 %type <list>	group_by_list
 %type <node>	group_by_item empty_grouping_set rollup_clause cube_clause
 %type <node>	grouping_sets_clause
@@ -6900,7 +6909,7 @@ CreateMatViewStmt:
 		;
 
 create_mv_target:
-			qualified_name opt_column_list table_access_method_clause opt_reloptions OptTableSpace
+			qualified_name opt_column_list table_access_method_clause opt_reloptions OptTableSpace OptRefreshOption
 				{
 					$$ = makeNode(IntoClause);
 					$$->rel = $1;
@@ -6912,6 +6921,11 @@ create_mv_target:
 					$$->viewQuery = NULL;		/* filled at analysis time */
 					$$->skipData = false;		/* might get changed later */
 					$$->ivm = false;
+					if ($6)
+					{
+						$$->defer = $6->deferred;
+						$$->interval = $6->interval;
+					}
 
 					$$->accessMethod = greenplumLegacyAOoptions($$->accessMethod, &$$->options);
 				}
@@ -6925,6 +6939,33 @@ OptNoLog:	UNLOGGED					{ $$ = RELPERSISTENCE_UNLOGGED; }
 			| /*EMPTY*/					{ $$ = RELPERSISTENCE_PERMANENT; }
 		;
 
+OptRefreshOption:
+			REFRESH IMMEDIATE
+			{
+				RefreshOption *n = (RefreshOption *) palloc(sizeof(RefreshOption));
+				n->deferred = false;
+				n->interval = NULL;
+				$$ = n;
+			}
+			| REFRESH DEFERRED
+			{
+				RefreshOption *n = (RefreshOption *) palloc(sizeof(RefreshOption));
+				n->deferred = true;
+				n->interval = NULL;
+				$$ = n;
+			}
+			| REFRESH DEFERRED SCHEDULE Sconst
+			{
+				RefreshOption *n = (RefreshOption *) palloc(sizeof(RefreshOption));
+				n->deferred = true;
+				n->interval = $4;
+				$$ = n;
+			}
+			| /*EMPTY*/
+			{
+				$$ = NULL;
+			}
+		;
 
 /*****************************************************************************
  *
@@ -6934,12 +6975,13 @@ OptNoLog:	UNLOGGED					{ $$ = RELPERSISTENCE_UNLOGGED; }
  *****************************************************************************/
 
 RefreshMatViewStmt:
-			REFRESH MATERIALIZED VIEW opt_concurrently qualified_name opt_with_data
+			REFRESH incremental MATERIALIZED VIEW opt_concurrently qualified_name opt_with_data
 				{
 					RefreshMatViewStmt *n = makeNode(RefreshMatViewStmt);
-					n->concurrent = $4;
-					n->relation = $5;
-					n->skipData = !($6);
+					n->incremental = $2;
+					n->concurrent = $5;
+					n->relation = $6;
+					n->skipData = !($7);
 					$$ = (Node *) n;
 				}
 		;
