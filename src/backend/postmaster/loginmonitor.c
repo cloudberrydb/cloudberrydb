@@ -313,7 +313,8 @@ LoginMonitorLauncherMain(int argc, char *argv[]) {
 		RESUME_INTERRUPTS();
 
 		/* reset and notify process by latch */
-		SetLatch(LoginMonitorShmem->latch);
+		if (LoginMonitorShmem->latch)
+			SetLatch(LoginMonitorShmem->latch);
 		ResetLatch(LoginMonitorShmem->lm_latch);
 		LoginMonitorShmemReset();
 

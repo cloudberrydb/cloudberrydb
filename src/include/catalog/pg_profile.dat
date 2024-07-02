@@ -22,7 +22,7 @@
   descr => 'default profile',
   prfname => 'pg_default', prffailedloginattempts => '-2', prfpasswordlocktime => '-2',
   prfpasswordlifetime => '-2', prfpasswordgracetime => '-2', prfpasswordreusetime => '-2',
-  prfpasswordreusemax => '-2', prfpasswordallowhashed => '1', prfpasswordverifyfuncdb => '_null_',
+  prfpasswordreusemax => '0', prfpasswordallowhashed => '1', prfpasswordverifyfuncdb => '_null_',
   prfpasswordverifyfunc => '_null_' }
 
 ]

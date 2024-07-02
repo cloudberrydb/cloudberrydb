@@ -203,7 +203,7 @@ ALTER USER profile_user1 PASSWORD 'a_nice_long_password_123';
 
 ALTER USER profile_user2 PASSWORD 'test2';
 ALTER USER profile_user2 PASSWORD 'a_bad_password';
-ALTER USER profile_user2 PASSWORD 'test2';
+ALTER USER profile_user2 PASSWORD 'test2' ENABLE PROFILE;
 ALTER USER profile_user2 PASSWORD 'a_bad_password';
 ALTER USER profile_user2 PASSWORD 'a_nice_password';
 ALTER USER profile_user2 PASSWORD 'a_bad_password';
@@ -212,7 +212,7 @@ ALTER PROFILE myprofile3 LIMIT PASSWORD_REUSE_MAX 1;
 ALTER USER profile_user2 PASSWORD 'a_bad_password'; -- OK
 ALTER USER profile_user2 PASSWORD 'test2';  -- OK
 
-ALTER USER profile_user4 PASSWORD 'test3'; -- failed
+ALTER USER profile_user4 PASSWORD 'test3'; -- OK
 
 DELETE FROM pg_password_history;    -- failed for catalog can't be deleted
 
@@ -284,3 +284,6 @@ DROP PROFILE myprofile3; -- OK
 
 SELECT prfname, prffailedloginattempts, prfpasswordlocktime, prfpasswordreusemax
 FROM pg_profile;
+
+-- Reset pg_default
+ALTER PROFILE pg_default LIMIT FAILED_LOGIN_ATTEMPTS -2 PASSWORD_LOCK_TIME -2 PASSWORD_REUSE_MAX 0;
