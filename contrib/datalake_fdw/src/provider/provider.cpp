@@ -7,6 +7,7 @@
 #include "src/provider/orc/read/orcRead.h"
 #include "src/provider/orc/write/orcWriter.h"
 #include "src/provider/archive/read/archiveRead.h"
+#include "src/provider/archive/read/textFileRead.h"
 #include "src/provider/archive/write/archiveWrite.h"
 #include "src/provider/avro/read/avroRead.h"
 #include "src/provider/avro/write/avroWrite.h"
@@ -23,6 +24,7 @@ using Datalake::Internal::archiveWrite;
 using Datalake::Internal::orcReadRecordBatch;
 using Datalake::Internal::icebergRead;
 using Datalake::Internal::hudiRead;
+using Datalake::Internal::textFileRead;
 
 
 std::shared_ptr<Provider> getProvider(const char *type, bool readFdw, bool vectorization)
@@ -31,11 +33,17 @@ std::shared_ptr<Provider> getProvider(const char *type, bool readFdw, bool vecto
 	{
 		if (strcmp(DATALAKE_OPTION_FORMAT_CSV, type) == 0)
 		{
-			return std::make_shared<archiveRead>();
+			if (external_table_new_text)
+				return std::make_shared<textFileRead>();
+			else
+				return std::make_shared<archiveRead>();
 		}
 		else if (strcmp(DATALAKE_OPTION_FORMAT_TEXT, type) == 0)
 		{
-			return std::make_shared<archiveRead>();
+			if (external_table_new_text)
+				return std::make_shared<textFileRead>();
+			else
+				return std::make_shared<archiveRead>();
 		}
 		else if (strcmp(DATALAKE_OPTION_FORMAT_ORC, type) == 0)
 		{

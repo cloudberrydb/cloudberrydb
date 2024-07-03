@@ -6,6 +6,7 @@ OBJS = 	src/datalake_fdw.o \
 		src/datalake_fragment.o \
 		src/datalake_option.o \
 		src/common/dataBufferArray.o \
+		src/common/datalakeBuffer.o \
 		src/common/fileSystemWrapper.o \
 		src/common/fileSystem.o \
 		src/common/logicalType.o \
@@ -39,6 +40,14 @@ OBJS = 	src/datalake_fdw.o \
 		src/provider/orc/write/orcWriter.o \
 		src/provider/archive/read/archiveFileRead.o \
 		src/provider/archive/read/archiveRead.o \
+		src/provider/archive/read/lineRecordReader.o \
+		src/provider/archive/read/textFileArchiveRead.o \
+		src/provider/archive/read/textFileDeflateRead.o \
+		src/provider/archive/read/textFileInput.o \
+		src/provider/archive/read/textFileRead.o \
+		src/provider/archive/read/textFileReadPolicy.o \
+		src/provider/archive/read/textFileSimpleRead.o \
+		src/provider/archive/read/textFileSnappyRead.o \
 		src/provider/archive/write/archiveFileWrite.o \
 		src/provider/archive/write/archiveWrite.o \
 		src/provider/common/config.o \

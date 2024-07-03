@@ -7,6 +7,9 @@ extern "C" {
 
 #include <stdint.h>
 
+extern bool external_table_debug;
+extern bool external_table_new_text;
+
 struct ProviderInternalWrapper;
 
 typedef struct ProviderInternalWrapper *providerWrapper;

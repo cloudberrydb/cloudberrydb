@@ -5,7 +5,9 @@
 #include <vector>
 #include <iostream>
 #include <string>
+#include "src/provider/provider.h"
 
+#define CUT_TEXTFILE_BLOCK_SIZE (32*1024*1024)
 
 namespace Datalake {
 namespace Internal {
@@ -18,6 +20,17 @@ typedef struct metaInfo
     int64_t blockSize;
     int64_t rangeOffset;
     int64_t rangeOffsetEnd;
+	CompressType compress;
+
+    metaInfo() {
+        exists = false;
+        fileName = "";
+        fileLength = 0;
+        blockSize = 0;
+        rangeOffset = 0;
+        rangeOffsetEnd = 0;
+        compress = UNCOMPRESS;
+    }
 } metaInfo;
 
 typedef struct ListContainer
@@ -77,7 +90,6 @@ public:
 		segNum = 0;
 	}
 
-private:
 	void filterList(std::vector<ListContainer> lists);
 };
 

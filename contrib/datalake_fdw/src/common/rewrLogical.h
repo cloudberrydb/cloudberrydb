@@ -77,6 +77,21 @@ public:
     CompressType compression;
 };
 
+typedef struct datalakeMemoryBuffer {
+    char* buffer;
+    int buffer_length;
+    int pos;
+    int used_size;
+    int begin_size;
+    datalakeMemoryBuffer() {
+        buffer = NULL;
+        buffer_length = 0;
+        pos = 0;
+        used_size = 0;
+        begin_size = 0;
+    }
+}datalakeMemoryBuffer;
+
 class RewrLogicalBase
 {
 public:

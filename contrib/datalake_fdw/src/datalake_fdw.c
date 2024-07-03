@@ -225,6 +225,28 @@ _PG_init(void)
 								NULL,
 								NULL);
 
+	DefineCustomBoolVariable("datalake.external_table_debug",
+							"If the value is true, external table to turn debug on.",
+							NULL,
+							&external_table_debug,
+							false,
+							PGC_USERSET,
+							GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE,
+							NULL,
+							NULL,
+							NULL);
+
+	DefineCustomBoolVariable("datalake.external_table_new_text",
+							"If the value is true, external table use the new logic parse text.",
+							NULL,
+							&external_table_new_text,
+							false,
+							PGC_USERSET,
+							0,
+							NULL,
+							NULL,
+							NULL);
+
 	DefineCustomIntVariable("datalake.iceberg_postion_deletes_threshold",
 							"default iceberg position delete file threshold",
 							NULL,

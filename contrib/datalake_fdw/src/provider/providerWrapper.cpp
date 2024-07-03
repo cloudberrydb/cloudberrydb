@@ -4,6 +4,10 @@
 
 extern "C" {
 #include "utils/elog.h"
+
+bool external_table_debug = false;
+bool external_table_new_text = false;
+
 }
 
 struct ProviderInternalWrapper {

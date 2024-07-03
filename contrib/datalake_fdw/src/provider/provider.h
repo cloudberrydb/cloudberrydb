@@ -25,7 +25,10 @@ typedef enum CompressType
 	LZ4,
 	BROTLI,
 	ZIP,
-	UNSUPPORTCOMPRESS
+	DEFLATE,
+	UNSUPPORTCOMPRESS,
+	/* archive support more compress type. */
+    ARCHIVE_SUPPORT_COMPRESS_FORMAT
 } CompressType;
 
 class Provider {
