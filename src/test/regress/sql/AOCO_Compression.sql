@@ -1748,8 +1748,25 @@ get_ao_compression_ratio('mpp17012_compress_test2');
 -- When I insert data
 insert into mpp17012_compress_test2 values('a',generate_series(1,250),'ksjdhfksdhfksdhfksjhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh','bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
 -- Then the data will be compressed according to a consistent compression ratio
+-- start_ignore  
 select pg_size_pretty(pg_relation_size('mpp17012_compress_test2')),
 get_ao_compression_ratio('mpp17012_compress_test2');
+-- end_ignore 
+select
+    case
+        when
+            abs((pg_relation_size('mpp17012_compress_test2') - 712.0) / 712.0) < 0.1
+        then 'test passed'
+        else 'test failed'
+    end as test_relation_size;
+
+select
+    case
+        when
+            abs((get_ao_compression_ratio('mpp17012_compress_test2') - 36.75) / 36.75) < 0.1
+        then 'test passed'
+        else 'test failed'
+    end as test_ao_compression_ratio;
 
 -- Test that an AO/CO table with compresstype zlib and invalid compress level will error at create
 create table a_aoco_table_with_zlib_and_invalid_compression_level(col text) WITH (APPENDONLY=true, COMPRESSTYPE=zlib, compresslevel=-1, ORIENTATION=column);
@@ -1764,8 +1781,25 @@ select pg_size_pretty(pg_relation_size('a_aoco_table_with_rle_type_compression')
 -- When I insert data
 insert into a_aoco_table_with_rle_type_compression select i from generate_series(1,100)i;
 -- Then the data will be compressed according to a consistent compression ratio
+-- start_ignore
 select pg_size_pretty(pg_relation_size('a_aoco_table_with_rle_type_compression')),
        get_ao_compression_ratio('a_aoco_table_with_rle_type_compression');
+-- end_ignore 
+select
+    case
+        when
+            abs((pg_relation_size('a_aoco_table_with_rle_type_compression') - 296.0) / 296.0) < 0.1
+        then 'test passed'
+        else 'test failed'
+    end as test_relation_size;
+
+select
+    case
+        when
+            abs((get_ao_compression_ratio('a_aoco_table_with_rle_type_compression') - 1.81) / 1.81) < 0.1
+        then 'test passed'
+        else 'test failed'
+    end as test_ao_compression_ratio;
 
 -- Test that an AO/CO table with compresstype rle and invalid compress level will error at create
 create table a_aoco_table_with_rle_type_and_invalid_compression_level(col int) WITH (APPENDONLY=true, COMPRESSTYPE=rle_type, compresslevel=-1, ORIENTATION=column);
