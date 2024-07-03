@@ -10,87 +10,29 @@
 #include "src/provider/common/file_reader.h"
 #include "hudi_logfile_block_reader.h"
 #include "hudi_merged_logfile_record_reader.h"
+#include "hudi_hashtab_merger.h"
+#include "hudi_btree_merger.h"
+// #include "datalake_extension.h"
 
 #include "src/provider/common/kryo.h"
 #include "src/provider/common/kryo_input.h"
 
-typedef struct LogRecordHashEntry {
-	InternalRecordWrapper *recordKey;
-	InternalRecordWrapper *recordValue;
-} LogRecordHashEntry;
+extern int hudiLogMergerThreshold;
 
 static void processQueuedBlocks(HudiMergedLogfileRecordReader *reader);
 static bool scanBlock(HudiMergedLogfileRecordReader *reader, HudiLogFileBlock *block);
 
-static InternalRecordDesc *
-createInternalRecordDesc(MemoryContext mcxt,
-						 List *columnDesc,
-						 List *recordKeyFields,
-						 char *preCombineField,
-						 int *preCombineFieldIndex,
-						 Oid *preCombineFieldType)
-{
-	int i;
-	ListCell *lc;
-	HASHCTL  hashCtl;
-	bool found = false;
-
-	InternalRecordDesc *result = palloc0(sizeof(InternalRecordDesc));
-
-	result->nColumns = list_length(columnDesc);
-	result->nKeys = list_length(recordKeyFields);
-	result->keyIndexes = createRecordKeyIndexes(recordKeyFields, columnDesc);
-	result->attrType = palloc(sizeof(Oid) * list_length(columnDesc));
-
-	foreach_with_count(lc, columnDesc, i)
-	{
-		FieldDescription *entry = (FieldDescription *) lfirst(lc);
-		result->attrType[i] = entry->typeOid;
-
-		if (preCombineField && !found && pg_strcasecmp(preCombineField, entry->name) == 0)
-		{
-			*preCombineFieldIndex = i;
-			*preCombineFieldType = entry->typeOid;
-			found = true;
-		}
-	}
-
-	MemSet(&hashCtl, 0, sizeof(hashCtl));
-	hashCtl.keysize = sizeof(InternalRecordWrapper *);
-	hashCtl.entrysize = sizeof(LogRecordHashEntry);
-	hashCtl.hash = recordHash;
-	hashCtl.match = recordMatch;
-	hashCtl.hcxt = mcxt;
-	result->hashTab = hash_create("HudiMergeLogTable", 10000 * 30, &hashCtl,
-								   HASH_ELEM | HASH_FUNCTION | HASH_COMPARE | HASH_CONTEXT);
-
-	return result;
-}
-
-static void
-destroyInternalRecordDesc(InternalRecordDesc *recordDesc)
-{
-	if (recordDesc->keyIndexes)
-		pfree(recordDesc->keyIndexes);
-
-	if (recordDesc->attrType)
-		pfree(recordDesc->attrType);
-
-	if (recordDesc->hashTab)
-		hash_destroy(recordDesc->hashTab);
-
-	pfree(recordDesc);
-}
-
 HudiMergedLogfileRecordReader *
 createMergedLogfileRecordReader(MemoryContext readerMcxt,
 								List *columnDesc,
+								TupleDesc tupDesc,
 								bool *attrUsed,
 								const char *instantTime,
 								gopherFS gopherFilesystem,
 								List *logfiles,
 								ExternalTableMetadata *tableOptions)
 {
+	int64 totalFileSize;
 	HudiMergedLogfileRecordReader *reader = palloc0(sizeof(HudiMergedLogfileRecordReader));
 
 	reader->logfiles = logfiles;
@@ -99,31 +41,56 @@ createMergedLogfileRecordReader(MemoryContext readerMcxt,
 	reader->instantTime = instantTime;
 	reader->gopherFilesystem = gopherFilesystem;
 	reader->readerMcxt = readerMcxt;
-	reader->preCombineFieldType = InvalidOid;
-	reader->preCombineFieldIndex = -1;
 
 	reader->mergerMcxt = AllocSetContextCreate(CurrentMemoryContext,
 											   "MergedLogRecordReaderContext",
 											   ALLOCSET_DEFAULT_MINSIZE,
 											   ALLOCSET_DEFAULT_INITSIZE,
 											   ALLOCSET_DEFAULT_MAXSIZE);
-	reader->deleteMcxt = AllocSetContextCreate(CurrentMemoryContext,
-											   "DeleteLogRecordReaderContext",
+	reader->deleteBlockMcxt = AllocSetContextCreate(CurrentMemoryContext,
+											   "DeleteLogBlockContext",
+											   ALLOCSET_DEFAULT_MINSIZE,
+											   ALLOCSET_DEFAULT_INITSIZE,
+											   ALLOCSET_DEFAULT_MAXSIZE);
+	reader->deleteRowMcxt = AllocSetContextCreate(CurrentMemoryContext,
+											   "DeleteLogRowContext",
 											   ALLOCSET_DEFAULT_MINSIZE,
 											   ALLOCSET_DEFAULT_INITSIZE,
 											   ALLOCSET_DEFAULT_MAXSIZE);
 	reader->tableOptions = tableOptions;
-	reader->recordDesc = createInternalRecordDesc(reader->mergerMcxt,
-												  columnDesc,
-												  tableOptions->recordKeyFields,
-												  tableOptions->preCombineField,
-												  &reader->preCombineFieldIndex,
-												  &reader->preCombineFieldType);
 
-	performScan(reader);
+	/* NB: I intentionally saved the fileSize into the recordCount field */
+	totalFileSize = getFileRecordCount(logfiles);
+	if (totalFileSize < hudiLogMergerThreshold * 1024 * 1024)
+	{
+		reader->mergeProvider = (MergeProvider *) createHudiHashTableMerger(
+														reader->mergerMcxt,
+														reader->columnDesc,
+														tableOptions->recordKeyFields,
+														tableOptions->preCombineField
+												  );
+	}
+	else
+	{
+		reader->mergeProvider = (MergeProvider *) createHudiBtreeMerger(
+														reader->columnDesc,
+														tableOptions->recordKeyFields,
+														tableOptions->preCombineField,
+														totalFileSize,
+														tupDesc
+												  );
+	}
 
-	hash_seq_init(&reader->hashTabSeqStatus, reader->recordDesc->hashTab);
-	reader->isRegistered = true;
+	PG_TRY();
+	{
+		performScan(reader);
+	}
+	PG_CATCH();
+	{
+		reader->mergeProvider->Close(reader->mergeProvider);
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
 
 	return reader;
 }
@@ -179,12 +146,16 @@ performScan(HudiMergedLogfileRecordReader *reader)
 void
 mergedLogfileRecordReaderClose(HudiMergedLogfileRecordReader *reader)
 {
-	if (reader->isRegistered)
-		hash_seq_term(&reader->hashTabSeqStatus);
+	if (reader->mergeProvider)
+		reader->mergeProvider->Close(reader->mergeProvider);
 
-	destroyInternalRecordDesc(reader->recordDesc);
-	MemoryContextDelete(reader->mergerMcxt);
-	MemoryContextDelete(reader->deleteMcxt);
+	if (reader->mergerMcxt)
+		MemoryContextDelete(reader->mergerMcxt);
+	if (reader->deleteBlockMcxt)
+		MemoryContextDelete(reader->deleteBlockMcxt);
+	if (reader->deleteRowMcxt)
+		MemoryContextDelete(reader->deleteRowMcxt);
+
 	pfree(reader);
 }
 
@@ -234,32 +205,14 @@ isNewInstantBlock(const char *blockInstantTime, List *queuedBlocks)
 }
 
 static void
-combineAndUpdateValue(HTAB *hashTab, InternalRecordWrapper *recordWrapper)
-{
-	bool found;
-	LogRecordHashEntry *entry;
-
-	entry = (LogRecordHashEntry *) hash_search(hashTab, &recordWrapper, HASH_FIND, NULL);
-	if (entry)
-	{
-		hash_search(hashTab, &recordWrapper, HASH_REMOVE, &found);
-		Assert(found);
-	}
-
-	entry = (LogRecordHashEntry *) hash_search(hashTab, &recordWrapper, HASH_ENTER, &found);
-	Assert(!found);
-
-	entry->recordValue = recordWrapper;
-}
-
-static void
 processDataBlock(HudiMergedLogfileRecordReader *reader, HudiLogFileBlock *block)
 {
 	Reader *blockReader;
 	FileFragment *stream;
+	bool found;
 	char *schema;
 	MemoryContext oldMcxt;
-	InternalRecordWrapper *recordWrapper;
+	InternalRecordWrapper record;
 	HudiLogFileDataBlock *dataBlock = (HudiLogFileDataBlock *) block;
 
 	oldMcxt = MemoryContextSwitchTo(reader->mergerMcxt);
@@ -272,21 +225,17 @@ processDataBlock(HudiMergedLogfileRecordReader *reader, HudiLogFileBlock *block)
 	blockReader = (Reader *) createFileReader(reader->readerMcxt, reader->columnDesc, reader->attrUsed,
 											  false, stream, schema, dataBlock->length, strlen(schema));
 
+	initRecord(&record, reader->mergeProvider->recordDesc, list_length(reader->columnDesc));
 	while (true)
 	{
-		recordWrapper = createInternalRecordWrapper(reader->recordDesc, list_length(reader->columnDesc));
-		if (blockReader->Next(blockReader, (InternalRecord *) recordWrapper))
-		{
-			combineAndUpdateValue(reader->recordDesc->hashTab, recordWrapper);
-			deepCopyRecord(recordWrapper);
-		}
-		else
-		{
-			destroyInternalRecordWrapper(recordWrapper);
+		found = blockReader->Next(blockReader, (InternalRecord *) &record);
+		if (!found)
 			break;
-		}
+
+		reader->mergeProvider->CombineAndUpdate(reader->mergeProvider, &record);
 	}
 
+	cleanupRecord(&record);
 	blockReader->Close(blockReader);
 	MemoryContextSwitchTo(oldMcxt);
 }
@@ -308,19 +257,80 @@ deserializeDeleteRecords(HudiMergedLogfileRecordReader *reader, int version, cha
 	return datum;
 }
 
-static InternalRecordWrapper *
-createDeleteRecord(HudiMergedLogfileRecordReader *reader, List *recordKeyFields, KryoDatum orderingVal)
+static List *
+parseKeyValue(List *result, char *pair, char *recordKey)
+{
+	int       keyLen;
+	int       valueLen;
+	char     *sep = strchr(pair, ':');
+	KeyValue *data = palloc0(sizeof(KeyValue));
+
+	if (sep == NULL)
+		elog(ERROR, "invalid record key %s: '%s' missing delimiter ':'", recordKey, pair);
+
+	keyLen = sep - pair;
+
+	if (keyLen == 0)
+		elog(ERROR, "invalid record key %s: '%s' missing key before ':'", recordKey, pair);
+
+	valueLen = strlen(pair) - keyLen + 1;
+	if (valueLen == 2)
+		elog(ERROR, "invalid record key %s: '%s' missing value after ':'", recordKey, pair);
+
+	data->key = pnstrdup(pair, keyLen);
+	data->value = pnstrdup(sep + 1, valueLen);
+
+	return lappend(result, data);
+}
+
+/* id:1,name:1 */
+static List *
+extractRecordKeyValues(char *strRecordKey, int strSize, int keySize)
+{
+	char *pair;
+	char *ctx;
+	char *dupStr;
+	char *start;
+	char *sep;
+	List *result = NIL;
+
+	dupStr = pnstrdup(strRecordKey, strSize);
+	sep = strchr(dupStr, ':');
+
+	if (keySize == 1 && sep == NULL)
+	{
+		KeyValue *data = palloc0(sizeof(KeyValue));
+
+		data->value = pnstrdup(strRecordKey, strSize);
+		result = lappend(result, data);
+
+		pfree(dupStr);
+		return result;
+	}
+
+	start = dupStr;
+	for (pair = strtok_r(start, ",", &ctx); pair; pair = strtok_r(NULL, ",", &ctx))
+		result = parseKeyValue(result, pair, strRecordKey);
+
+	pfree(dupStr);
+	return result;
+}
+
+
+static void
+populateDeleteRecord(MergeProvider *provider,
+					 InternalRecordWrapper *recordWrapper,
+					 KryoDatum recordKey,
+					 KryoDatum orderingVal)
 {
 	int i;
 	int colIndex;
 	ListCell *lc;
-	MemoryContext oldMcxt;
-	InternalRecordDesc *recordDesc = reader->recordDesc;
+	List *recordKeyFields;
+	InternalRecordDesc *recordDesc = provider->recordDesc;
+	KryoStringDatum *strRecordKey = kryoDatumToString(recordKey);
 
-	oldMcxt = MemoryContextSwitchTo(reader->mergerMcxt);
-
-	InternalRecordWrapper *recordWrapper = createInternalRecordWrapper(reader->recordDesc,
-																	   list_length(reader->columnDesc));
+	recordKeyFields = extractRecordKeyValues(strRecordKey->s, strRecordKey->size, provider->recordDesc->nKeys);
 	for (i = 0; i < recordDesc->nColumns; i++)
 	{
 		recordWrapper->record.values[i] = PointerGetDatum(NULL);
@@ -336,110 +346,66 @@ createDeleteRecord(HudiMergedLogfileRecordReader *reader, List *recordKeyFields,
 		recordWrapper->record.nulls[colIndex] = false;
 	}
 
-	if (reader->preCombineFieldIndex >= 0)
+	if (provider->preCombineFieldIndex >= 0)
 	{
-		recordWrapper->record.values[reader->preCombineFieldIndex] =
-						orderingVal ? createDatumByValue(reader->preCombineFieldType, orderingVal) : DatumGetInt64(0);
-		recordWrapper->record.nulls[reader->preCombineFieldIndex] = false;
+		recordWrapper->record.values[provider->preCombineFieldIndex] =
+						orderingVal ? createDatumByValue(provider->preCombineFieldType, orderingVal) : DatumGetInt64(0);
+		recordWrapper->record.nulls[provider->preCombineFieldIndex] = false;
 	}
 
-	SET_RECORD_IS_DELETED(recordWrapper);
-	MemoryContextSwitchTo(oldMcxt);
-
-	return recordWrapper;
-}
-
-static bool
-greaterThan(Oid type, Datum datum1, Datum datum2)
-{
-	/* TODO compare operator */
-	if (type != TEXTOID)
-		return DatumGetInt64(datum1) > DatumGetInt64(datum2);
-
-	return DatumGetBool(DirectFunctionCall2Coll(text_gt,
-												DEFAULT_COLLATION_OID,
-												PointerGetDatum(datum1),
-												PointerGetDatum(datum2)));
-}
-
-static void
-processDeleteRecord(HudiMergedLogfileRecordReader *reader,
-					KryoDatum recordKey,
-					KryoDatum partitionPath,
-					KryoDatum orderingVal)
-{
-	bool found;
-	List *recordKeyFields;
-	Datum deleteOrderingVal;
-	Datum curOrderingVal;
-	LogRecordHashEntry *entry;
-	InternalRecordWrapper *recordWrapper;
-	KryoStringDatum *strRecordKey = kryoDatumToString(recordKey);
-
-	recordKeyFields = extractRecordKeyValues(strRecordKey->s, strRecordKey->size, reader->recordDesc->nKeys);
-	recordWrapper = createDeleteRecord(reader, recordKeyFields, orderingVal);
 	freeKeyValueList(recordKeyFields);
-
-	entry = hash_search(reader->recordDesc->hashTab, &recordWrapper, HASH_FIND, NULL);
-	if (entry != NULL)
-	{
-		bool choosePrev;
-
-		if (reader->preCombineFieldIndex >= 0)
-		{
-			deleteOrderingVal = recordWrapper->record.values[reader->preCombineFieldIndex];
-			curOrderingVal = entry->recordValue->record.values[reader->preCombineFieldIndex];
-		}
-
-		choosePrev = reader->preCombineFieldIndex >= 0 && 
-					 DatumGetInt64(deleteOrderingVal) != 0 &&
-					 greaterThan(reader->preCombineFieldType, curOrderingVal, deleteOrderingVal);
-
-		if (choosePrev)
-		{
-			/* the DELETE message is obsolete if the old message has greater orderingVal */
-			return;
-		}
-
-		hash_search(reader->recordDesc->hashTab, &recordWrapper, HASH_REMOVE, &found);
-		Assert(found);
-	}
-
-	entry = hash_search(reader->recordDesc->hashTab, &recordWrapper, HASH_ENTER, &found);
-	Assert(!found);
-	entry->recordValue = recordWrapper;
 }
 
 static void
 processV1DeleteRecords(HudiMergedLogfileRecordReader *reader, KryoDatum hoodieKeys)
 {
 	int i;
+	InternalRecordWrapper record;
+	MemoryContext oldContext;
 
+	initRecord(&record, reader->mergeProvider->recordDesc, list_length(reader->columnDesc));
 	for (i = 0; i < kryoDatumToArray(hoodieKeys)->size; i++)
 	{
 		KryoDatum hoodieKey = kryoDatumToArray(hoodieKeys)->elements[i];
 		KryoDatum recordKey = kryoDatumToArray(hoodieKey)->elements[1];
-		KryoDatum partitionPath = kryoDatumToArray(hoodieKey)->elements[0];
 
-		processDeleteRecord(reader, recordKey, partitionPath, NULL);
+		MemoryContextReset(reader->deleteRowMcxt);
+
+		oldContext = MemoryContextSwitchTo(reader->deleteRowMcxt);
+
+		populateDeleteRecord(reader->mergeProvider, &record, recordKey, NULL);
+		reader->mergeProvider->UpdateOnDelete(reader->mergeProvider, &record);
+
+		MemoryContextSwitchTo(oldContext);
 	}
+
+	cleanupRecord(&record);
 }
 
 static void
 processV2DeleteRecords(HudiMergedLogfileRecordReader *reader, KryoDatum deleteRecords)
 {
 	int i;
+	InternalRecordWrapper record;
+	MemoryContext oldContext;
 
+	initRecord(&record, reader->mergeProvider->recordDesc, list_length(reader->columnDesc));
 	for (i = 0; i < kryoDatumToArray(deleteRecords)->size; i++)
 	{
 		KryoDatum deleteRecord = kryoDatumToArray(deleteRecords)->elements[i];
 		KryoDatum hoodieKey = kryoDatumToArray(deleteRecord)->elements[0];
 
 		KryoDatum recordKey = kryoDatumToArray(hoodieKey)->elements[1];
-		KryoDatum partitionPath = kryoDatumToArray(hoodieKey)->elements[0];
-
 		KryoDatum orderingVal = kryoDatumToArray(deleteRecord)->elements[1];
-		processDeleteRecord(reader, recordKey, partitionPath, orderingVal);
+
+		MemoryContextReset(reader->deleteRowMcxt);
+
+		oldContext = MemoryContextSwitchTo(reader->deleteRowMcxt);
+
+		populateDeleteRecord(reader->mergeProvider, &record, recordKey, orderingVal);
+		reader->mergeProvider->UpdateOnDelete(reader->mergeProvider, &record);
+
+		MemoryContextSwitchTo(oldContext);
 	}
 }
 
@@ -462,8 +428,8 @@ processDeleteBlock(HudiMergedLogfileRecordReader *reader, HudiLogFileBlock *bloc
 	length = reverse32(length);
 #endif
 
-	MemoryContextReset(reader->deleteMcxt);
-	oldContext = MemoryContextSwitchTo(reader->deleteMcxt);
+	MemoryContextReset(reader->deleteBlockMcxt);
+	oldContext = MemoryContextSwitchTo(reader->deleteBlockMcxt);
 
 	datum = deserializeDeleteRecords(reader, version, dataBlock->content + 8, length);
 	version == 1 ? processV1DeleteRecords(reader, datum) : processV2DeleteRecords(reader, datum);
@@ -591,34 +557,7 @@ scanBlock(HudiMergedLogfileRecordReader *reader, HudiLogFileBlock *block)
 bool
 mergedLogfileRecordReaderNext(HudiMergedLogfileRecordReader *reader, InternalRecord *record)
 {
-	LogRecordHashEntry *entry;
-	InternalRecordDesc *recordDesc = reader->recordDesc;
-
-again:
-	entry = (LogRecordHashEntry *) hash_seq_search(&reader->hashTabSeqStatus);
-	if (entry)
-	{
-		int i;
-
-		if (RECORD_IS_DELETED(entry->recordValue))
-			goto again;
-
-		if (RECORD_IS_SKIPPED(entry->recordValue))
-			goto again;
-
-		for (i = 0; i < recordDesc->nColumns; i++)
-		{
-			record->values[i] = entry->recordValue->record.values[i];
-			record->nulls[i] = entry->recordValue->record.nulls[i];
-		}
-
-		return true;
-	}
-
-	Assert(reader->isRegistered);
-	reader->isRegistered = false;
-
-	return false;
+	return reader->mergeProvider->Next(reader->mergeProvider, record);
 }
 
 bool
@@ -627,24 +566,5 @@ mergedLogfileContains(HudiMergedLogfileRecordReader *reader,
 					  InternalRecord **newRecord,
 					  bool *isDeleted)
 {
-	LogRecordHashEntry    *entry;
-	InternalRecordWrapper  recordWrapper;
-	InternalRecordWrapper *pRecordWrapper = &recordWrapper;
-
-	*isDeleted = false;
-	recordWrapper.record = *record;
-	recordWrapper.recordDesc = reader->recordDesc;
-	entry = (LogRecordHashEntry *) hash_search(reader->recordDesc->hashTab, &pRecordWrapper, HASH_FIND, NULL);
-	if (entry == NULL)
-		return false;
-
-	if (RECORD_IS_DELETED(entry->recordValue))
-	{
-		*isDeleted = true;
-		return true;
-	}
-
-	*newRecord = &entry->recordValue->record;
-	SET_RECORD_IS_SKIPPED(entry->recordValue);
-	return true;
+	return reader->mergeProvider->Contains(reader->mergeProvider, record, newRecord, isDeleted);
 }

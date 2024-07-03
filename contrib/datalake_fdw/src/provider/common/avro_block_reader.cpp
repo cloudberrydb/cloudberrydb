@@ -164,6 +164,22 @@ AvroBlockReader::extractField(avro_value_t *container, avro_value_t *field)
 	return field;
 }
 
+int
+AvroBlockReader::extractScalFromTypeMod(int32 typmod)
+{
+	// int precision;
+	int scale;
+
+	if (typmod < (int32) (VARHDRSZ))
+		return 0;
+
+	typmod -= VARHDRSZ;
+	// precision = (typmod >> 16) & 0xffff;
+	scale = typmod & 0xffff;
+
+	return scale;
+}
+
 Datum
 AvroBlockReader::readPrimitive(const TypeInfo &typInfo, bool &isNull)
 {

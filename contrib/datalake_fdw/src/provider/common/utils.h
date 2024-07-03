@@ -13,16 +13,12 @@ struct ExternalTableMetadata;
 
 #define BLOCK_SIZE (1024 * 1024 * 8)
 
-#define SET_RECORD_IS_DELETED(recordWrapper) ((recordWrapper)->record.position = -1)
-#define SET_RECORD_IS_SKIPPED(recordWrapper) ((recordWrapper)->record.position = -2)
-#define RECORD_IS_DELETED(recordWrapper) ((recordWrapper)->record.position == -1)
-#define RECORD_IS_SKIPPED(recordWrapper) ((recordWrapper)->record.position == -2)
-
 typedef struct ReaderInitInfo
 {
 	int				taskId;
 	MemoryContext	mcxt;
 	List		   *datafileDesc;
+	TupleDesc		tupDesc;
 	bool		   *attrUsed;
 	gopherFS		gopherFilesystem;
 	FileScanTask   *fileScanTask;
@@ -40,6 +36,11 @@ typedef struct InternalRecordWrapper {
 	InternalRecord  record;
 	void           *recordDesc;
 } InternalRecordWrapper;
+
+typedef struct LogRecordHashEntry {
+	InternalRecordWrapper *recordKey;
+	InternalRecordWrapper *recordValue;
+} LogRecordHashEntry;
 
 typedef struct InternalRecordDesc {
 	void *hashTab;
@@ -69,6 +70,19 @@ typedef struct KeyValue
 	char *key;
 	char *value;
 } KeyValue;
+
+typedef struct MergeProvider
+{
+	void (*Close) (struct MergeProvider *merger);
+	void (*CombineAndUpdate) (struct MergeProvider *merger, InternalRecordWrapper *record);
+	void (*UpdateOnDelete) (struct MergeProvider *merger, InternalRecordWrapper *record);
+	bool (*Next) (struct MergeProvider *merger, InternalRecord *record);
+	bool (*Contains) (struct MergeProvider *merger, InternalRecord *record, InternalRecord **newRecord, bool *isDeleted);
+
+	InternalRecordDesc *recordDesc;
+	Oid preCombineFieldType;
+	int preCombineFieldIndex;
+} MergeProvider;
 
 extern PGDLLIMPORT int PostPortNumber;
 
@@ -122,27 +136,25 @@ reverse64(uint64_t value)
 }
 #endif
 
-char *tolowercase(const char *input, char *output);
-char *splitPath(char *filePath);
-List *createFieldDescription(TupleDesc tupleDesc);
-List *createPositionDeletesDescription(void);
-int64 getFileRecordCount(List *deletes);
 bool charSeqEquals(char *s1, int s1Len, char *s2, int s2Len);
-int charSeqIndexOf(char *array, int arrayLength, char *target, int targetLength);
+int64 getFileRecordCount(List *deletes);
 int *createRecordKeyIndexes(List *recordKeys, List *columnDesc);
 uint32 fieldHash(Datum datum, Oid type);
 bool fieldCompare(Datum datum1, Datum datum2, Oid type);
-void deepCopyField(Datum *datum, Oid type, int index);
 InternalRecordWrapper *createInternalRecordWrapper(void *recordDesc, int nColumns);
 void destroyInternalRecordWrapper(InternalRecordWrapper *recordWrapper);
 bool *createDeleteProjectionColumns(List *recordKeys, List *columnDesc);
 uint32 recordHash(const void *key, Size keysize);
 int recordMatch(const void *key1, const void *key2, Size keysize);
-void deepCopyRecord(InternalRecordWrapper *recordWrapper);
+InternalRecordWrapper *deepCopyRecord(InternalRecordWrapper *recordWrapper);
 int extractScalFromTypeMod(int32 typmod);
-List *extractRecordKeyValues(char *strRecordKey, int strSize, int keySize);
 Datum createDatumByText(Oid attType, const char *value);
-List *extractPartitionKeyValues(char *filePaht, List *partitionKeys, bool isHiveStyle);
 void freeKeyValueList(List *kvs);
+bool hudiGreaterThan(Oid type, Datum datum1, Datum datum2);
+void initRecord(InternalRecordWrapper *record, void *recordDesc, int nColumns);
+void cleanupRecord(InternalRecordWrapper *record);
+InternalRecordDesc *createInternalRecordDesc(MemoryContext mcxt, List *columnDesc, List *recordKeyFields,
+							 char *preCombineField, int *preCombineFieldIndex, Oid *preCombineFieldType);
+void destroyInternalRecordDesc(InternalRecordDesc *recordDesc);
 
 #endif /* _UTILS_H_ */

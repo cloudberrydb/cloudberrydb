@@ -5,6 +5,7 @@
 namespace Datalake {
 namespace Internal {
 
+static char archiveReadBuff[ARCHIEVE_READ_BUFFER_SIZE];
 
 void archiveFileRead::open(ossFileStream ossFile, std::string fileName, readOption options)
 {

@@ -16,6 +16,29 @@ static RemoteFileHandle *openRemoteHandles;
 static void flatCombinedTasks(List *combinedScanTasks, List **fileScanTasks);
 static bool isCacheEnabled(char *cacheEnabled);
 
+static List *
+createFieldDescription(TupleDesc tupleDesc)
+{
+	int i;
+	List *result = NIL;
+
+	for (i = 0; i < tupleDesc->natts; i++)
+	{
+		FieldDescription *fieldDesc = (FieldDescription *) palloc0(sizeof(FieldDescription));
+		Oid typeOid = TupleDescAttr(tupleDesc, i)->atttypid;
+		int typeMod = TupleDescAttr(tupleDesc, i)->atttypmod;
+		const char *attname = NameStr(TupleDescAttr(tupleDesc, i)->attname);
+
+		strcpy(fieldDesc->name, attname);
+		fieldDesc->typeOid = typeOid;
+		fieldDesc->typeMod = typeMod;
+
+		result = lappend(result, fieldDesc);
+	}
+
+	return result;
+}
+
 static RemoteFileHandle *
 createRemoteFileHandle(gopherFS gopherFilesystem)
 {

@@ -36,6 +36,7 @@ protected:
 	void decodeRecord();
 	void prepareRowGroup();
 	avro_value_t *extractField(avro_value_t *container, avro_value_t *field);
+	int extractScalFromTypeMod(int32 typmod);
 };
 
 #endif // AVRO_BLOCK_READER_H

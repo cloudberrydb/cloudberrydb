@@ -21,6 +21,7 @@ static Reader methods = {
 DeltaLogFilter *
 createDeltaLogFilter(MemoryContext mcxt,
 					 List *datafileDesc,
+					 TupleDesc tupDesc,
 					 bool *attrUsed,
 					 Reader *dataReader,
 					 gopherFS gopherFilesystem,
@@ -34,8 +35,10 @@ createDeltaLogFilter(MemoryContext mcxt,
 	filter->dataReader = dataReader;
 	filter->tableOptions = tableOptions;
 	filter->readLogs = false;
+	filter->nColumns = list_length(datafileDesc);
 	filter->deltaSet = createMergedLogfileRecordReader(mcxt,
 													   datafileDesc,
+													   tupDesc,
 													   attrUsed,
 													   instantTime,
 													   gopherFilesystem,
@@ -68,7 +71,8 @@ deltaLogFilterClose(Reader *filter)
 	if (deltaLogFilter->dataReader)
 		deltaLogFilter->dataReader->Close(deltaLogFilter->dataReader);
 
-	mergedLogfileRecordReaderClose(deltaLogFilter->deltaSet);
+	if (deltaLogFilter->deltaSet)
+		mergedLogfileRecordReaderClose(deltaLogFilter->deltaSet);
 
 	pfree(deltaLogFilter);
 
@@ -97,7 +101,7 @@ mergeFilterNext(DeltaLogFilter *filter, InternalRecord *record)
 			if (isDeleted)
 				continue;
 
-			for(i = 0; i < filter->deltaSet->recordDesc->nColumns; i++)
+			for(i = 0; i < filter->nColumns; i++)
 			{
 				record->values[i] = newRecord->values[i];
 				record->nulls[i] = newRecord->nulls[i];

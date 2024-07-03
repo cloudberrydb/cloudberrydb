@@ -2,6 +2,7 @@
 #define HUDI_LOGFILE_BLOCK_READER_H
 
 #include "postgres.h"
+// #include "utils/datalake.h"
 #include "src/dlproxy/datalake.h"
 #include "src/provider/common/utils.h"
 #include <gopher/gopher.h>

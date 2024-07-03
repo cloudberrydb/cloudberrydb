@@ -16,20 +16,18 @@ typedef struct HudiMergedLogfileRecordReader
 	bool	   *attrUsed;
 	const char *instantTime;
 	gopherFS	gopherFilesystem;
-	InternalRecordDesc *recordDesc;
 	MemoryContext mergerMcxt;
-	MemoryContext deleteMcxt;
+	MemoryContext deleteBlockMcxt;
+	MemoryContext deleteRowMcxt;
 	MemoryContext readerMcxt;
-	HASH_SEQ_STATUS hashTabSeqStatus;
-	bool isRegistered;
 	ExternalTableMetadata *tableOptions;
-	int preCombineFieldIndex;
-	Oid preCombineFieldType;
+	MergeProvider *mergeProvider;
 } HudiMergedLogfileRecordReader;
 
 HudiMergedLogfileRecordReader *
 createMergedLogfileRecordReader(MemoryContext readerMcxt,
 								List *columnDesc,
+								TupleDesc tupDesc,
 								bool *attrUsed,
 								const char *instantTime,
 								gopherFS gopherFilesystem,

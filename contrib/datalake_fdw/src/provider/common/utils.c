@@ -1,6 +1,7 @@
 #include "postgres.h"
 #include "fmgr.h"
 #include "catalog/pg_type.h"
+#include "catalog/pg_collation.h"
 #include "utils/builtins.h"
 #include "utils/date.h"
 #include "utils/memutils.h"
@@ -12,74 +13,6 @@
 #include "utils.h"
 #include <curl/curl.h>
 #include "common/hashfn.h"
-
-/*
- * hdfs://hashdata:9000/user/hive/warehouse/iceberg_db.db/table6/data/00000-0-adce9cbd-f6e5-4a9d-8ea1-2a09b6ca06ed-00001.parquet
- */
-char *
-splitPath(char *uri)
-{
-	char *pathPos;
-	char *hostPos = uri + 7; /* Remove "hdfs://" */
-
-	pathPos = strchr(hostPos, '/');
-	return pstrdup(pathPos);
-}
-
-List *
-createFieldDescription(TupleDesc tupleDesc)
-{
-	int i;
-	List *result = NIL;
-
-    for (i = 0; i < tupleDesc->natts; i++)
-    {
-		FieldDescription *fieldDesc = (FieldDescription *) palloc0(sizeof(FieldDescription));
-		Oid typeOid = TupleDescAttr(tupleDesc, i)->atttypid;
-		int typeMod = TupleDescAttr(tupleDesc, i)->atttypmod;
-        const char *attname = NameStr(TupleDescAttr(tupleDesc, i)->attname);
-
-		strcpy(fieldDesc->name, attname);
-		fieldDesc->typeOid = typeOid;
-		fieldDesc->typeMod = typeMod;
-
-		result = lappend(result, fieldDesc);
-	}
-
-	return result;
-}
-
-List *
-createPositionDeletesDescription(void)
-{
-	FieldDescription *filePath = palloc0(sizeof(FieldDescription));
-	FieldDescription *pos = palloc0(sizeof(FieldDescription));
-
-	strcpy(filePath->name, "file_path");
-	filePath->typeOid = TEXTOID;
-	filePath->typeMod = -1;
-
-	strcpy(pos->name, "pos");
-	pos->typeOid = INT8OID;
-	pos->typeMod = -1; 
-
-	return list_make2(filePath, pos);
-}
-
-int64
-getFileRecordCount(List *deletes)
-{
-	ListCell *lc;
-	int64 result = 0;
-
-	foreach(lc, deletes)
-	{
-		FileFragment *deleteFile = (FileFragment *) lfirst(lc);
-		result += deleteFile->recordCount;
-	}
-
-	return result;
-}
 
 bool
 charSeqEquals(char *s1, int s1Len, char *s2, int s2Len)
@@ -103,36 +36,19 @@ charSeqEquals(char *s1, int s1Len, char *s2, int s2Len)
 	return true;
 }
 
-int
-charSeqIndexOf(char *array, int arrayLength, char *target, int targetLength)
+int64
+getFileRecordCount(List *deletes)
 {
-	int  i;
-	int  j;
-	bool match;
+	ListCell *lc;
+	int64 result = 0;
 
-	if (targetLength == 0)
-		return 0;
-
-	for(i = 0; i < arrayLength - targetLength + 1; ++i)
+	foreach(lc, deletes)
 	{
-		match = true;
-
-		for(j = 0; j < targetLength; ++j)
-		{
-			if (array[i + j] != target[j])
-			{
-				match = false;
-				break;
-			}
-		}
-
-		if (!match)
-			continue;
-
-		return i;
+		FileFragment *deleteFile = (FileFragment *) lfirst(lc);
+		result += deleteFile->recordCount;
 	}
 
-	return -1;
+	return result;
 }
 
 int *
@@ -309,11 +225,9 @@ fieldCompare(Datum datum1, Datum datum2, Oid type)
 	return !memcmp(key1, key2, key1Size);
 }
 
-void
-deepCopyField(Datum *datum, Oid type, int index)
+static void
+deepCopyField(Datum *newDatum, Datum *datum, Oid type, int index)
 {
-	Datum tempDatum;
-
 	switch (type)
 	{
 		case BOOLOID:
@@ -325,20 +239,19 @@ deepCopyField(Datum *datum, Oid type, int index)
 		case DATEOID:
 		case FLOAT4OID:
 		case FLOAT8OID:
+			newDatum[index] = datum[index];
 			break;
 		case NUMERICOID:
 		case TEXTOID:
 		{
-			tempDatum = datum[index];
-			datum[index] = PointerGetDatum(palloc(VARSIZE(tempDatum)));
-			memcpy(DatumGetPointer(datum[index]), DatumGetPointer(tempDatum), VARSIZE(tempDatum));
+			newDatum[index] = PointerGetDatum(palloc(VARSIZE(datum[index])));
+			memcpy(DatumGetPointer(newDatum[index]), DatumGetPointer(datum[index]), VARSIZE(datum[index]));
 			break;
 		}
 		case UUIDOID:
 		{
-			tempDatum = datum[index];
-			datum[index] = PointerGetDatum(palloc(16));
-			memcpy(DatumGetPointer(datum[index]), DatumGetPointer(tempDatum), 16);
+			newDatum[index] = PointerGetDatum(palloc(16));
+			memcpy(DatumGetPointer(newDatum[index]), DatumGetPointer(datum[index]), 16);
 			break;
 		}
 		default:
@@ -424,19 +337,32 @@ recordMatch(const void *key1, const void *key2, Size keysize)
 	return 0;
 }
 
-void
+InternalRecordWrapper *
 deepCopyRecord(InternalRecordWrapper *recordWrapper)
 {
 	int i;
+	InternalRecordWrapper *result;
 	InternalRecordDesc *recordDesc = recordWrapper->recordDesc;
+
+	result = palloc(sizeof(InternalRecordWrapper));
+	result->record.values = (Datum *) palloc(recordDesc->nColumns * sizeof(Datum));
+	result->record.nulls = (bool *) palloc(recordDesc->nColumns * sizeof(bool));
+	result->recordDesc = recordDesc;
 
 	for (i = 0; i < recordDesc->nColumns; i++)
 	{
+		result->record.nulls[i] = recordWrapper->record.nulls[i];
 		if (recordWrapper->record.nulls[i])
 			continue;
 
-		deepCopyField(recordWrapper->record.values, recordDesc->attrType[i], i);
+		deepCopyField(result->record.values,
+					  recordWrapper->record.values,
+					  recordDesc->attrType[i], i);
 	}
+
+	result->record.position = recordWrapper->record.position;
+
+	return result;
 }
 
 int
@@ -453,65 +379,6 @@ extractScalFromTypeMod(int32 typmod)
 	scale = typmod & 0xffff;
 
 	return scale;
-}
-
-static List *
-parseKeyValue(List *result, char *pair, char *recordKey)
-{
-	int       keyLen;
-	int       valueLen;
-	char     *sep = strchr(pair, ':');
-	KeyValue *data = palloc0(sizeof(KeyValue));
-
-	if (sep == NULL)
-		elog(ERROR, "invalid record key %s: '%s' missing delimiter ':'", recordKey, pair);
-
-	keyLen = sep - pair;
-
-	if (keyLen == 0)
-		elog(ERROR, "invalid record key %s: '%s' missing key before ':'", recordKey, pair);
-
-	valueLen = strlen(pair) - keyLen + 1;
-	if (valueLen == 2)
-		elog(ERROR, "invalid record key %s: '%s' missing value after ':'", recordKey, pair);
-
-	data->key = pnstrdup(pair, keyLen);
-	data->value = pnstrdup(sep + 1, valueLen);
-
-	return lappend(result, data);
-}
-
-/* id:1,name:1 */
-List *
-extractRecordKeyValues(char *strRecordKey, int strSize, int keySize)
-{
-	char *pair;
-	char *ctx;
-	char *dupStr;
-	char *start;
-	char *sep;
-	List *result = NIL;
-
-	dupStr = pnstrdup(strRecordKey, strSize);
-	sep = strchr(dupStr, ':');
-
-	if (keySize == 1 && sep == NULL)
-	{
-		KeyValue *data = palloc0(sizeof(KeyValue));
-
-		data->value = pnstrdup(strRecordKey, strSize);
-		result = lappend(result, data);
-
-		pfree(dupStr);
-		return result;
-	}
-
-	start = dupStr;
-	for (pair = strtok_r(start, ",", &ctx); pair; pair = strtok_r(NULL, ",", &ctx))
-		result = parseKeyValue(result, pair, strRecordKey);
-
-	pfree(dupStr);
-	return result;
 }
 
 void
@@ -586,117 +453,122 @@ createDatumByText(Oid attType, const char *value)
 	return datum;
 }
 
-static char **
-splitString(const char *value, char delim, int *size)
+bool
+hudiGreaterThan(Oid type, Datum datum1, Datum datum2)
 {
-	int    i;
-	int    pos = 0;
-	int    len = strlen(value);
-	List  *elements = NIL;
-	char **result;
+	switch (type)
+	{
+		case BOOLOID:
+		case INT4OID:
+		case TIMEOID:
+		case INT8OID:
+		case TIMESTAMPOID:
+		case TIMESTAMPTZOID:
+		case DATEOID:
+			return DatumGetInt64(datum1) > DatumGetInt64(datum2);
+		case FLOAT4OID:
+			return DatumGetFloat4(datum1) > DatumGetFloat4(datum2);
+		case FLOAT8OID:
+			return DatumGetFloat8(datum1) > DatumGetFloat8(datum2);
+		case NUMERICOID:
+			return DirectFunctionCall2(numeric_gt,
+									   PointerGetDatum(datum1),
+									   PointerGetDatum(datum2));
+		case TEXTOID:
+		{
+			return DatumGetBool(DirectFunctionCall2Coll(text_gt,
+												DEFAULT_COLLATION_OID,
+												PointerGetDatum(datum1),
+												PointerGetDatum(datum2)));
+		}
+		case UUIDOID:
+		{
+			return DirectFunctionCall2(uuid_gt,
+									   PointerGetDatum(datum1),
+									   PointerGetDatum(datum2));
+		}
+		default:
+		{
+			elog(ERROR, "unsupported column type oid: \"%u\"", type);
+			return 0;
+		}
+	}
+}
+
+void
+initRecord(InternalRecordWrapper *record, void *recordDesc, int nColumns)
+{
+	record->record.values = (Datum *) palloc(nColumns * sizeof(Datum));
+	record->record.nulls = (bool *) palloc(nColumns * sizeof(bool));
+	record->recordDesc = recordDesc;
+}
+
+void
+cleanupRecord(InternalRecordWrapper *record)
+{
+	pfree(record->record.values);
+	pfree(record->record.nulls);
+}
+
+InternalRecordDesc *
+createInternalRecordDesc(MemoryContext mcxt,
+						 List *columnDesc,
+						 List *recordKeyFields,
+						 char *preCombineField,
+						 int *preCombineFieldIndex,
+						 Oid *preCombineFieldType)
+{
+	int i;
 	ListCell *lc;
+	HASHCTL  hashCtl;
+	bool found = false;
 
-	for (i = 0; i < len; i++)
+	InternalRecordDesc *result = palloc0(sizeof(InternalRecordDesc));
+
+	result->nColumns = list_length(columnDesc);
+	result->nKeys = list_length(recordKeyFields);
+	result->keyIndexes = createRecordKeyIndexes(recordKeyFields, columnDesc);
+	result->attrType = palloc(sizeof(Oid) * list_length(columnDesc));
+
+	foreach_with_count(lc, columnDesc, i)
 	{
-		if (value[i] == delim)
+		FieldDescription *entry = (FieldDescription *) lfirst(lc);
+		result->attrType[i] = entry->typeOid;
+
+		if (preCombineField && !found && pg_strcasecmp(preCombineField, entry->name) == 0)
 		{
-			elements = lappend(elements, pnstrdup(value + pos, i - pos));
-			pos = i + 1;
+			*preCombineFieldIndex = i;
+			*preCombineFieldType = entry->typeOid;
+			found = true;
 		}
 	}
 
-	if ((len - pos) > 0)
-		elements = lappend(elements, pnstrdup(value + pos, len - pos));
-
-	result = palloc(sizeof(char *) * list_length(elements));
-	foreach_with_count(lc, elements, i)
+	if (mcxt != NULL)
 	{
-		result[i] = lfirst(lc);
+		MemSet(&hashCtl, 0, sizeof(hashCtl));
+		hashCtl.keysize = sizeof(InternalRecordWrapper *);
+		hashCtl.entrysize = sizeof(LogRecordHashEntry);
+		hashCtl.hash = recordHash;
+		hashCtl.match = recordMatch;
+		hashCtl.hcxt = mcxt;
+		result->hashTab = hash_create("HudiMergeLogTable", 10000 * 30, &hashCtl,
+								   HASH_ELEM | HASH_FUNCTION | HASH_COMPARE | HASH_CONTEXT);
 	}
-
-	*size = list_length(elements);
-
-	list_free(elements);
 
 	return result;
 }
 
-static void
-freeSplitString(char **elements, int size)
+void
+destroyInternalRecordDesc(InternalRecordDesc *recordDesc)
 {
-	int i;
+	if (recordDesc->keyIndexes)
+		pfree(recordDesc->keyIndexes);
 
-	for (i = 0; i < size; i++)
-		pfree(elements[i]);
+	if (recordDesc->attrType)
+		pfree(recordDesc->attrType);
 
-	pfree(elements);
-}
+	if (recordDesc->hashTab)
+		hash_destroy(recordDesc->hashTab);
 
-static char *
-unescapePathName(char *value, int length)
-{
-	char *result;
-	char *decodedStr = curl_unescape(value, length);
-
-	result = pstrdup(decodedStr);
-	curl_free(decodedStr);
-
-	return result;
-}
-
-List *
-extractPartitionKeyValues(char *filePath, List *partitionKeys, bool isHiveStyle)
-{
-	int i;
-	int size;
-	char *pair;
-	int curDepth = 0;
-	List *result = NIL;
-	KeyValue *keyvalue;
-	Value *partitionKey;
-	char **elements = splitString(filePath, '/', &size);
-
-	for (i = size - 1; i >= 0; i--)
-	{
-		pair = elements[i];
-		if (curDepth++ == 0)
-			continue;
-
-		keyvalue = palloc0(sizeof(KeyValue));
-		if (isHiveStyle)
-		{
-			int   keyLen;
-			int   valueLen;
-			char *sep = strchr(pair, '=');
-
-			if (sep == NULL)
-				elog(ERROR, "invalid partition path %s: '%s' missing delimiter '='", filePath, pair);
-
-			keyLen = sep - pair;
-			if (keyLen == 0)
-				elog(ERROR, "invalid partition path %s: '%s' missing key before '='", filePath, pair);
-
-			valueLen = strlen(pair) - keyLen + 1;
-			if (valueLen == 2)
-				elog(ERROR, "invalid partition path %s: '%s' missing value after '='", filePath, pair);
-
-			keyvalue->key = unescapePathName(pair, keyLen);
-			keyvalue->value = unescapePathName(sep + 1, valueLen);
-		}
-		else
-		{
-			partitionKey = list_nth(partitionKeys, list_length(partitionKeys)  - curDepth + 1);
-			keyvalue->key = pstrdup(strVal(partitionKey));
-			keyvalue->value = unescapePathName(pair, strlen(pair));
-		}
-
-		result = lappend(result, keyvalue);
-
-		if ((curDepth - 1) == list_length(partitionKeys))
-			break;
-	}
-
-	freeSplitString(elements, size);
-
-	return result;
+	pfree(recordDesc);
 }

@@ -14,6 +14,7 @@ typedef struct DeltaLogFilter
 	Reader         base;
 	Reader        *dataReader;
 	bool           readLogs;
+	int            nColumns;
 	ExternalTableMetadata *tableOptions;
 	HudiMergedLogfileRecordReader *deltaSet;
 } DeltaLogFilter;
@@ -21,6 +22,7 @@ typedef struct DeltaLogFilter
 DeltaLogFilter *
 createDeltaLogFilter(MemoryContext mcxt,
 					 List *datafileDesc,
+					 TupleDesc tupDesc,
 					 bool *attrUsed,
 					 Reader *dataReader,
 					 gopherFS gopherFilesystem,

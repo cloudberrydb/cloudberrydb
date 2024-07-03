@@ -24,6 +24,23 @@ static Reader methods = {
 	positionFilterClose,
 };
 
+static List *
+createPositionDeletesDescription(void)
+{
+	FieldDescription *filePath = palloc0(sizeof(FieldDescription));
+	FieldDescription *pos = palloc0(sizeof(FieldDescription));
+
+	strcpy(filePath->name, "file_path");
+	filePath->typeOid = TEXTOID;
+	filePath->typeMod = -1;
+
+	strcpy(pos->name, "pos");
+	pos->typeOid = INT8OID;
+	pos->typeMod = -1;
+
+	return list_make2(filePath, pos);
+}
+
 PositionFilter *
 createPositionFilter(MemoryContext readerMcxt,
 					 Reader *dataReader,

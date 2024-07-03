@@ -199,6 +199,8 @@ typedef struct DataLakeAnalyzeState
 static bool disableFilterPushdown;
 bool disableCacheFile;
 int icebergPostionDeletesThreshold;
+int hudiLogMergerThreshold;
+double hudiLogSizeScaleFactor;
 
 void
 _PG_init(void)
@@ -254,6 +256,32 @@ _PG_init(void)
 							100000,
 							100000,
 							10000000,
+							PGC_USERSET,
+							0,
+							NULL,
+							NULL,
+							NULL);
+
+	DefineCustomIntVariable("datalake.hudi_log_merger_threshold",
+							"The log size threshold in MB, for merging log records",
+							NULL,
+							&hudiLogMergerThreshold,
+							512,
+							128,
+							10240,
+							PGC_USERSET,
+							0,
+							NULL,
+							NULL,
+							NULL);
+
+	DefineCustomRealVariable("datalake.hudi_log_scale_factor",
+							"The calculation factor used for determining the size of temporary file",
+							NULL,
+							&hudiLogSizeScaleFactor,
+							1.3,
+							1,
+							10,
 							PGC_USERSET,
 							0,
 							NULL,

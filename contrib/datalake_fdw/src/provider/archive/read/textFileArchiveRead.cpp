@@ -10,6 +10,7 @@ extern "C"
 namespace Datalake {
 namespace Internal {
 
+static char archiveReadBuff[ARCHIEVE_READ_BUFFER_SIZE];
 
 void textFileArchiveRead::open(ossFileStream ossFile, std::string fileName, readOption options)
 {

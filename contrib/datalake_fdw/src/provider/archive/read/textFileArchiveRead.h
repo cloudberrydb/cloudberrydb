@@ -9,8 +9,6 @@ namespace Internal {
 
 #define ARCHIEVE_READ_BUFFER_SIZE (65535)
 
-static char archiveReadBuff[ARCHIEVE_READ_BUFFER_SIZE];
-
 class textFileArchiveRead : public textFileInput {
 public:
 	textFileArchiveRead()

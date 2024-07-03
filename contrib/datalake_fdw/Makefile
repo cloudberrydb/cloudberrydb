@@ -67,14 +67,18 @@ OBJS = 	src/datalake_fdw.o \
 		src/provider/common/kryo.o \
 		src/provider/common/kryo_input.o \
 		src/provider/common/row_reader.o \
+		src/provider/common/mdb.o \
+		src/provider/common/midl.o \
 		src/provider/iceberg/iceberg_equality_filter.o \
 		src/provider/iceberg/iceberg_task_reader.o \
 		src/provider/iceberg/iceberg_position_filter.o \
 		src/provider/iceberg/iceberg_read.o \
-		src/provider/hudi/hudi_task_reader.o \
+		src/provider/hudi/hudi_btree_merger.o \
 		src/provider/hudi/hudi_deltalog_filter.o \
+		src/provider/hudi/hudi_hashtab_merger.o \
 		src/provider/hudi/hudi_logfile_block_reader.o \
 		src/provider/hudi/hudi_merged_logfile_record_reader.o \
+		src/provider/hudi/hudi_task_reader.o \
 		src/provider/hudi/hudi_read.o \
 		src/provider/avro/read/avroBlockReader.o \
 		src/provider/avro/read/avroRead.o \
@@ -99,6 +103,7 @@ REGRESS = hive_connecter_orc_read hive_connecter_orc_vec_read hive_connecter_par
 endif
 
 PG_CPPFLAGS += -fPIC
+PG_CFLAGS += -Wno-error=stringop-overflow
 PG_CFLAGS += -I $(shell pg_config --includedir)
 PG_LDFLAGS += -I $(shell pg_config --ldflags)
 

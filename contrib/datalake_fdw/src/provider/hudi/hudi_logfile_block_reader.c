@@ -35,6 +35,19 @@ logFileSeek(HudiLogFileReader *reader, int64_t offset, bool supressError)
 	return true;
 }
 
+/*
+ * hdfs://hashdata:9000/user/hive/warehouse/iceberg_db.db/table6/data/00000-0-adce9cbd-f6e5-4a9d-8ea1-2a09b6ca06ed-00001.parquet
+ */
+static char *
+splitPath(char *uri)
+{
+	char *pathPos;
+	char *hostPos = uri + 7; /* Remove "hdfs://" */
+
+	pathPos = strchr(hostPos, '/');
+	return pstrdup(pathPos);
+}
+
 static inline void
 logFileOpen(HudiLogFileReader *reader, int flag)
 {
@@ -131,6 +144,38 @@ readMagic(HudiLogFileReader *reader, bool *isCorrupted)
 
 	*isCorrupted = false;
 	return true;
+}
+
+static int
+charSeqIndexOf(char *array, int arrayLength, char *target, int targetLength)
+{
+	int  i;
+	int  j;
+	bool match;
+
+	if (targetLength == 0)
+		return 0;
+
+	for(i = 0; i < arrayLength - targetLength + 1; ++i)
+	{
+		match = true;
+
+		for(j = 0; j < targetLength; ++j)
+		{
+			if (array[i + j] != target[j])
+			{
+				match = false;
+				break;
+			}
+		}
+
+		if (!match)
+			continue;
+
+		return i;
+	}
+
+	return -1;
 }
 
 static int64_t
@@ -518,6 +563,7 @@ hudiLogFileOpen(HudiLogFileReader *reader)
 {
 	int flag = O_RDONLY;
 
+	elog(DEBUG1, "creating log file reader...");
 	/*
 	 * TODO: Determine whether to cache a file based on DFS type, for now, we only support hdfs.
 	 * Hoodie on hdfs will append the delta log file when executing write operation on MOR table,
@@ -556,6 +602,8 @@ hudiLogFileNext(HudiLogFileReader *reader, HudiLogFileBlock **logBlock)
 void
 hudiLogFileClose(HudiLogFileReader *reader)
 {
+	elog(DEBUG1, "closing log file reader...");
+
 	pfree(reader->fileName);
 
 	if (reader->gopherFile)

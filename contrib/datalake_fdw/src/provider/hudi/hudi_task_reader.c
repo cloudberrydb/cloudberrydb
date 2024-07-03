@@ -7,6 +7,7 @@
 #include "hudi_merged_logfile_record_reader.h"
 #include "hudi_deltalog_filter.h"
 #include "hudi_task_reader.h"
+#include <curl/curl.h>
 
 typedef struct PartitionValueDatum
 {
@@ -23,6 +24,7 @@ static void projectRequiredColumns(List *recordKeyFields,
 static Reader *
 createLogFilter(MemoryContext mcxt,
 				List *datafileDesc,
+				TupleDesc tupDesc,
 				bool *attrUsed,
 				gopherFS gopherFilesystem,
 				int64 datafileStart,
@@ -39,6 +41,7 @@ createLogFilter(MemoryContext mcxt,
 	{
 		filter = (Reader *) createDeltaLogFilter(mcxt,
 												 datafileDesc,
+												 tupDesc,
 												 attrUsed,
 												 filter,
 												 gopherFilesystem,
@@ -61,12 +64,128 @@ createLogFilter(MemoryContext mcxt,
 
 	return (Reader *) createDeltaLogFilter(mcxt,
 										   datafileDesc,
+										   tupDesc,
 										   attrUsed,
 										   filter,
 										   gopherFilesystem,
 										   deltaLogs,
 										   instantTime,
 										   tableOptions);
+}
+
+static char **
+splitString(const char *value, char delim, int *size)
+{
+	int    i;
+	int    pos = 0;
+	int    len = strlen(value);
+	List  *elements = NIL;
+	char **result;
+	ListCell *lc;
+
+	for (i = 0; i < len; i++)
+	{
+		if (value[i] == delim)
+		{
+			elements = lappend(elements, pnstrdup(value + pos, i - pos));
+			pos = i + 1;
+		}
+	}
+
+	if ((len - pos) > 0)
+		elements = lappend(elements, pnstrdup(value + pos, len - pos));
+
+	result = palloc(sizeof(char *) * list_length(elements));
+	foreach_with_count(lc, elements, i)
+	{
+		result[i] = lfirst(lc);
+	}
+
+	*size = list_length(elements);
+
+	list_free(elements);
+
+	return result;
+}
+
+static void
+freeSplitString(char **elements, int size)
+{
+	int i;
+
+	for (i = 0; i < size; i++)
+		pfree(elements[i]);
+
+	pfree(elements);
+}
+
+static char *
+unescapePathName(char *value, int length)
+{
+	char *result;
+	char *decodedStr = curl_unescape(value, length);
+
+	result = pstrdup(decodedStr);
+	curl_free(decodedStr);
+
+	return result;
+}
+
+static List *
+extractPartitionKeyValues(char *filePath, List *partitionKeys, bool isHiveStyle)
+{
+	int i;
+	int size;
+	char *pair;
+	int curDepth = 0;
+	List *result = NIL;
+	KeyValue *keyvalue;
+	Value *partitionKey;
+	char **elements = splitString(filePath, '/', &size);
+
+	for (i = size - 1; i >= 0; i--)
+	{
+		pair = elements[i];
+		if (curDepth++ == 0)
+			continue;
+
+		keyvalue = palloc0(sizeof(KeyValue));
+		if (isHiveStyle)
+		{
+			int   keyLen;
+			int   valueLen;
+			char *sep = strchr(pair, '=');
+
+			if (sep == NULL)
+				elog(ERROR, "invalid partition path %s: '%s' missing delimiter '='", filePath, pair);
+
+			keyLen = sep - pair;
+			if (keyLen == 0)
+				elog(ERROR, "invalid partition path %s: '%s' missing key before '='", filePath, pair);
+
+			valueLen = strlen(pair) - keyLen + 1;
+			if (valueLen == 2)
+				elog(ERROR, "invalid partition path %s: '%s' missing value after '='", filePath, pair);
+
+			keyvalue->key = unescapePathName(pair, keyLen);
+			keyvalue->value = unescapePathName(sep + 1, valueLen);
+		}
+		else
+		{
+			partitionKey = list_nth(partitionKeys, list_length(partitionKeys)  - curDepth + 1);
+			keyvalue->key = pstrdup(strVal(partitionKey));
+			keyvalue->value = unescapePathName(pair, strlen(pair));
+		}
+
+		result = lappend(result, keyvalue);
+
+		if ((curDepth - 1) == list_length(partitionKeys))
+			break;
+	}
+
+	freeSplitString(elements, size);
+
+	return result;
 }
 
 static List *
@@ -147,7 +266,7 @@ createHudiTaskReader(void *args)
 							   info->datafileDesc,
 							   info->attrUsed);
 
-	filter = createLogFilter(info->mcxt, info->datafileDesc, info->attrUsed, info->gopherFilesystem,
+	filter = createLogFilter(info->mcxt, info->datafileDesc, info->tupDesc, info->attrUsed, info->gopherFilesystem,
 						  info->fileScanTask->start, info->fileScanTask->length,
 						  info->fileScanTask->dataFile, info->fileScanTask->deletes,
 						  info->fileScanTask->instantTime, reader->tableOptions);
@@ -203,7 +322,7 @@ hudiTaskReaderClose(Reader *reader)
 {
 	HudiTaskReader *hudiReader = (HudiTaskReader *) reader;
 
-	if (hudiReader == NULL)
+	if (hudiReader == NULL || hudiReader->dataReader == NULL)
 		return;
 
 	hudiReader->dataReader->Close(hudiReader->dataReader);
