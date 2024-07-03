@@ -302,14 +302,19 @@ $dbvis$ LANGUAGE plpgsql;
 CREATE TABLE test_parse_arr (a bigserial, b int[]);
 
 INSERT INTO test_parse_arr (b)
-	SELECT parse_arr(x) FROM 
-				(    
-				  SELECT '(1, 2, 3)' AS x 
-				  UNION ALL
-				  SELECT NULL 
-				) AS q;
+        SELECT parse_arr(x) FROM
+                                (
+                                  SELECT '(1, 2, 3)' AS x
+                                  UNION ALL
+                                  SELECT NULL AS x
+                                  UNION ALL
+                                  SELECT '(4, 5, 6)' AS x
+                                  ORDER BY x
+                                ) AS q;
 
-SELECT * FROM test_parse_arr ORDER BY a;
+SELECT a FROM test_parse_arr ORDER BY a;
+
+SELECT b FROM test_parse_arr ORDER BY b;
 
 --
 -- Test if sequence server information outlives a plpgsql exception and corresponding subtransaction rollback (MPP-25193)
