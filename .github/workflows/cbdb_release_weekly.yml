@@ -2,6 +2,11 @@ name: Build and Release RPM Weekly
 on:
   schedule:
     - cron: '0 16 * * 1'
+
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
+  ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: "node16"
+
 jobs:
   Build-rpm:
     runs-on: cbdb-weekly
