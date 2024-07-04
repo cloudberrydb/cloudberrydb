@@ -625,6 +625,24 @@ tas(volatile slock_t *lock)
 
 #endif	 /* __vax__ */
 
+#if defined(__loongarch__)
+#ifdef HAVE_GCC__SYNC_INT32_TAS
+#define HAS_TEST_AND_SET
+
+#define TAS(lock) tas(lock)
+
+typedef int slock_t;
+
+static __inline__ int
+tas(volatile slock_t *lock)
+{
+	return __sync_lock_test_and_set(lock, 1);
+}
+
+#define S_UNLOCK(lock) __sync_lock_release(lock)
+
+#endif	 /* HAVE_GCC__SYNC_INT32_TAS */
+#endif /* __loongarch__ */
 
 #if defined(__mips__) && !defined(__sgi)	/* non-SGI MIPS */
 #define HAS_TEST_AND_SET
