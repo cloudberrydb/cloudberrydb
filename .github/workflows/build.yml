@@ -33,7 +33,7 @@ jobs:
           name: cbdb-package
           path: /tmp/server-build*
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-region: us-east-1
   icw-test:
