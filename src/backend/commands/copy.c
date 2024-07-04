@@ -440,6 +440,11 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 				*processed = CopyDispatchOnSegment(stmt);
 			else
 				*processed = CopyFrom(cstate);	/* copy from file to database */
+
+			/* Handle copy to replicated table returns processed number */
+			if (Gp_role == GP_ROLE_DISPATCH && cstate->rel->rd_cdbpolicy &&
+				cstate->rel->rd_cdbpolicy->ptype == POLICYTYPE_REPLICATED)
+				*processed = *processed / cstate->rel->rd_cdbpolicy->numsegments;
 		}
 		PG_CATCH();
 		{
