@@ -10,7 +10,7 @@ env:
   FTS_MODE: "external_fts"
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-
+  ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
 permissions:
   id-token: write
   contents: read
