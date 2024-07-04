@@ -22,6 +22,9 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run build script
         run: |
+          echo =========================
+          env
+          echo =========================
           echo $GITHUB_RUN_ID > BUILD_NUMBER
           hd-ci/compile_cbdb.bash ${GEN_DOCKER_TAG}
       - uses: actions/upload-artifact@v3
