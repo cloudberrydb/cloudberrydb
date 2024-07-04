@@ -32,6 +32,10 @@ jobs:
         with:
           name: cbdb-package
           path: /tmp/server-build*
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-region: us-east-1
   icw-test:
     needs: build
     runs-on: [self-hosted, example]
