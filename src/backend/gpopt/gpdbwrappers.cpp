@@ -2168,7 +2168,7 @@ gpdb::ParseExternalTableUri(const char *uri)
 {
 	GP_WRAP_START;
 	{
-		return ParseExternalTableUri(uri);
+		return ::ParseExternalTableUri(uri);
 	}
 	GP_WRAP_END;
 	return nullptr;
