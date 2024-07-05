@@ -83,6 +83,10 @@ void CPaxCreateMicroPartitionTable(Relation rel) {
   TupleDescInitEntry(tupdesc,
                      (AttrNumber)ANUM_PG_PAX_BLOCK_TABLES_PTVISIMAPNAME,
                      "ptvisimapname", NAMEOID, -1, 0);
+  TupleDescInitEntry(tupdesc,
+                     (AttrNumber)ANUM_PG_PAX_BLOCK_TABLES_PTEXISTEXTTOAST,
+                     "ptexistexttoast", BOOLOID, -1, 0);
+
   {
     // Add constraints for the aux table
     auto attr =
@@ -255,10 +259,14 @@ void UpdateVisimap(Oid aux_relid, const char *blockname,
   context.EndSearchMicroPartition(NoLock);
 }
 
+// We won't update the visimap in here
+// but will update visimap info in the `UpdateVisimap`
+// so we can no pass the `visimap_filename`
 void InsertOrUpdateMicroPartitionPlaceHolder(
     Oid aux_relid, const char *blockname, int num_tuples, int file_size,
     const ::pax::stats::MicroPartitionStatisticsInfo &mp_stats,
-    const char *visimap_filename) {
+    /* const char *visimap_filename, */
+    bool exist_ext_toast) {
   int stats_length = mp_stats.ByteSizeLong();
   uint32 len = VARHDRSZ + stats_length;
   void *output;
@@ -266,7 +274,6 @@ void InsertOrUpdateMicroPartitionPlaceHolder(
   NameData ptblockname;
   Datum values[NATTS_PG_PAX_BLOCK_TABLES];
   bool nulls[NATTS_PG_PAX_BLOCK_TABLES];
-  NameData pt_visimap_name;
 
   output = palloc(len);
   SET_VARSIZE(output, len);
@@ -288,14 +295,12 @@ void InsertOrUpdateMicroPartitionPlaceHolder(
   values[ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS - 1] = PointerGetDatum(output);
   nulls[ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS - 1] = false;
 
-  if (visimap_filename == nullptr) {
-    nulls[ANUM_PG_PAX_BLOCK_TABLES_PTVISIMAPNAME - 1] = true;
-  } else {
-    namestrcpy(&pt_visimap_name, visimap_filename);
-    values[ANUM_PG_PAX_BLOCK_TABLES_PTVISIMAPNAME - 1] =
-        NameGetDatum(&pt_visimap_name);
-    nulls[ANUM_PG_PAX_BLOCK_TABLES_PTVISIMAPNAME - 1] = false;
-  }
+  // The visimap will be updated in the `UpdateVisimap`
+  nulls[ANUM_PG_PAX_BLOCK_TABLES_PTVISIMAPNAME - 1] = true;
+
+  values[ANUM_PG_PAX_BLOCK_TABLES_PTEXISTEXTTOAST - 1] =
+      BoolGetDatum(exist_ext_toast);
+  nulls[ANUM_PG_PAX_BLOCK_TABLES_PTEXISTEXTTOAST - 1] = false;
 
   ScanAuxContext context;
   context.BeginSearchMicroPartition(aux_relid, InvalidOid, NULL,
@@ -590,6 +595,12 @@ static void FetchMicroPartitionAuxRowCallback(Datum *values, bool *isnull,
     auto name = NameStr(*DatumGetName(datum));
     ctx->info.SetVisibilityBitmapFile(std::string(name));
   }
+
+  Assert(!isnull[ANUM_PG_PAX_BLOCK_TABLES_PTEXISTEXTTOAST - 1]);
+  {
+    auto datum = values[ANUM_PG_PAX_BLOCK_TABLES_PTEXISTEXTTOAST - 1];
+    ctx->info.SetExistToast(DatumGetBool(datum));
+  }
 }
 
 static void FetchMicroPartitionAuxRowCallbackWrapper(Datum *values,
@@ -633,12 +644,13 @@ void InsertOrUpdateMicroPartitionEntry(const pax::WriteSummary &summary) {
     Oid aux_relid;
 
     aux_relid = ::paxc::GetPaxAuxRelid(summary.rel_oid);
+
     paxc::InsertOrUpdateMicroPartitionPlaceHolder(
         aux_relid, summary.block_id.c_str(), summary.num_tuples,
         summary.file_size,
         summary.mp_stats ? *summary.mp_stats
                          : ::pax::stats::MicroPartitionStatisticsInfo(),
-        nullptr);
+        summary.exist_ext_toast);
   }
   CBDB_WRAP_END;
 }

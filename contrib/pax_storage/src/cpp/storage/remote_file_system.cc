@@ -184,10 +184,4 @@ void RemoteFileSystem::DeleteDirectory(const std::string &path,
   cbdb::UFileRmdir(remote_options->tablespace_id_, path.c_str());
 }
 
-bool RemoteFileSystem::Exist(const std::string &file_path,
-                             FileSystemOptions *options) {
-  auto remote_options = CastOptions(options);
-  return cbdb::UFileExists(remote_options->tablespace_id_, file_path.c_str());
-}
-
 }  // namespace pax

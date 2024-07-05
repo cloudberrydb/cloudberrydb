@@ -58,7 +58,6 @@ class RemoteFileSystem final : public FileSystem {
                       FileSystemOptions *options) const override;
   void DeleteDirectory(const std::string &path, bool delete_topleveldir,
                        FileSystemOptions *options) const override;
-  bool Exist(const std::string &file_path, FileSystemOptions *options) override;
 
   // operate with file
   std::string BuildPath(const File *file) const override;

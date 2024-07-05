@@ -16,6 +16,7 @@ struct WriteSummary {
   size_t num_tuples;
   unsigned int rel_oid;
   pax::stats::MicroPartitionStatisticsInfo *mp_stats = nullptr;
+  bool exist_ext_toast;
   WriteSummary();
   WriteSummary(const WriteSummary &summary) = default;
 };
@@ -66,6 +67,10 @@ struct MicroPartitionMetadata {
     visibility_bitmap_file_ = std::move(file);
   }
 
+  inline bool GetExistToast() const { return exist_ext_toast_; }
+
+  inline void SetExistToast(bool exist) { exist_ext_toast_ = exist; }
+
  private:
   std::string micro_partition_id_;
 
@@ -75,6 +80,8 @@ struct MicroPartitionMetadata {
 
   // statistics info
   uint32 tuple_count_ = 0;
+
+  bool exist_ext_toast_ = false;
 
   ::pax::stats::MicroPartitionStatisticsInfo stats_;
 };  // class MicroPartitionMetadata

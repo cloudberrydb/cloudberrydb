@@ -230,10 +230,4 @@ void LocalFileSystem::DeleteDirectory(const std::string &path,
   cbdb::PathNameDeleteDir(path.c_str(), delete_topleveldir);
 }
 
-bool LocalFileSystem::Exist(const std::string &file_path,
-                            FileSystemOptions *options) {
-  struct stat filestats;
-  return stat(file_path.c_str(), &filestats) == 0;
-}
-
 }  // namespace pax

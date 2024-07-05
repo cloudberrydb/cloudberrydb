@@ -53,9 +53,6 @@ class LocalFileSystem final : public FileSystem {
                       FileSystemOptions *options = nullptr) const override;
   void DeleteDirectory(const std::string &path, bool delete_topleveldir,
                        FileSystemOptions *options = nullptr) const override;
-  bool Exist(const std::string &file_path,
-             FileSystemOptions *options = nullptr) override;
-
   // operate with file
   std::string BuildPath(const File *file) const override;
 

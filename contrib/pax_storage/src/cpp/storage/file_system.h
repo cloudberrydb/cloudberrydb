@@ -73,8 +73,6 @@ class FileSystem {
                               FileSystemOptions *options = nullptr) const = 0;
   virtual void DeleteDirectory(const std::string &path, bool delete_topleveldir,
                                FileSystemOptions *options = nullptr) const = 0;
-  virtual bool Exist(const std::string &file_path,
-                     FileSystemOptions *options = nullptr) = 0;
   virtual void Delete(const std::string &file_path,
                       FileSystemOptions *options = nullptr) const = 0;
   // operate with file

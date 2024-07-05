@@ -833,11 +833,8 @@ void OrcWriter::Close() {
 
   WriteFileFooter(&buffer_mem_stream);
   WritePostscript(&buffer_mem_stream);
-  if (summary_callback_) {
-    summary_.mp_stats = !mp_stats_ ? nullptr : mp_stats_->Serialize();
-    summary_.file_size += buffer_mem_stream.GetDataBuffer()->Used();
-    summary_callback_(summary_);
-  }
+
+  summary_.file_size += buffer_mem_stream.GetDataBuffer()->Used();
 
   file_->PWriteN(buffer_mem_stream.GetDataBuffer()->GetBuffer(),
                  buffer_mem_stream.GetDataBuffer()->Used(), file_offset);
@@ -848,6 +845,8 @@ void OrcWriter::Close() {
     toast_file_->PWriteN(toast_mem.GetBuffer(), toast_mem.Used(),
                          current_toast_file_offset_ - toast_mem.Used());
   }
+
+  summary_.exist_ext_toast = toast_file_ && current_toast_file_offset_ != 0;
 
   // Close toast_file before origin file
   if (toast_file_) {
@@ -864,6 +863,12 @@ void OrcWriter::Close() {
   if (empty_stripe) {
     PAX_DELETE(data_buffer);
   }
+
+  if (summary_callback_) {
+    summary_.mp_stats = !mp_stats_ ? nullptr : mp_stats_->Serialize();
+    summary_callback_(summary_);
+  }
+
   is_closed_ = true;
 }
 

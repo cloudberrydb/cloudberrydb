@@ -458,9 +458,7 @@ bool TableReader::GetTuple(TupleTableSlot *slot, ScanDirection direction,
     file->Close();
   }
 
-  if (file_system_->Exist(
-          current_block_metadata_.GetFileName() + TOAST_FILE_SUFFIX,
-          file_system_options_)) {
+  if (current_block_metadata_.GetExistToast()) {
     toast_file = file_system_->Open(
         current_block_metadata_.GetFileName() + TOAST_FILE_SUFFIX,
         fs::kReadMode, file_system_options_);
@@ -518,8 +516,9 @@ void TableReader::OpenFile() {
   if (reader_options_.vec_build_ctid)
     READER_FLAG_SET_SCAN_WITH_CTID(reader_flags);
 #endif
-  if (file_system_->Exist(it.GetFileName() + TOAST_FILE_SUFFIX,
-                          file_system_options_)) {
+
+  if (it.GetExistToast()) {
+    // must exist the file in disk
     toast_file = file_system_->Open(it.GetFileName() + TOAST_FILE_SUFFIX,
                                     fs::kReadMode, file_system_options_);
   }
