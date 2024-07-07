@@ -59,3 +59,5 @@
 /external_table_persistent_error_log.out
 /external_table_union_all.out
 /external_table_union_all_optimizer.out
+/directory_table.out
+/directory_table_optimizer.out
