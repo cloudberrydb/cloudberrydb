@@ -381,3 +381,5 @@ create table t_lockmods_ao1 (c int) with (appendonly=true);
 1: select * from show_locks_lockmodes;
 1: ROLLBACK;
 1q:
+
+TRUNCATE t_lockmods_ao;

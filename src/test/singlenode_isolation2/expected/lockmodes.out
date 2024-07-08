@@ -1089,3 +1089,6 @@ UPDATE 1
 1: ROLLBACK;
 ROLLBACK
 1q: ... <quitting>
+
+TRUNCATE t_lockmods_ao;
+TRUNCATE
