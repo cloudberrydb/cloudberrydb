@@ -2142,7 +2142,6 @@ char     *gp_etcd_account_id = NULL;
 char     *gp_etcd_cluster_id = NULL;
 char     *gp_etcd_namespace = NULL;
 char     *gp_etcd_endpoints = NULL;
-char     *gp_cbdb_deploy = NULL;
 
 static etcdlib_endpoint_t etcd_endpoints[GP_ETCD_ENDPOINTS_NUM] = {0};
 static int etcd_endpoints_num = 0;
