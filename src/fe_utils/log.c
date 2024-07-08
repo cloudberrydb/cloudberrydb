@@ -97,28 +97,17 @@ cbdb_log(cbdb_log_level level, const char* file, int line, const char* format, .
     snprintf(timestamp, MAX_TIMESTAMP_LENGTH, "%s.%06ld", date, (long) tv.tv_usec);
 
     // record timestamp, file name, and line num
-    len = snprintf(NULL, 0, fmt, timestamp, s_level[level], file, line);
-    if (len > 0)
-    {
-        char buffer[1000];
-        snprintf(buffer, len + 1, fmt, timestamp, s_level[level], file, line);
-        buffer[len] = 0;
-        fprintf(log_file, "%s,", buffer);
-    }
+    fprintf(log_file, fmt, timestamp, s_level[level], file, line);
+    fprintf(log_file, ",");
 
     // record log information
     va_list arg_ptr;
     va_start(arg_ptr, format);
-    len = vsnprintf(NULL, 0, format, arg_ptr);
+    len = vfprintf(log_file, format, arg_ptr);
     va_end(arg_ptr);
     if (len > 0)
     {
-        char buffer[1000];
-        va_start(arg_ptr, format);
-        vsnprintf(buffer, len + 1, format, arg_ptr);
-        va_end(arg_ptr);
-        buffer[len] = 0;
-        fprintf(log_file, "%s\n", buffer);   
+        fprintf(log_file, "\n");
     }
 
     cur_line_num ++;
