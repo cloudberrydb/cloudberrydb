@@ -22,6 +22,7 @@
 #include "storage/latch.h"
 #include "storage/procsignal.h"
 #include "utils/guc.h"
+#include "utils/faultinjector.h"
 
 volatile sig_atomic_t ConfigReloadPending = false;
 volatile sig_atomic_t ShutdownRequestPending = false;
@@ -71,6 +72,8 @@ SignalHandlerForConfigReload(SIGNAL_ARGS)
 void
 SignalHandlerForCrashExit(SIGNAL_ARGS)
 {
+	SIMPLE_FAULT_INJECTOR("fault_in_background_writer_quickdie");
+
 	/*
 	 * We DO NOT want to run proc_exit() or atexit() callbacks -- we're here
 	 * because shared memory may be corrupted, so we don't want to try to
