@@ -2138,16 +2138,12 @@ insertsetbit(Relation rel, BlockNumber lovBlock, OffsetNumber lovOffset,
 	buf->last_word = lovItem->bm_last_word;
 	buf->is_last_compword_fill = (lovItem->lov_words_header >= 2);
 	buf->last_tid = lovItem->bm_last_setbit;
+	MemSet(buf->hwords, 0, BM_NUM_OF_HEADER_WORDS * sizeof(BM_HRL_WORD));
 	if (buf->cwords)
 	{
 		MemSet(buf->cwords, 0,
 				buf->num_cwords * sizeof(BM_HRL_WORD));
 	}
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
-	MemSet(buf->hwords, 0,
-		   BM_CALC_H_WORDS(buf->num_cwords) * sizeof(BM_HRL_WORD));
-#pragma GCC diagnostic pop
 	if (buf->last_tids)
 		MemSet(buf->last_tids, 0,
 				buf->num_cwords * sizeof(uint64));
