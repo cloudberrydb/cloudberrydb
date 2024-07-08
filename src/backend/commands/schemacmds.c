@@ -325,6 +325,13 @@ RemoveSchemaById(Oid schemaOid)
 
 	CatalogTupleDelete(relation, &tup->t_self);
 
+	/*
+	 * CBDB GITHUB ISSUE:
+	 * https://github.com/cloudberrydb/cloudberrydb/issues/504
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH)
+		MetaTrackDropObject(NamespaceRelationId, schemaOid);
+
 	ReleaseSysCache(tup);
 
 	table_close(relation, RowExclusiveLock);

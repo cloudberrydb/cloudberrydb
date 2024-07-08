@@ -392,6 +392,13 @@ RemovePolicyById(Oid policy_id)
 	systable_endscan(sscan);
 
 	/*
+	 * CBDB GITHUB ISSUE:
+	 * https://github.com/cloudberrydb/cloudberrydb/issues/504
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH)
+		MetaTrackDropObject(PolicyRelationId, policy_id);
+
+	/*
 	 * Note that, unlike some of the other flags in pg_class, relrowsecurity
 	 * is not just an indication of if policies exist.  When relrowsecurity is
 	 * set by a user, then all access to the relation must be through a
