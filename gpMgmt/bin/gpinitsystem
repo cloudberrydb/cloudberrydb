@@ -2093,20 +2093,9 @@ CREATE_FTS() {
         fi
 }
 
-CHECK_DEPLOYMENT_MODE() {
-	if [[ -n "${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1"  &&  -f ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1/postgresql.conf ]]; then
-		gp_cbdb_deploy=`grep gp_cbdb_deploy ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1/postgresql.conf | awk -F= '{print $1}'`
-		deployment_mode=`grep gp_cbdb_deploy ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1/postgresql.conf | awk -F= '{print $2}'`
-		if [[ ${gp_cbdb_deploy:0:1} != '#' && $deployment_mode == "'cloud'" ]]; then
-			ERROR_EXIT "[FATAL]:gpinitsystem is disabled in cloud mode."
-		fi
-	fi
-}
-
 #******************************************************************************
 # Main Section
 #******************************************************************************
-CHECK_DEPLOYMENT_MODE
 trap 'ERROR_EXIT "[FATAL]:-Received INT or TERM signal"' INT TERM
 while getopts ":vaqe:c:l:-:p:m:h:n:s:P:S:b:DB:I:O:E:F:M:U:T:C" opt
 		do

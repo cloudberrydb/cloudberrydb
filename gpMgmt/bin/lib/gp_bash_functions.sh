@@ -802,7 +802,7 @@ BUILD_COORDINATOR_PG_HBA_FILE () {
                 $ECHO "host     replication $USER_NAME         $STANDBY_HOSTNAME       trust" >> ${GP_DIR}/$PG_HBA
             fi
         fi
-        if [ "$CLUSTER_BOOT_MODE" = "PRODUCTION" ];then
+        if [ "$CLUSTER_BOOT_MODE" = "PRODUCTION" ] && [ $USE_EXTERNAL_FTS -ne 0 ];then
                 for fts in ${FTS_HOST_MACHINE_LIST[*]}
                 do
                         if [ ! "$FTS_HOST" = "$COORDINATOR_HOSTNAME" ];then
