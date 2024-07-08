@@ -573,6 +573,13 @@ RemovePublicationById(Oid pubid)
 	if (pubform->puballtables)
 		CacheInvalidateRelcacheAll();
 
+	/*
+	 * CBDB GITHUB ISSUE:
+	 * https://github.com/cloudberrydb/cloudberrydb/issues/504
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH)
+		MetaTrackDropObject(PublicationRelationId, pubid);
+
 	CatalogTupleDelete(rel, &tup->t_self);
 
 	ReleaseSysCache(tup);
