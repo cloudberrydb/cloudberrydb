@@ -327,4 +327,6 @@ test: motion_socket
 # subtransaction overflow test
 test: subtrx_overflow
 
+test: bfv_meta_track
+
 # end of tests
