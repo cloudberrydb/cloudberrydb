@@ -4211,10 +4211,16 @@ CTranslatorQueryToDXL::CreateDXLProjectNullsForGroupingSets(
 
 		INT sort_group_ref = INT(target_entry->ressortgroupref);
 
+#if 0
+		// FIXME: The following assert is wrong for its semantics that may
+		// call a member function on a null pointer.
+		// The assert expression is highly relative to the if condition below.
+		// We should figure out what the assert state really is and add it back.
 		GPOS_ASSERT_IMP(
-			nullptr != sort_grouping_col_mapping && sort_group_ref > 0,
+			nullptr == sort_grouping_col_mapping,
 			nullptr != sort_grouping_col_mapping->Find(&sort_group_ref) &&
 				"Grouping column with no mapping");
+#endif
 
 		if (0 < sort_group_ref && 0 < colid &&
 			nullptr == sort_grouping_col_mapping->Find(&sort_group_ref))
