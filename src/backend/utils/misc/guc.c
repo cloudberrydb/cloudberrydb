@@ -5140,6 +5140,7 @@ static bool report_needed;		/* true if any GUC_REPORT reports are needed */
 static int	GUCNestLevel = 0;	/* 1 when in main transaction */
 
 
+static int	guc_var_name_compare(const void *key, const void *generic);
 static int	guc_var_compare(const void *a, const void *b);
 static void InitializeGUCOptionsFromEnvironment(void);
 static void InitializeOneGUCOption(struct config_generic *gconf);
@@ -5715,7 +5716,6 @@ struct config_generic *
 find_option(const char *name, bool create_placeholders, bool skip_errors,
 			int elevel)
 {
-	const char **key = &name;
 	struct config_generic **res;
 	int			i;
 
@@ -5725,11 +5725,11 @@ find_option(const char *name, bool create_placeholders, bool skip_errors,
 	 * By equating const char ** with struct config_generic *, we are assuming
 	 * the name field is first in config_generic.
 	 */
-	res = (struct config_generic **) bsearch((void *) &key,
+	res = (struct config_generic **) bsearch((void *) &name,
 											 (void *) guc_variables,
 											 num_guc_variables,
 											 sizeof(struct config_generic *),
-											 guc_var_compare);
+											 guc_var_name_compare);
 	if (res)
 		return *res;
 
@@ -5776,6 +5776,23 @@ find_option(const char *name, bool create_placeholders, bool skip_errors,
 	return NULL;
 }
 
+/*
+ * comparator for bsearch guc_variables array
+ * qsort requires that two arguments are the type of element,
+ * but bsearch requires the first argument to be the key,
+ * the second argument is type of the array element.
+ *
+ * In pg upstream, bsearch is not used in this file, so
+ * the function should be removed later.
+ */
+static int
+guc_var_name_compare(const void *key, const void *generic)
+{
+	const char *name = *(char *const *)key;
+	const struct config_generic *conf = *(struct config_generic *const *) generic;
+
+	return guc_name_compare(name, conf->name);
+}
 
 /*
  * comparator for qsorting and bsearching guc_variables array
@@ -9435,18 +9452,17 @@ static void
 define_custom_variable(struct config_generic *variable)
 {
 	const char *name = variable->name;
-	const char **nameAddr = &name;
 	struct config_string *pHolder;
 	struct config_generic **res;
 
 	/*
 	 * See if there's a placeholder by the same name.
 	 */
-	res = (struct config_generic **) bsearch((void *) &nameAddr,
+	res = (struct config_generic **) bsearch((void *) &name,
 											 (void *) guc_variables,
 											 num_guc_variables,
 											 sizeof(struct config_generic *),
-											 guc_var_compare);
+											 guc_var_name_compare);
 	if (res == NULL)
 	{
 		/*
