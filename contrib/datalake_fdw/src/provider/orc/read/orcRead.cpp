@@ -162,7 +162,7 @@ bool orcRead::getStripeFromBigFile(metaInfo info)
 		{
 			ORC_UNIQUE_PTR<orc::StripeInformation> result = fileReader.readInterface.reader->getStripe(i);
 			int64_t stripeOffset = result->getOffset();
-			if (info.rangeOffset <= stripeOffset && stripeOffset <= info.rangeOffsetEnd)
+			if (info.rangeOffset <= stripeOffset && stripeOffset < info.rangeOffsetEnd)
 			{
 				fileReader.readInterface.tempStripes.push_back(fileReader.readInterface.reader->getStripe(i));
 			}
@@ -182,7 +182,7 @@ bool orcRead::getStripeFromBigFile(metaInfo info)
 				continue;
 			}
 			int64_t stripeOffset = fileReader.readInterface.stripes[i]->getOffset();
-			if (info.rangeOffset <= stripeOffset && stripeOffset <= info.rangeOffsetEnd)
+			if (info.rangeOffset <= stripeOffset && stripeOffset < info.rangeOffsetEnd)
 			{
 				fileReader.readInterface.tempStripes.push_back(std::move(fileReader.readInterface.stripes[i]));
 			}

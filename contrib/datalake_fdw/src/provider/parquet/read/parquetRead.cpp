@@ -123,7 +123,7 @@ bool parquetRead::getRowGropFromBigFile(metaInfo info)
         for (int i = 0; i < fileReader.getRowGroupNums(); i++)
         {
             int64_t offset = fileReader.rowGroupOffset(i);
-            if (info.rangeOffset <= offset && offset <= info.rangeOffsetEnd)
+            if (info.rangeOffset <= offset && offset < info.rangeOffsetEnd)
             {
                 tempRowGroupNums.push_back(i);
             }
@@ -140,7 +140,7 @@ bool parquetRead::getRowGropFromBigFile(metaInfo info)
         for (int64_t i = 0; i < count; i++)
         {
             int64_t offset = fileReader.rowGroupOffset(rowGroupNums[i]);
-            if (info.rangeOffset <= offset && offset <= info.rangeOffsetEnd)
+            if (info.rangeOffset <= offset && offset < info.rangeOffsetEnd)
             {
                 tempRowGroupNums.push_back(rowGroupNums[i]);
             }

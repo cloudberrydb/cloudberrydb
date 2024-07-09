@@ -315,7 +315,7 @@ bool avroRead::getRowGropFromBigFile(metaInfo info)
         {
             break;
         }
-        if (info.rangeOffset <= offset && offset <= info.rangeOffsetEnd)
+        if (info.rangeOffset <= offset && offset < info.rangeOffsetEnd)
         {
             tempRowGroupNums.push_back(offset);
         }
