@@ -149,7 +149,7 @@ datalake_proxy_start_worker(void)
 
 	MemSet(&worker, 0, sizeof(BackgroundWorker));
 	worker.bgw_flags = BGWORKER_SHMEM_ACCESS;
-	worker.bgw_start_time = BgWorkerStart_PostmasterStart;
+	worker.bgw_start_time = BgWorkerStart_RecoveryFinished;
 
 	strcpy(worker.bgw_library_name, "datalake_proxy");
 	strcpy(worker.bgw_function_name, "datalake_proxy_main");
