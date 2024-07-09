@@ -170,17 +170,22 @@ bool ExtractcolumnsFromNode(Node *expr, bool *cols, int natts);
 
 bool MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily,
                                FmgrInfo *finfo, StrategyNumber strategynum);
-
+bool AddGetProcinfo(Oid atttypid, Oid subtype, Oid namespc, Oid *resulttype,
+                    FmgrInfo *finfo);
+bool SumAGGGetProcinfo(Oid atttypid, Oid *prorettype, Oid *transtype,
+                       FmgrInfo *trans_finfo, FmgrInfo *final_finfo,
+                       bool *final_func_exist, FmgrInfo *add_finfo);
+Datum datumCopy(Datum value, bool typByVal, int typLen);
+Datum SumFuncCall(FmgrInfo *flinfo, AggState *state, Datum arg1, Datum arg2);
 Datum FunctionCall1Coll(FmgrInfo *flinfo, Oid collation, Datum arg1);
-
 Datum FunctionCall2Coll(FmgrInfo *flinfo, Oid collation, Datum arg1,
                         Datum arg2);
-
 Datum FunctionCall3Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
                         Datum arg3);
-
 Datum FunctionCall4Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
                         Datum arg3, Datum arg4);
+int16 GetTyplen(Oid typid);
+bool GetTypbyval(Oid typid);
 
 SysScanDesc SystableBeginScan(Relation rel, Oid index_id, bool index_ok,
                               Snapshot snapshot, int n_keys, ScanKey keys);
@@ -204,10 +209,6 @@ void RelDropStorage(Relation rel);
 
 char *GetGUCConfigOptionByName(const char *name, const char **varname,
                                bool missing_ok);
-
-std::string GetDfsTablespaceServer(Oid id);
-
-std::string GetDfsTablespacePath(Oid id);
 
 bool IsDfsTablespaceById(Oid spcId);
 

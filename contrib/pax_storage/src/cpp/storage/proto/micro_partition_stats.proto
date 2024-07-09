@@ -4,11 +4,14 @@ package pax.stats;
 message ColumnDataStats {
   optional bytes minimal = 1;             // Minimal value stored as Datum.
   optional bytes maximum = 2;             // Maximum value stored as Datum.
+  optional bytes sum = 3;                 // sum(c1) value. Invalid after existence of visable map
 }
 message ColumnBasicInfo {
   optional uint32 typid = 1;              // type oid of the column
   optional uint32 collation = 2;          // collation oid of the column
   optional uint32 opfamily = 3;
+
+  optional uint32 prorettype = 4;         // the sum(c1) return type
 }
 
 message MicroPartitionStatisticsInfo
@@ -20,6 +23,7 @@ message ColumnStats {
   optional bool allnull = 1 [default=true];     // all-null value for single column.
   optional bool hasnull = 2 [default=false];    // has-null value for single column.
   optional ColumnBasicInfo info = 3;
-  optional ColumnDataStats  dataStats = 4;    // minimal vaule stats.
+  optional ColumnDataStats  dataStats = 4;      // minimal/maximum value stats.
+  optional uint32 nonNullRows = 5 [default=0];  // count(c1) value. Invalid after existence of visable map
 }
 

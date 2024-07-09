@@ -273,9 +273,10 @@ Bitmapset *paxc_get_minmax_columns_index(Relation rel, bool validate) {
 
 void paxc_reg_rel_options() {
   self_relopt_kind = add_reloption_kind();
-  add_string_reloption(
-      self_relopt_kind, PAX_SOPT_STORAGE_FORMAT, "pax storage format", "porc",
-      paxc_validate_rel_options_storage_format, AccessExclusiveLock);
+  add_string_reloption(self_relopt_kind, PAX_SOPT_STORAGE_FORMAT,
+                       "pax storage format", STORAGE_FORMAT_TYPE_DEFAULT,
+                       paxc_validate_rel_options_storage_format,
+                       AccessExclusiveLock);
   add_string_reloption(self_relopt_kind, PAX_SOPT_COMPTYPE, "pax compress type",
                        PAX_DEFAULT_COMPRESSTYPE,
                        paxc_validate_rel_options_compress_type,

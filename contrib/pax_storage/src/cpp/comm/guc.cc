@@ -147,8 +147,8 @@ void DefineGUCs() {
 
   DefineCustomStringVariable(
       "pax_default_storage_format", "the default storage format", NULL,
-      &pax::pax_default_storage_format, "porc", PGC_USERSET, GUC_GPDB_NEED_SYNC,
-      CheckDefaultStorageFormat, NULL, NULL);
+      &pax::pax_default_storage_format, STORAGE_FORMAT_TYPE_DEFAULT,
+      PGC_USERSET, GUC_GPDB_NEED_SYNC, CheckDefaultStorageFormat, NULL, NULL);
 }
 
 }  // namespace paxc

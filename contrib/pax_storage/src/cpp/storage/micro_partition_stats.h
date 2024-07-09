@@ -14,8 +14,8 @@ class MicroPartitionStatisticsInfo;
 class ColumnBasicInfo;
 class ColumnDataStats;
 }  // namespace stats
-
 class MicroPartitionStatsData;
+struct SumStatsInMem;
 
 class MicroPartitionStats final {
  public:
@@ -45,7 +45,8 @@ class MicroPartitionStats final {
   void AddNonNullColumn(int column_index, Datum value, Datum detoast);
   void UpdateMinMaxValue(int column_index, Datum datum, Oid collation,
                          int typlen, bool typbyval);
-  void CopyMinMaxValue(Datum src, Datum *dst, int typlen, bool typbyval);
+  void UpdateSumValue(int column_index, SumStatsInMem *sum_stats);
+  void CopyDatum(Datum src, Datum *dst, int typlen, bool typbyval);
 
  private:
   TupleDesc tuple_desc_;
@@ -54,18 +55,19 @@ class MicroPartitionStats final {
   std::vector<Datum> min_in_mem_;
   std::vector<Datum> max_in_mem_;
 
+  // the stats to desc sum
+  std::vector<SumStatsInMem> sum_stats_;
+  AggState *agg_state_;
+  ExprContext expr_context_;
+
   std::vector<Oid> opfamilies_;
   // less: pair[0], greater: pair[1]
   std::vector<std::pair<FmgrInfo, FmgrInfo>> finfos_;
   std::vector<std::pair<OperMinMaxFunc, OperMinMaxFunc>> local_funcs_;
-  bool allow_fallback_to_pg_ = false;
+  bool allow_fallback_to_pg_ = false;  // only effect min/max
 
   // status to indicate whether the oids are initialized
   // or the min-max values are initialized
-  // 'u': all is uninitialized
-  // 'x': column doesn't support min-max
-  // 'n': oids are initialized, but min-max value is missing
-  // 'y': min-max is set, needs update.
   std::vector<char> status_;
   bool initialized_ = false;
 };

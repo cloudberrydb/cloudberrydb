@@ -10,18 +10,76 @@
 
 namespace pax {
 
+// STATUS_UNINITIALIZED: all is uninitialized
+// STATUS_NOT_SUPPORT: column doesn't support min-max/sum
+// STATUS_MISSING_INIT_VAL: oids are initialized, but min-max value is missing
+// STATUS_NEED_UPDATE: min-max/sum is set, needs update.
+#define STATUS_UNINITIALIZED 'u'
+#define STATUS_NOT_SUPPORT 'x'
+#define STATUS_MISSING_INIT_VAL 'n'
+#define STATUS_NEED_UPDATE 'y'
+
 class MicroPartitionStatsData final {
  public:
-  MicroPartitionStatsData(int natts);
-  void Reset();
-  void CopyFrom(MicroPartitionStatsData *stats);
-  ::pax::stats::ColumnBasicInfo *GetColumnBasicInfo(int column_index);
-  ::pax::stats::ColumnDataStats *GetColumnDataStats(int column_index);
-  int ColumnSize() const;
-  void SetAllNull(int column_index, bool allnull);
-  void SetHasNull(int column_index, bool hasnull);
-  bool GetAllNull(int column_index);
-  bool GetHasNull(int column_index);
+  MicroPartitionStatsData(int natts) : info_() {
+    Assert(natts >= 0);
+
+    for (int i = 0; i < natts; i++) {
+      auto col pg_attribute_unused() = info_.add_columnstats();
+      Assert(col->allnull() && !col->hasnull());
+    }
+  }
+
+  inline void Reset() {
+    auto n = info_.columnstats_size();
+
+    for (int i = 0; i < n; i++) {
+      // no clean the basic stats
+      info_.mutable_columnstats(i)->clear_datastats();
+      info_.mutable_columnstats(i)->clear_allnull();
+      info_.mutable_columnstats(i)->clear_hasnull();
+      info_.mutable_columnstats(i)->clear_nonnullrows();
+    }
+  }
+
+  inline void CopyFrom(MicroPartitionStatsData *stats) {
+    Assert(stats);
+    Assert(typeid(this) == typeid(stats));
+
+    info_.CopyFrom(stats->info_);
+  }
+
+  inline ::pax::stats::ColumnBasicInfo *GetColumnBasicInfo(int column_index) {
+    return info_.mutable_columnstats(column_index)->mutable_info();
+  }
+
+  inline ::pax::stats::ColumnDataStats *GetColumnDataStats(int column_index) {
+    return info_.mutable_columnstats(column_index)->mutable_datastats();
+  }
+
+  inline void SetAllNull(int column_index, bool allnull) {
+    info_.mutable_columnstats(column_index)->set_allnull(allnull);
+  }
+
+  inline void SetHasNull(int column_index, bool hasnull) {
+    info_.mutable_columnstats(column_index)->set_hasnull(hasnull);
+  }
+
+  inline void SetNonNullRows(int column_index, uint32 non_null_rows) {
+    info_.mutable_columnstats(column_index)->set_nonnullrows(non_null_rows);
+  }
+
+  inline bool GetAllNull(int column_index) {
+    return info_.columnstats(column_index).allnull();
+  }
+
+  inline bool GetHasNull(int column_index) {
+    return info_.columnstats(column_index).hasnull();
+  }
+
+  inline uint32 GetNonNullRows(int column_index) {
+    return info_.columnstats(column_index).nonnullrows();
+  }
 
   inline ::pax::stats::MicroPartitionStatisticsInfo *GetStatsInfoRef() {
     return &info_;
@@ -29,6 +87,35 @@ class MicroPartitionStatsData final {
 
  private:
   ::pax::stats::MicroPartitionStatisticsInfo info_;
+};
+
+struct SumStatsInMem {
+  FmgrInfo trans_func;
+  FmgrInfo final_func;
+  FmgrInfo add_func;
+  Oid argtype = 0;
+  Oid rettype = 0;
+  Oid transtype = 0;
+  int16 transtyplen = -3;
+  bool transtypbyval = false;
+  int16 rettyplen = -3;
+  bool rettypbyval = false;
+  bool final_func_exist = false;
+
+  bool final_func_called = false;
+  Datum result = 0;
+  // same as min-max 'status'
+  char status = STATUS_UNINITIALIZED;
+
+  void Reset() {
+    Assert(status == STATUS_MISSING_INIT_VAL || status == STATUS_NEED_UPDATE ||
+           status == STATUS_NOT_SUPPORT);
+    if (status == STATUS_NEED_UPDATE) {
+      result = 0;
+      final_func_called = false;
+      status = STATUS_MISSING_INIT_VAL;
+    }
+  }
 };
 
 bool MicroPartitionStats::MicroPartitionStatisticsInfoCombine(
@@ -216,31 +303,38 @@ MicroPartitionStats::MicroPartitionStats(TupleDesc desc,
   finfos_.clear();
   local_funcs_.clear();
   status_.clear();
+
+  sum_stats_.clear();
+
   for (int i = 0; i < natts; i++) {
     opfamilies_.emplace_back(InvalidOid);
     finfos_.emplace_back(std::pair<FmgrInfo, FmgrInfo>({finfo, finfo}));
     local_funcs_.emplace_back(
         std::pair<OperMinMaxFunc, OperMinMaxFunc>({nullptr, nullptr}));
-    status_.emplace_back('u');
+    status_.emplace_back(STATUS_UNINITIALIZED);
     min_in_mem_.emplace_back(0);
     max_in_mem_.emplace_back(0);
+    sum_stats_.emplace_back(std::move(SumStatsInMem()));
   }
 }
 
-MicroPartitionStats::~MicroPartitionStats() { PAX_DELETE(stats_); }
+MicroPartitionStats::~MicroPartitionStats() {
+  cbdb::Pfree(agg_state_);
+  PAX_DELETE(stats_);
+}
 
 ::pax::stats::MicroPartitionStatisticsInfo *MicroPartitionStats::Serialize() {
   auto n = tuple_desc_->natts;
   stats::ColumnDataStats *data_stats;
 
   for (auto column_index = 0; column_index < n; column_index++) {
-    // only 'y' need set to the stats_
-    if (status_[column_index] == 'y') {
+    data_stats = stats_->GetColumnDataStats(column_index);
+    // only STATUS_NEED_UPDATE need set to the stats_
+    if (status_[column_index] == STATUS_NEED_UPDATE) {
       auto att = TupleDescAttr(tuple_desc_, column_index);
       auto typlen = att->attlen;
       auto typbyval = att->attbyval;
 
-      data_stats = stats_->GetColumnDataStats(column_index);
       data_stats->set_minimal(
           ToValue(min_in_mem_[column_index], typlen, typbyval));
       data_stats->set_maximum(
@@ -257,6 +351,42 @@ MicroPartitionStats::~MicroPartitionStats() { PAX_DELETE(stats_); }
       min_in_mem_[column_index] = 0;
       max_in_mem_[column_index] = 0;
     }
+
+    if (sum_stats_[column_index].status == STATUS_NEED_UPDATE) {
+      if (sum_stats_[column_index].final_func_exist &&
+          !sum_stats_[column_index].final_func_called) {
+        auto newval = cbdb::FunctionCall1Coll(
+            &sum_stats_[column_index].final_func, InvalidOid,
+            sum_stats_[column_index].result);
+
+#ifdef USE_ASSERT_CHECKING
+        auto newvalue_vl = (struct varlena *)cbdb::DatumToPointer(newval);
+        auto detoast_newval = cbdb::PgDeToastDatum(newvalue_vl);
+        Assert(newval == PointerGetDatum(detoast_newval));
+#endif  // USE_ASSERT_CHECKING
+
+        if (!sum_stats_[column_index].transtypbyval &&
+            cbdb::DatumToPointer(newval) !=
+                cbdb::DatumToPointer(sum_stats_[column_index].result)) {
+          // The reason why we not use the `Copydatum` is that
+          // 1. newval won't be a toast
+          // 2. the `newval` alloc in `final_func` which not used the
+          // PAX_NEW to alloc, can't use the PAX_DELETE to delete it
+          cbdb::Pfree(cbdb::DatumToPointer(sum_stats_[column_index].result));
+          sum_stats_[column_index].result =
+              cbdb::datumCopy(newval, sum_stats_[column_index].rettypbyval,
+                              sum_stats_[column_index].rettyplen);
+        } else {
+          sum_stats_[column_index].result = newval;
+        }
+        sum_stats_[column_index].final_func_called = true;
+      }
+
+      data_stats->set_sum(ToValue(sum_stats_[column_index].result,
+                                  sum_stats_[column_index].rettyplen,
+                                  sum_stats_[column_index].rettypbyval));
+      sum_stats_[column_index].result = 0;
+    }
   }
 
   return stats_->GetStatsInfoRef();
@@ -269,9 +399,15 @@ MicroPartitionStats::~MicroPartitionStats() { PAX_DELETE(stats_); }
 
 MicroPartitionStats *MicroPartitionStats::Reset() {
   for (char &status : status_) {
-    Assert(status == 'n' || status == 'y' || status == 'x');
-    if (status == 'y') status = 'n';
+    Assert(status == STATUS_MISSING_INIT_VAL || status == STATUS_NEED_UPDATE ||
+           status == STATUS_NOT_SUPPORT);
+    if (status == STATUS_NEED_UPDATE) status = STATUS_MISSING_INIT_VAL;
   }
+
+  for (auto &sum_stat : sum_stats_) {
+    sum_stat.Reset();
+  }
+
   stats_->Reset();
   return this;
 }
@@ -296,69 +432,145 @@ void MicroPartitionStats::AddRow(TupleTableSlot *slot,
 
 void MicroPartitionStats::MergeTo(MicroPartitionStats *stats) {
   Assert(status_.size() == stats->status_.size());
+
+  // Used to merge `allnull`/`hasnull`/`nunnullrows`
+  // These pb struct will exist whether minmaxopt is set or not(expect drop
+  // column).
+  auto merge_const_stats = [](MicroPartitionStatsData *left,
+                              MicroPartitionStatsData *right,
+                              size_t column_index) {
+    if (left->GetAllNull(column_index) && !right->GetAllNull(column_index)) {
+      left->SetAllNull(column_index, false);
+    }
+
+    if (!left->GetHasNull(column_index) && right->GetHasNull(column_index)) {
+      left->SetHasNull(column_index, true);
+    }
+
+    // won't be overflow
+    left->SetNonNullRows(column_index, left->GetNonNullRows(column_index) +
+                                           right->GetNonNullRows(column_index));
+  };
+
   for (size_t column_index = 0; column_index < status_.size(); column_index++) {
     auto att = TupleDescAttr(tuple_desc_, column_index);
     auto collation = att->attcollation;
     auto typlen = att->attlen;
     auto typbyval = att->attbyval;
 
-    Assert(status_[column_index] != 'u' && stats->status_[column_index] != 'u');
-    AssertImply(stats->status_[column_index] == 'x',
-                status_[column_index] == 'x');
+    Assert(status_[column_index] != STATUS_UNINITIALIZED &&
+           stats->status_[column_index] != STATUS_UNINITIALIZED);
+    AssertImply(stats->status_[column_index] == STATUS_NOT_SUPPORT,
+                status_[column_index] == STATUS_NOT_SUPPORT);
 
-    if (stats->status_[column_index] == 'n' ||
-        stats->status_[column_index] == 'x') {
+    if (stats->status_[column_index] == STATUS_MISSING_INIT_VAL ||
+        stats->status_[column_index] == STATUS_NOT_SUPPORT) {
       // still need update all and has null
-      if (stats_->GetAllNull(column_index) &&
-          !stats->stats_->GetAllNull(column_index)) {
-        stats_->SetAllNull(column_index, false);
-      }
-
-      if (!stats_->GetHasNull(column_index) &&
-          stats->stats_->GetHasNull(column_index)) {
-        stats_->SetHasNull(column_index, true);
-      }
-      continue;
+      merge_const_stats(stats_, stats->stats_, column_index);
+      goto update_sum_stats;
     }
 
-    Assert(stats->status_[column_index] == 'y');
-    Assert(status_[column_index] != 'x');
-    if (status_[column_index] == 'y') {
-      auto col_basic_stats_merge pg_attribute_unused() =
-          stats->stats_->GetColumnBasicInfo(column_index);
+    // Now `stats->status_` will only be STATUS_NEED_UPDATE
+    // `status_` will only be STATUS_NEED_UPDATE or STATUS_MISSING_INIT_VAL
+    Assert(stats->status_[column_index] == STATUS_NEED_UPDATE);
+    Assert(status_[column_index] != STATUS_NOT_SUPPORT);
+    if (status_[column_index] == STATUS_NEED_UPDATE) {
+      {  // check the basic info match
+        auto col_basic_stats_merge pg_attribute_unused() =
+            stats->stats_->GetColumnBasicInfo(column_index);
 
-      auto col_basic_stats pg_attribute_unused() =
-          stats_->GetColumnBasicInfo(column_index);
+        auto col_basic_stats pg_attribute_unused() =
+            stats_->GetColumnBasicInfo(column_index);
 
-      Assert(col_basic_stats->typid() == col_basic_stats_merge->typid());
-      Assert(col_basic_stats->opfamily() == col_basic_stats_merge->opfamily());
-      Assert(col_basic_stats->collation() ==
-             col_basic_stats_merge->collation());
-      Assert(col_basic_stats->collation() == collation);
-
-      if (stats_->GetAllNull(column_index) &&
-          !stats->stats_->GetAllNull(column_index)) {
-        stats_->SetAllNull(column_index, false);
+        Assert(col_basic_stats->typid() == col_basic_stats_merge->typid());
+        Assert(col_basic_stats->opfamily() ==
+               col_basic_stats_merge->opfamily());
+        Assert(col_basic_stats->collation() ==
+               col_basic_stats_merge->collation());
+        Assert(col_basic_stats->collation() == collation);
       }
 
-      if (!stats_->GetHasNull(column_index) &&
-          stats->stats_->GetHasNull(column_index)) {
-        stats_->SetHasNull(column_index, true);
-      }
+      merge_const_stats(stats_, stats->stats_, column_index);
 
       UpdateMinMaxValue(column_index, stats->min_in_mem_[column_index],
                         collation, typlen, typbyval);
       UpdateMinMaxValue(column_index, stats->max_in_mem_[column_index],
                         collation, typlen, typbyval);
-    } else if (status_[column_index] == 'n') {
+    } else if (status_[column_index] == STATUS_MISSING_INIT_VAL) {
       stats_->CopyFrom(stats->stats_);
+      CopyDatum(stats->min_in_mem_[column_index], &min_in_mem_[column_index],
+                typlen, typbyval);
+      CopyDatum(stats->max_in_mem_[column_index], &max_in_mem_[column_index],
+                typlen, typbyval);
 
-      CopyMinMaxValue(stats->min_in_mem_[column_index],
-                      &min_in_mem_[column_index], typlen, typbyval);
-      CopyMinMaxValue(stats->max_in_mem_[column_index],
-                      &max_in_mem_[column_index], typlen, typbyval);
+      status_[column_index] = STATUS_NEED_UPDATE;
+    } else {
+      Assert(false);
+    }
 
-      status_[column_index] = 'y';
+  update_sum_stats:
+    auto left_sum_stat = &sum_stats_[column_index];
+    auto right_sum_stat = &stats->sum_stats_[column_index];
+
+    Assert(left_sum_stat->status != STATUS_UNINITIALIZED &&
+           right_sum_stat->status != STATUS_UNINITIALIZED);
+    AssertImply(left_sum_stat->status == STATUS_NOT_SUPPORT,
+                right_sum_stat->status == STATUS_NOT_SUPPORT);
+
+    if (right_sum_stat->status == STATUS_MISSING_INIT_VAL ||
+        right_sum_stat->status == STATUS_NOT_SUPPORT) {
+      // nothing todo
+      continue;
+    }
+
+    // Now `right_sum_stat status` will only be STATUS_NEED_UPDATE
+    // `left_sum_stat status` will only be STATUS_NEED_UPDATE or
+    // STATUS_MISSING_INIT_VAL
+    Assert(right_sum_stat->status == STATUS_NEED_UPDATE);
+    Assert(left_sum_stat->status != STATUS_NOT_SUPPORT);
+
+    Assert(left_sum_stat->transtyplen == right_sum_stat->transtyplen);
+    Assert(left_sum_stat->transtypbyval == right_sum_stat->transtypbyval);
+    Assert(left_sum_stat->rettyplen == right_sum_stat->rettyplen);
+    Assert(left_sum_stat->rettypbyval == right_sum_stat->rettypbyval);
+
+    if (right_sum_stat->final_func_exist &&
+        !right_sum_stat->final_func_called) {
+      auto newval = cbdb::FunctionCall1Coll(&right_sum_stat->final_func,
+                                            InvalidOid, right_sum_stat->result);
+
+      if (!left_sum_stat->transtypbyval &&
+          cbdb::DatumToPointer(newval) !=
+              cbdb::DatumToPointer(right_sum_stat->result)) {
+        cbdb::Pfree(cbdb::DatumToPointer(right_sum_stat->result));
+        right_sum_stat->result = cbdb::datumCopy(
+            newval, right_sum_stat->rettypbyval, right_sum_stat->rettyplen);
+      } else {
+        right_sum_stat->result = newval;
+      }
+
+      right_sum_stat->final_func_called = true;
+    }
+
+    left_sum_stat->final_func_exist = right_sum_stat->final_func_exist;
+    left_sum_stat->final_func_called = right_sum_stat->final_func_called;
+
+    if (left_sum_stat->status == STATUS_NEED_UPDATE) {
+      Datum newval = cbdb::FunctionCall2Coll(&left_sum_stat->add_func,
+                                             InvalidOid, left_sum_stat->result,
+                                             right_sum_stat->result);
+      if (!left_sum_stat->rettypbyval &&
+          cbdb::DatumToPointer(newval) !=
+              cbdb::DatumToPointer(left_sum_stat->result)) {
+        cbdb::Pfree(cbdb::DatumToPointer(left_sum_stat->result));
+        left_sum_stat->result = cbdb::datumCopy(
+            newval, left_sum_stat->rettyplen, left_sum_stat->rettypbyval);
+      }
+    } else if (left_sum_stat->status == STATUS_MISSING_INIT_VAL) {
+      left_sum_stat->result =
+          cbdb::datumCopy(right_sum_stat->result, left_sum_stat->rettypbyval,
+                          left_sum_stat->rettyplen);
+      left_sum_stat->status = STATUS_NEED_UPDATE;
     } else {
       Assert(false);
     }
@@ -381,8 +593,10 @@ void MicroPartitionStats::AddNonNullColumn(int column_index, Datum value,
   auto collation = att->attcollation;
   auto typlen = att->attlen;
   auto typbyval = att->attbyval;
-  auto info = stats_->GetColumnBasicInfo(column_index);
+  auto pg_attribute_unused() info = stats_->GetColumnBasicInfo(column_index);
   stats_->SetAllNull(column_index, false);
+  stats_->SetNonNullRows(column_index,
+                         stats_->GetNonNullRows(column_index) + 1);
 
   if (detoast != 0 && value != detoast) {
     value = detoast;
@@ -390,9 +604,9 @@ void MicroPartitionStats::AddNonNullColumn(int column_index, Datum value,
 
   // update min/max
   switch (status_[column_index]) {
-    case 'x':
+    case STATUS_NOT_SUPPORT:
       break;
-    case 'y':
+    case STATUS_NEED_UPDATE:
       Assert(info->has_typid());
       Assert(info->has_opfamily());
       Assert(info->typid() == att->atttypid);
@@ -401,25 +615,63 @@ void MicroPartitionStats::AddNonNullColumn(int column_index, Datum value,
 
       UpdateMinMaxValue(column_index, value, collation, typlen, typbyval);
       break;
-    case 'n': {
+    case STATUS_MISSING_INIT_VAL: {
       AssertImply(info->has_typid(), info->typid() == att->atttypid);
       AssertImply(info->has_collation(), info->collation() == collation);
       AssertImply(info->has_opfamily(),
                   info->opfamily() == opfamilies_[column_index]);
-#ifdef USE_ASSERT_CHECKING
-      auto data_stats = stats_->GetColumnDataStats(column_index);
-      Assert(!data_stats->has_minimal());
-      Assert(!data_stats->has_maximum());
-#endif
 
-      info->set_typid(att->atttypid);
-      info->set_collation(collation);
-      info->set_opfamily(opfamilies_[column_index]);
+      CopyDatum(value, &min_in_mem_[column_index], typlen, typbyval);
+      CopyDatum(value, &max_in_mem_[column_index], typlen, typbyval);
 
-      CopyMinMaxValue(value, &min_in_mem_[column_index], typlen, typbyval);
-      CopyMinMaxValue(value, &max_in_mem_[column_index], typlen, typbyval);
+      status_[column_index] = STATUS_NEED_UPDATE;
+      break;
+    }
+    default:
+      Assert(false);
+  }
 
-      status_[column_index] = 'y';
+  // update sum
+  switch (sum_stats_[column_index].status) {
+    case STATUS_NOT_SUPPORT:
+      break;
+    case STATUS_MISSING_INIT_VAL: {
+      if (sum_stats_[column_index].trans_func.fn_strict) {
+        /*
+         * transValue has not been initialized. This is the first non-NULL
+         * input value. We use it as the initial value for transValue. (We
+         * already checked that the agg's input type is binary-compatible
+         * with its transtype, so straight copy here is OK.)
+         *
+         * We must copy the datum into aggcontext if it is pass-by-ref. We
+         * do not need to pfree the old transValue, since it's NULL.
+         */
+        sum_stats_[column_index].result =
+            cbdb::datumCopy(value, sum_stats_[column_index].transtypbyval,
+                            sum_stats_[column_index].transtyplen);
+        sum_stats_[column_index].status = STATUS_NEED_UPDATE;
+        break;
+      }
+
+      sum_stats_[column_index].status = STATUS_NEED_UPDATE;
+      [[fallthrough]];
+    }
+    case STATUS_NEED_UPDATE: {
+      AssertImply(sum_stats_[column_index].final_func_exist,
+                  !sum_stats_[column_index].final_func_called);
+      auto newval =
+          cbdb::SumFuncCall(&sum_stats_[column_index].trans_func, agg_state_,
+                            sum_stats_[column_index].result, value);
+
+      if (!sum_stats_[column_index].transtypbyval &&
+          cbdb::DatumToPointer(newval) !=
+              cbdb::DatumToPointer(sum_stats_[column_index].result)) {
+        cbdb::Pfree(cbdb::DatumToPointer(sum_stats_[column_index].result));
+        sum_stats_[column_index].result = newval;
+      } else {
+        sum_stats_[column_index].result = newval;
+      }
+
       break;
     }
     default:
@@ -436,7 +688,7 @@ void MicroPartitionStats::UpdateMinMaxValue(int column_index, Datum datum,
   Assert(initialized_);
   Assert(column_index >= 0 &&
          static_cast<size_t>(column_index) < status_.size());
-  Assert(status_[column_index] == 'y');
+  Assert(status_[column_index] == STATUS_NEED_UPDATE);
 
   min_datum = min_in_mem_[column_index];
   max_datum = max_in_mem_[column_index];
@@ -460,14 +712,15 @@ void MicroPartitionStats::UpdateMinMaxValue(int column_index, Datum datum,
     Assert(false);
   }
 
-  if (umin)
-    CopyMinMaxValue(datum, &min_in_mem_[column_index], typlen, typbyval);
-  if (umax)
-    CopyMinMaxValue(datum, &max_in_mem_[column_index], typlen, typbyval);
+  if (umin) CopyDatum(datum, &min_in_mem_[column_index], typlen, typbyval);
+  if (umax) CopyDatum(datum, &max_in_mem_[column_index], typlen, typbyval);
 }
 
-void MicroPartitionStats::CopyMinMaxValue(Datum src, Datum *dst, int typlen,
-                                          bool typbyval) {
+void MicroPartitionStats::UpdateSumValue(int column_index,
+                                         SumStatsInMem *sum_stats) {}
+
+void MicroPartitionStats::CopyDatum(Datum src, Datum *dst, int typlen,
+                                    bool typbyval) {
   if (typbyval) {
     Assert(typlen == 1 || typlen == 2 || typlen == 4 || typlen == 8);
     *dst = src;
@@ -523,32 +776,68 @@ void MicroPartitionStats::Initialize(const std::vector<int> &minmax_columns) {
 
   for (int i = 0, j = 0; i < natts; i++) {
     auto att = TupleDescAttr(tuple_desc_, i);
+    auto info = stats_->GetColumnBasicInfo(i);
 
     if (att->attisdropped) {
-      status_[i] = 'x';
+      status_[i] = STATUS_NOT_SUPPORT;
+      sum_stats_[i].status = STATUS_NOT_SUPPORT;
       continue;
     }
-    while (j < num_minmax_columns && minmax_columns[j] < i) j++;
+
+    while (j < num_minmax_columns && minmax_columns[j] < i) {
+      j++;
+    }
+
     if (j >= num_minmax_columns || minmax_columns[j] != i) {
-      status_[i] = 'x';
+      status_[i] = STATUS_NOT_SUPPORT;
+      sum_stats_[i].status = STATUS_NOT_SUPPORT;
       continue;
     }
     j++;
 
+    // init_minmax_status: (only use to mark)
     if (GetStrategyProcinfo(att->atttypid, att->atttypid, local_funcs_[i])) {
-      status_[i] = 'n';
-      continue;
+      status_[i] = STATUS_MISSING_INIT_VAL;
+
+      info->set_typid(att->atttypid);
+      info->set_collation(att->attcollation);
+      info->set_opfamily(opfamilies_[i]);
+      goto init_sum_status;
     }
 
     if (!allow_fallback_to_pg_ ||
         !GetStrategyProcinfo(att->atttypid, att->atttypid, &opfamilies_[i],
                              finfos_[i])) {
-      status_[i] = 'x';
-      continue;
+      status_[i] = STATUS_NOT_SUPPORT;
+      goto init_sum_status;
     }
 
-    status_[i] = 'n';
+    info->set_typid(att->atttypid);
+    info->set_collation(att->attcollation);
+    info->set_opfamily(opfamilies_[i]);
+
+    status_[i] = STATUS_MISSING_INIT_VAL;
+  init_sum_status:
+    if (cbdb::SumAGGGetProcinfo(
+            att->atttypid, &sum_stats_[i].rettype, &sum_stats_[i].transtype,
+            &sum_stats_[i].trans_func, &sum_stats_[i].final_func,
+            &sum_stats_[i].final_func_exist, &sum_stats_[i].add_func)) {
+      sum_stats_[i].status = STATUS_MISSING_INIT_VAL;
+      sum_stats_[i].argtype = att->atttypid;
+      sum_stats_[i].transtyplen = cbdb::GetTyplen(sum_stats_[i].transtype);
+      sum_stats_[i].transtypbyval = cbdb::GetTypbyval(sum_stats_[i].transtype);
+      sum_stats_[i].rettyplen = cbdb::GetTyplen(sum_stats_[i].rettype);
+      sum_stats_[i].rettypbyval = cbdb::GetTypbyval(sum_stats_[i].rettype);
+      info->set_prorettype(sum_stats_[i].rettype);
+    } else {
+      sum_stats_[i].status = STATUS_NOT_SUPPORT;
+    }
   }
+
+  agg_state_ = makeNode(AggState);
+  agg_state_->curaggcontext = &expr_context_;
+  expr_context_.ecxt_per_tuple_memory = CurrentMemoryContext;
+
   initialized_ = true;
 }
 
@@ -630,78 +919,32 @@ std::string MicroPartitionStats::ToValue(Datum datum, int typlen,
                      typlen);
 }
 
-MicroPartitionStatsData::MicroPartitionStatsData(int natts) : info_() {
-  Assert(natts >= 0);
-
-  for (int i = 0; i < natts; i++) {
-    auto col pg_attribute_unused() = info_.add_columnstats();
-    Assert(col->allnull() && !col->hasnull());
-  }
-}
-
-void MicroPartitionStatsData::Reset() {
-  auto n = info_.columnstats_size();
-
-  info_.mutable_columnstats()->Clear();
-  for (int i = 0; i < n; i++) {
-    auto col pg_attribute_unused() = info_.add_columnstats();
-    Assert(col->allnull() && !col->hasnull());
-  }
-}
-
-void MicroPartitionStatsData::CopyFrom(MicroPartitionStatsData *stats) {
-  Assert(stats);
-  Assert(typeid(this) == typeid(stats));
-
-  info_.CopyFrom(stats->info_);
-}
-
-::pax::stats::ColumnBasicInfo *MicroPartitionStatsData::GetColumnBasicInfo(
-    int column_index) {
-  return info_.mutable_columnstats(column_index)->mutable_info();
-}
-::pax::stats::ColumnDataStats *MicroPartitionStatsData::GetColumnDataStats(
-    int column_index) {
-  return info_.mutable_columnstats(column_index)->mutable_datastats();
-}
-int MicroPartitionStatsData::ColumnSize() const {
-  return info_.columnstats_size();
-}
-void MicroPartitionStatsData::SetAllNull(int column_index, bool allnull) {
-  info_.mutable_columnstats(column_index)->set_allnull(allnull);
-}
-void MicroPartitionStatsData::SetHasNull(int column_index, bool hasnull) {
-  info_.mutable_columnstats(column_index)->set_hasnull(hasnull);
-}
-
-bool MicroPartitionStatsData::GetAllNull(int column_index) {
-  return info_.columnstats(column_index).allnull();
-}
-
-bool MicroPartitionStatsData::GetHasNull(int column_index) {
-  return info_.columnstats(column_index).hasnull();
-}
-
 MicroPartitionStatsProvider::MicroPartitionStatsProvider(
     const ::pax::stats::MicroPartitionStatisticsInfo &stats)
     : stats_(stats) {}
+
 int MicroPartitionStatsProvider::ColumnSize() const {
   return stats_.columnstats_size();
 }
+
 bool MicroPartitionStatsProvider::AllNull(int column_index) const {
   return stats_.columnstats(column_index).allnull();
 }
+
 bool MicroPartitionStatsProvider::HasNull(int column_index) const {
   return stats_.columnstats(column_index).hasnull();
 }
+
 const ::pax::stats::ColumnBasicInfo &MicroPartitionStatsProvider::ColumnInfo(
     int column_index) const {
   return stats_.columnstats(column_index).info();
 }
+
 const ::pax::stats::ColumnDataStats &MicroPartitionStatsProvider::DataStats(
     int column_index) const {
   return stats_.columnstats(column_index).datastats();
 }
+
 }  // namespace pax
 
 static inline const char *BoolToString(bool b) { return b ? "true" : "false"; }
@@ -757,30 +1000,55 @@ Datum MicroPartitionStatsOutput(PG_FUNCTION_ARGS) {
   initStringInfo(&str);
   for (int i = 0, n = stats.columnstats_size(); i < n; i++) {
     const auto &column = stats.columnstats(i);
+    const auto &info = column.info();
+    const auto &data_stats = column.datastats();
 
-    if (i > 0) appendStringInfoChar(&str, ',');
+    // header
+    if (i > 0) {
+      appendStringInfoString(&str, ",[");
+    } else {
+      appendStringInfoChar(&str, '[');
+    }
 
-    appendStringInfo(&str, "[(%s,%s)", BoolToString(column.allnull()),
+    // hasnull/allnull information
+    appendStringInfo(&str, "(%s,%s),", BoolToString(column.allnull()),
                      BoolToString(column.hasnull()));
 
+    // count(column) information
+    appendStringInfo(&str, "(%d),", column.nonnullrows());
+
+    // min/max information
     if (!column.has_datastats()) {
-      appendStringInfoString(&str, ",None]");
-      continue;
+      appendStringInfoString(&str, "None,None");
+      goto tail;
     }
 
-    const auto &data_stats = column.datastats();
     Assert(data_stats.has_minimal() == data_stats.has_maximum());
     if (!data_stats.has_minimal()) {
-      appendStringInfoString(&str, ",None]");
-      continue;
+      appendStringInfoString(&str, "None,");
+      goto sum_info;
     }
 
-    const auto &info = column.info();
-    appendStringInfo(&str, ",(%s,%s)]",
+    appendStringInfo(&str, "(%s,%s),",
                      TypeValueToCString(info.typid(), info.collation(),
                                         data_stats.minimal()),
                      TypeValueToCString(info.typid(), info.collation(),
                                         data_stats.maximum()));
+
+  sum_info:
+    // sum(column) information
+    if (!data_stats.has_sum()) {
+      appendStringInfoString(&str, "None");
+      goto tail;
+    }
+
+    appendStringInfo(
+        &str, "(%s)",
+        TypeValueToCString(info.prorettype(), InvalidOid, data_stats.sum()));
+
+  tail:
+    // tail
+    appendStringInfoChar(&str, ']');
   }
 
   PG_RETURN_CSTRING(str.data);

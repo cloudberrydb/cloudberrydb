@@ -299,22 +299,6 @@ bool cbdb::IsSystemAttrNumExist(struct PaxcExtractcolumnContext *context,
   return context->system_attr_number_mask[~number];
 }
 
-std::string cbdb::GetDfsTablespaceServer(Oid id) {
-  CBDB_WRAP_START;
-  {
-    return paxc::GetDfsTablespaceServer(id);
-  }
-  CBDB_WRAP_END;
-}
-
-std::string cbdb::GetDfsTablespacePath(Oid id) {
-  CBDB_WRAP_START;
-  {
-    return paxc::GetDfsTablespacePath(id);
-  }
-  CBDB_WRAP_END;
-}
-
 bool cbdb::IsDfsTablespaceById(Oid spcId) {
   CBDB_WRAP_START;
   { return paxc::IsDfsTablespaceById(spcId); }
@@ -391,6 +375,39 @@ bool cbdb::MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily,
   CBDB_WRAP_END;
 }
 
+bool cbdb::AddGetProcinfo(Oid atttypid, Oid subtype, Oid namespc,
+                          Oid *resulttype, FmgrInfo *finfo) {
+  CBDB_WRAP_START;
+  {
+    return paxc::AddGetProcinfo(atttypid, subtype, namespc, resulttype, finfo);
+  }
+  CBDB_WRAP_END;
+}
+
+bool cbdb::SumAGGGetProcinfo(Oid atttypid, Oid *prorettype, Oid *transtype,
+                             FmgrInfo *trans_finfo, FmgrInfo *final_finfo,
+                             bool *final_func_exist, FmgrInfo *add_finfo) {
+  CBDB_WRAP_START;
+  {
+    return paxc::SumAGGGetProcinfo(atttypid, prorettype, transtype, trans_finfo,
+                                   final_finfo, final_func_exist, add_finfo);
+  }
+  CBDB_WRAP_END;
+}
+
+Datum cbdb::SumFuncCall(FmgrInfo *flinfo, AggState *state, Datum arg1,
+                        Datum arg2) {
+  CBDB_WRAP_START;
+  { return paxc::SumFuncCall(flinfo, state, arg1, arg2); }
+  CBDB_WRAP_END;
+}
+
+Datum cbdb::datumCopy(Datum value, bool typByVal, int typLen) {
+  CBDB_WRAP_START;
+  { return ::datumCopy(value, typByVal, typLen); }
+  CBDB_WRAP_END;
+}
+
 Datum cbdb::FunctionCall1Coll(FmgrInfo *flinfo, Oid collation, Datum arg1) {
   CBDB_WRAP_START;
   { return ::FunctionCall1Coll(flinfo, collation, arg1); }
@@ -415,6 +432,18 @@ Datum cbdb::FunctionCall4Coll(FmgrInfo *flinfo, Oid collation, Datum arg1,
                               Datum arg2, Datum arg3, Datum arg4) {
   CBDB_WRAP_START;
   { return ::FunctionCall4Coll(flinfo, collation, arg1, arg2, arg3, arg4); }
+  CBDB_WRAP_END;
+}
+
+int16 cbdb::GetTyplen(Oid typid) {
+  CBDB_WRAP_START;
+  { return get_typlen(typid); }
+  CBDB_WRAP_END;
+}
+
+bool cbdb::GetTypbyval(Oid typid) {
+  CBDB_WRAP_START;
+  { return get_typbyval(typid); }
   CBDB_WRAP_END;
 }
 

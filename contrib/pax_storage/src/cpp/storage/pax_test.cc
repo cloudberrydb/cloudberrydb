@@ -175,6 +175,12 @@ std::vector<int> MockGetALLMinMaxColumnsIndex(Relation rel) {
   return minmax_columns;
 }
 
+bool MockSumAGGGetProcinfo(Oid atttypid, Oid *prorettype, Oid *transtype,
+                           FmgrInfo *trans_finfo, FmgrInfo *final_finfo,
+                           bool *final_func_exist, FmgrInfo *add_finfo) {
+  return false;
+}
+
 TEST_F(PaxWriterTest, TestOper) {
   TupleTableSlot *slot = CreateTestTupleTableSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
@@ -214,6 +220,7 @@ TEST_F(PaxWriterTest, TestOper) {
   pax_max_tuples_per_group = split_size / 8;
 
   stub->set(cbdb::GetMinMaxColumnsIndex, MockGetALLMinMaxColumnsIndex);
+  stub->set(cbdb::SumAGGGetProcinfo, MockSumAGGGetProcinfo);
 
   auto writer = new MockWriter(relation, callback);
   writer->SetFileSplitStrategy(strategy);

@@ -31,6 +31,10 @@ message ColumnStatistics {
   optional pax.stats.ColumnDataStats colDataStats = 3;
   // has toast datum
   optional bool hasToast = 4 [default=false];
+  // the not null rows in current column 
+  // although it is same to the column field in message stream
+  // it is more convenient to use in ColumnStatistics
+  optional uint32 nonNullRows = 5 [default=0];
 }
 
 // `Stream` desc a part of buffer, a column consists of 1 or more streams

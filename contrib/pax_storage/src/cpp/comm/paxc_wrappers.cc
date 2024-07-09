@@ -171,31 +171,142 @@ bool MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily,
   return true;
 }
 
+bool AddGetProcinfo(Oid atttypid, Oid subtype, Oid namespc, Oid *resulttype,
+                    FmgrInfo *finfo) {
+  static const char *oprname = "+";
+  FmgrInfo dummy;
+  HeapTuple tuple;
+  Oid oprcode;
+  bool is_null;
+
+  tuple = SearchSysCache4(OPERNAMENSP, PointerGetDatum(oprname),
+                          ObjectIdGetDatum(atttypid), ObjectIdGetDatum(subtype),
+                          ObjectIdGetDatum(namespc));
+  if (!HeapTupleIsValid(tuple)) {
+    // not found add function in pg_operator
+    return false;
+  }
+
+  oprcode = DatumGetObjectId(
+      SysCacheGetAttr(OPERNAMENSP, tuple, Anum_pg_operator_oprcode, &is_null));
+  Assert(!is_null && RegProcedureIsValid(oprcode));
+
+  *resulttype = DatumGetObjectId(SysCacheGetAttr(
+      OPERNAMENSP, tuple, Anum_pg_operator_oprresult, &is_null));
+
+  ReleaseSysCache(tuple);
+
+  fmgr_info_cxt(oprcode, finfo ? finfo : &dummy, CurrentMemoryContext);
+
+  return true;
+}
+
+bool SumAGGGetProcinfo(Oid atttypid, Oid *prorettype, Oid *transtype,
+                       FmgrInfo *trans_finfo, FmgrInfo *final_finfo,
+                       bool *final_func_exist, FmgrInfo *add_finfo) {
+  static const char *procedure_sum = "sum";
+  FmgrInfo dummy;
+  HeapTuple tuple, agg_tuple;
+  Oid funcid;
+  Oid addrettyp;
+  Datum agg_transfn;
+  Datum agg_finalfn;
+  bool is_null;
+
+  // 1. open the pg_proc get the `prorettype` and `funcid`
+  auto oid_vec = buildoidvector(&atttypid, 1);
+  tuple = SearchSysCache3(PROCNAMEARGSNSP, PointerGetDatum(procedure_sum),
+                          PointerGetDatum(oid_vec),
+                          ObjectIdGetDatum(PG_CATALOG_NAMESPACE));
+  pfree(oid_vec);
+  if (!HeapTupleIsValid(tuple)) {
+    // not found sum function in pg_proc
+    return false;
+  }
+
+  *prorettype = DatumGetObjectId(SysCacheGetAttr(
+      PROCNAMEARGSNSP, tuple, Anum_pg_proc_prorettype, &is_null));
+  Assert(!is_null && RegProcedureIsValid(*prorettype));
+
+  funcid = DatumGetObjectId(
+      SysCacheGetAttr(PROCNAMEARGSNSP, tuple, Anum_pg_proc_oid, &is_null));
+  Assert(!is_null);
+  ReleaseSysCache(tuple);
+
+  // 2. open the pg_operator get the `add_func` which is `+(prorettype,
+  // prorettype)`
+  is_null = !AddGetProcinfo(*prorettype, *prorettype, PG_CATALOG_NAMESPACE,
+                            &addrettyp, add_finfo);
+  if (is_null || addrettyp != *prorettype) {
+    // can't get the `add` operator or return type not match
+    return false;
+  }
+
+  // 3. open the pg_aggregate get the `agg_transfn`/`agg_finalfn`(if
+  // exist) and check the `init_val` is null
+  agg_tuple = SearchSysCache1(AGGFNOID, ObjectIdGetDatum(funcid));
+  if (unlikely(!HeapTupleIsValid(agg_tuple))) {
+    // catalog not macth, should not happend
+    Assert(false);
+    return false;
+  }
+
+  agg_transfn = SysCacheGetAttr(AGGFNOID, agg_tuple,
+                                Anum_pg_aggregate_aggtransfn, &is_null);
+  Assert(!is_null);
+  if (!RegProcedureIsValid(agg_transfn)) {
+    ReleaseSysCache(agg_tuple);
+    // found sum function but not found transfn in pg_agg
+    return false;
+  }
+
+  // final function may not exist
+  agg_finalfn = SysCacheGetAttr(AGGFNOID, agg_tuple,
+                                Anum_pg_aggregate_aggfinalfn, &is_null);
+  *final_func_exist = !is_null && RegProcedureIsValid(agg_finalfn);
+
+  *transtype = SysCacheGetAttr(AGGFNOID, agg_tuple,
+                               Anum_pg_aggregate_aggtranstype, &is_null);
+  Assert(!is_null && RegProcedureIsValid(*transtype));
+
+  SysCacheGetAttr(AGGFNOID, agg_tuple, Anum_pg_aggregate_agginitval, &is_null);
+  // sum agg must have not the init value
+  // will use the transtype to init the trans val
+  Assert(is_null);
+
+  ReleaseSysCache(agg_tuple);
+
+  // 4. create the `trans_finfo`/final_finfo(if exist)/`add_finfo`
+  fmgr_info_cxt(agg_transfn, trans_finfo ? trans_finfo : &dummy,
+                CurrentMemoryContext);
+  if (*final_func_exist) {
+    fmgr_info_cxt(agg_finalfn, final_finfo ? final_finfo : &dummy,
+                  CurrentMemoryContext);
+  }
+
+  return true;
+}
+
+Datum SumFuncCall(FmgrInfo *flinfo, AggState *state, Datum arg1, Datum arg2) {
+  LOCAL_FCINFO(fcinfo, 2);
+  Datum result;
+
+  InitFunctionCallInfoData(*fcinfo, flinfo, 2, InvalidOid, (Node *)state, NULL);
+
+  fcinfo->args[0].value = arg1;
+  fcinfo->args[0].isnull = false;
+  fcinfo->args[1].value = arg2;
+  fcinfo->args[1].isnull = false;
+
+  result = FunctionCallInvoke(fcinfo);
+
+  /* Check for null result, since caller is clearly not expecting one */
+  if (fcinfo->isnull) elog(ERROR, "function %u returned NULL", flinfo->fn_oid);
+
+  return result;
+}
+
 // can't use dfs-tablespace-ext directly, copy it
-const char *GetDfsTablespaceServer(Oid spcId) {
-  TableSpaceCacheEntry *spc = get_tablespace(spcId);
-
-  if (!spc->opts) return NULL;
-
-  if (spc->opts->serverOffset == 0) return NULL;
-
-  return (const char *)spc->opts + spc->opts->serverOffset;
-}
-
-const char *GetDfsTablespacePath(Oid spcId) {
-  TableSpaceCacheEntry *spc = get_tablespace(spcId);
-
-  if (!spc->opts) return NULL;
-
-  if (spc->opts->pathOffset == 0) return NULL;
-
-  return (const char *)spc->opts + spc->opts->pathOffset;
-}
-
-FileAm *GetDfsTablespaceFileHandler(Oid spcId) {
-  return ::GetTablespaceFileHandler(spcId);
-}
-
 bool IsDfsTablespaceById(Oid spcId) {
   if (spcId == InvalidOid) return false;
 

@@ -10,9 +10,12 @@ char *BuildPaxDirectoryPath(RelFileNode rd_node, BackendId rd_backend,
                             bool is_dfs_path);
 bool MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily,
                                FmgrInfo *finfo, StrategyNumber strategynum);
-const char *GetDfsTablespaceServer(Oid spcId);
-const char *GetDfsTablespacePath(Oid spcId);
-FileAm *GetDfsTablespaceFileHandler(Oid spcId);
+bool AddGetProcinfo(Oid atttypid, Oid subtype, Oid namespc, Oid *resulttype,
+                    FmgrInfo *finfo);
+bool SumAGGGetProcinfo(Oid atttypid, Oid *prorettype, Oid *transtype,
+                       FmgrInfo *trans_finfo, FmgrInfo *final_finfo,
+                       bool *final_func_exist, FmgrInfo *add_finfo);
+Datum SumFuncCall(FmgrInfo *flinfo, AggState *state, Datum arg1, Datum arg2);
 bool IsDfsTablespaceById(Oid spcId);
 
 typedef struct PaxFileNodePendingDelete {

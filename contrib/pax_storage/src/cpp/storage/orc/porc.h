@@ -48,7 +48,7 @@ class OrcWriter : public MicroPartitionWriter {
   // only for test
   static MicroPartitionWriter *CreateWriter(
       MicroPartitionWriter::WriterOptions options,
-      const std::vector<pax::porc::proto::Type_Kind> column_types, File *file,
+      const std::vector<pax::porc::proto::Type_Kind> &column_types, File *file,
       File *toast_file = nullptr) {
     std::vector<std::tuple<ColumnEncoding_Kind, int>> all_no_encoding_types;
     for (auto _ : column_types) {

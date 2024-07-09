@@ -3,6 +3,7 @@ test: setup
 test: alter_distributed 
 test: toast detoast ddl numeric types filter
 test: update
+test: statistics
 
 test: visimap_vec_compact
 test: visimap_vec_storage
