@@ -151,6 +151,7 @@ createConst(TupleDesc tupleDesc, int partKeyAttNum, const char *partKeyValue)
 										 CStringGetDatum(partKeyValue),
 										 ObjectIdGetDatum(InvalidOid),
 										 Int32GetDatum(-1));
+			conVal = DirectFunctionCall2(numeric, conVal, Int32GetDatum(tupleDesc->attrs[partKeyAttNum].atttypmod));
 			break;
 		case TEXTOID:
 			conVal = DirectFunctionCall1(textin, CStringGetDatum(partKeyValue));

@@ -398,6 +398,7 @@ void textFileRead::destroyHandler() {
     if (reader) {
         reader->close();
     }
+	releaseResources();
 }
 
 

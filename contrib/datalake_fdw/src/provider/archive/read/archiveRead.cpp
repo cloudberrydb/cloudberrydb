@@ -54,6 +54,7 @@ int64_t archiveRead::readWithBuffer(void* buffer, int64_t length)
 void archiveRead::destroyHandler()
 {
 	fileRead.close();
+	releaseResources();
 }
 
 fileState archiveRead::getFileState()

@@ -44,7 +44,7 @@ public:
 	orcReadInterface readInterface;
 
 private:
-	Datum readField(Oid typeOid, int rowIndex, const char *columnName, int columnIndex, orc::ColumnVectorBatch *batch);
+	Datum readField(TupleDesc tupDesc, Oid typeOid, int rowIndex, const char *columnName, int columnIndex, orc::ColumnVectorBatch *batch);
 
 	readOption options;
 	fileState state;

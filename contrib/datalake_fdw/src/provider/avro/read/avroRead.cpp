@@ -519,7 +519,9 @@ bool avroRead::getNextColumn(Datum &values, avro::GenericRecord &record, int idx
                     elog(ERROR, "decimal128: out of range");
                 }
                 parquet_arrow::Decimal128 decimal = result.ValueOrDie();
-                values = DirectFunctionCall3(numeric_in, CStringGetDatum(decimal.ToString(scale).c_str()), ObjectIdGetDatum(0), Int32GetDatum(tupdesc->attrs[idx].atttypmod));
+                Datum num = DirectFunctionCall3(numeric_in, CStringGetDatum(decimal.ToString(scale).c_str()), ObjectIdGetDatum(0), Int32GetDatum(tupdesc->attrs[idx].atttypmod));
+                int32 typmod = tupdesc->attrs[idx].atttypmod;
+                values = DirectFunctionCall2(numeric, num, Int32GetDatum(typmod));
             }
             else
             {
@@ -547,6 +549,7 @@ void avroRead::destroyHandler()
     fileReader.reset();
     destroyFileSystem(fileStream);
     fileStream = nullptr;
+	releaseResources();
 }
 
 }

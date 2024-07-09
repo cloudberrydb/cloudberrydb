@@ -82,7 +82,7 @@ void orcFileReader::read(TupleDesc tupdesc, Datum *values, bool *nulls, int inde
             continue;
         }
 
-        values[i] = readField(tupdesc->attrs[i].atttypid, index, tupdesc->attrs[i].attname.data, i, orcVector->fields[j]);
+        values[i] = readField(tupdesc, tupdesc->attrs[i].atttypid, index, tupdesc->attrs[i].attname.data, i, orcVector->fields[j]);
         nulls[i] = false;
         ++j;
 	}
@@ -106,7 +106,7 @@ arrow::Status orcFileReader::readRecordBatch(arrow::MemoryPool* pool,
 	return arrow::Status::OK();
 }
 
-Datum orcFileReader::readField(Oid typeOid, int rowIndex, const char *columnName, int columnIndex, orc::ColumnVectorBatch *batch)
+Datum orcFileReader::readField(TupleDesc tupDesc, Oid typeOid, int rowIndex, const char *columnName, int columnIndex, orc::ColumnVectorBatch *batch)
 {
     auto colType = readInterface.type->getSubtype(columnIndex);
     auto orcColType = colType->getKind();
@@ -214,8 +214,6 @@ Datum orcFileReader::readField(Oid typeOid, int rowIndex, const char *columnName
 				int64_t *values = d64vec->values.data();
 				scale = d64vec->scale;
 				int64_t value = values[rowIndex];
-				if (value == 0)
-					return DirectFunctionCall3(numeric_in, CStringGetDatum("0"), ObjectIdGetDatum(0), Int32GetDatum(-1));
 				sign = value < 0 ? false : true;
 				asString = std::to_string(value);
 			}
@@ -225,8 +223,6 @@ Datum orcFileReader::readField(Oid typeOid, int rowIndex, const char *columnName
 				scale = d128vec->scale;
 				orc::Int128 *values = d128vec->values.data();
 				orc::Int128 value = values[rowIndex];
-				if (value == 0)
-					return DirectFunctionCall3(numeric_in, CStringGetDatum("0"), ObjectIdGetDatum(0), Int32GetDatum(-1));
 				sign = value < 0 ? false : true;
 				asString = value.toString();
 			}
@@ -238,7 +234,11 @@ Datum orcFileReader::readField(Oid typeOid, int rowIndex, const char *columnName
 			// Read the interval string
 			Assert(scale >= 0);
 			if (scale == 0)
-				return DirectFunctionCall3(numeric_in, CStringGetDatum(asString.data()), ObjectIdGetDatum(0), Int32GetDatum(-1));
+			{
+				Datum res = DirectFunctionCall3(numeric_in, CStringGetDatum(asString.data()), ObjectIdGetDatum(0), Int32GetDatum(-1));
+				int32 typmod = tupDesc->attrs[columnIndex].atttypmod;
+				return DirectFunctionCall2(numeric, res, Int32GetDatum(typmod));
+			}
 
 			char numStr[64] = {0};
 			char *start = numStr;
@@ -266,7 +266,9 @@ Datum orcFileReader::readField(Oid typeOid, int rowIndex, const char *columnName
 				start[intlen] = '.';
 				memcpy(start + intlen + 1, origin + intlen, scale);
 			}
-			return DirectFunctionCall3(numeric_in, CStringGetDatum(numStr), ObjectIdGetDatum(0), Int32GetDatum(-1));
+			Datum res = DirectFunctionCall3(numeric_in, CStringGetDatum(numStr), ObjectIdGetDatum(0), Int32GetDatum(-1));
+			int32_t typmod = tupDesc->attrs[columnIndex].atttypmod;
+			return DirectFunctionCall2(numeric, res, Int32GetDatum(typmod));
 		}
 		case CHAROID:
 		{
