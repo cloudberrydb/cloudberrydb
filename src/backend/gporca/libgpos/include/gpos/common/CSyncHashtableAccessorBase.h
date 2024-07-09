@@ -46,13 +46,13 @@ private:
 
 protected:
 	// ctor - protected to restrict instantiation to children
-	CSyncHashtableAccessorBase<T, K>(CSyncHashtable<T, K> &ht, ULONG bucket_idx)
+	CSyncHashtableAccessorBase(CSyncHashtable<T, K> &ht, ULONG bucket_idx)
 		: m_ht(ht), m_bucket(m_ht.GetBucket(bucket_idx))
 	{
 	}
 
 	// dtor
-	virtual ~CSyncHashtableAccessorBase<T, K>() = default;
+	virtual ~CSyncHashtableAccessorBase() = default;
 
 	// accessor to hashtable
 	CSyncHashtable<T, K> &
@@ -130,8 +130,7 @@ protected:
 	}
 
 public:
-	CSyncHashtableAccessorBase<T, K>(const CSyncHashtableAccessorBase<T, K> &) =
-		delete;
+	CSyncHashtableAccessorBase(const CSyncHashtableAccessorBase &) = delete;
 
 	// unlinks element
 	void

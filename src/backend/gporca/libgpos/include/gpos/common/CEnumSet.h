@@ -30,22 +30,22 @@ class CEnumSet : public CBitSet
 {
 private:
 public:
-	CEnumSet<T, sentinel_index>(const CEnumSet<T, sentinel_index> &) = delete;
+	CEnumSet(const CEnumSet &) = delete;
 
 	// ctor
-	explicit CEnumSet<T, sentinel_index>(CMemoryPool *mp)
+	explicit CEnumSet(CMemoryPool *mp)
 		: CBitSet(mp, sentinel_index)
 	{
 	}
 
-	explicit CEnumSet<T, sentinel_index>(
-		CMemoryPool *mp, const CEnumSet<T, sentinel_index> &enum_set)
+	explicit CEnumSet(
+		CMemoryPool *mp, const CEnumSet &enum_set)
 		: CBitSet(mp, enum_set)
 	{
 	}
 
 	// dtor
-	~CEnumSet<T, sentinel_index>() override = default;
+	~CEnumSet() override = default;
 
 	// determine if bit is set
 	BOOL

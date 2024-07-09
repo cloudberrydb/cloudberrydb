@@ -34,15 +34,15 @@ private:
 	T *m_object_array;
 
 public:
-	CAutoRg<T>(const CAutoRg &) = delete;
+	CAutoRg(const CAutoRg &) = delete;
 
 	// ctor
-	explicit CAutoRg<T>() : m_object_array(nullptr)
+	explicit CAutoRg() : m_object_array(nullptr)
 	{
 	}
 
 	// ctor
-	explicit CAutoRg<T>(T *object_array) : m_object_array(object_array)
+	explicit CAutoRg(T *object_array) : m_object_array(object_array)
 	{
 	}
 

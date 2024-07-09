@@ -35,17 +35,17 @@ private:
 	BOOL m_is_initialized;
 
 public:
-	CHashSetIter(const CHashSetIter<T, HashFn, EqFn, CleanupFn> &) = delete;
+	CHashSetIter(const CHashSetIter &) = delete;
 
 	// ctor
-	CHashSetIter<T, HashFn, EqFn, CleanupFn>(TSet *set)
+	CHashSetIter(TSet *set)
 		: m_set(set), m_chain_idx(0), m_elem_idx(0)
 	{
 		GPOS_ASSERT(nullptr != set);
 	}
 
 	// dtor
-	virtual ~CHashSetIter<T, HashFn, EqFn, CleanupFn>() = default;
+	virtual ~CHashSetIter() = default;
 
 	// advance iterator to next element
 	BOOL

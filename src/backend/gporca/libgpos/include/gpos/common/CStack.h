@@ -38,7 +38,7 @@ public:
 	CStack(CStack &) = delete;
 
 	// c'tor
-	CStack<T>(CMemoryPool *mp, ULONG min_size = 4) : m_size(0)
+	CStack(CMemoryPool *mp, ULONG min_size = 4) : m_size(0)
 	{
 		m_dynamic_ptr_array =
 			GPOS_NEW(mp) CDynamicPtrArray<T, CleanupNULL>(mp, min_size, 10);
