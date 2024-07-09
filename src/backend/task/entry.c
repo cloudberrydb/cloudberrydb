@@ -286,7 +286,7 @@ get_range(bits, low, high, names, ch, file)
 	register int	i;
 	auto int		num1,
 					num2,
-					num3;
+					num3 = 1;
 
 	Debug(DPARS|DEXT, ("get_range()...entering, exit won't show\n"))
 
@@ -343,9 +343,6 @@ get_range(bits, low, high, names, ch, file)
 		ch = get_number(&num3, 0, PPC_NULL, ch, file);
 		if (ch == EOF || num3 <= 0)
 			return EOF;
-	} else {
-		/* no step.  default==1. */
-		num3 = 1;
 	}
 
 	/*
