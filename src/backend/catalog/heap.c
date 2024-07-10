@@ -113,6 +113,7 @@
 #include "utils/timestamp.h"
 
 #include "catalog/gp_indexing.h"
+#include "catalog/gp_matview_aux.h"
 
 static void MetaTrackAddUpdInternal(Oid			classid,
 									Oid			objoid,
@@ -3952,6 +3953,10 @@ heap_truncate_one_rel(Relation rel)
 
 	/* If the relation has indexes, truncate the indexes too */
 	RelationTruncateIndexes(rel);
+
+	/* update view info */
+	if (IS_QD_OR_SINGLENODE())
+		SetRelativeMatviewAuxStatus(RelationGetRelid(rel), MV_DATA_STATUS_EXPIRED);
 
 	/* If there is a toast table, truncate that too */
 	toastrelid = rel->rd_rel->reltoastrelid;

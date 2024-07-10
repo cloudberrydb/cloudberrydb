@@ -76,6 +76,8 @@
 #include "catalog/pg_stat_last_shoperation.h"
 #include "catalog/pg_statistic.h"
 #include "catalog/pg_trigger.h"
+#include "catalog/gp_matview_aux.h"
+#include "catalog/gp_matview_tables.h"
 #include "cdb/cdbvars.h"
 
 #include "catalog/gp_indexing.h"
@@ -550,6 +552,16 @@ IsSharedRelation(Oid relationId)
 	{
 		return true;
 	}
+
+	/* materialized view aux and its indexes */
+	if (relationId == GpMatviewAuxId ||
+		relationId == GpMatviewAuxMvoidIndexId ||
+		relationId == GpMatviewAuxMvnameIndexId ||
+		relationId == GpMatviewAuxDatastatusIndexId ||
+		relationId == GpMatviewTablesId ||
+		relationId == GpMatviewTablesMvRelIndexId ||
+		relationId == GpMatviewTablesRelIndexId)
+		return true;
 
 	/* warehouse table and its indexes */
 	if (relationId == GpWarehouseRelationId ||

@@ -93,6 +93,9 @@
 
 #include "catalog/gp_indexing.h"
 
+#include "catalog/gp_matview_aux.h"
+#include "catalog/gp_matview_tables.h"
+
 /*---------------------------------------------------------------------------
 
 	Adding system caches:
@@ -1127,6 +1130,28 @@ static const struct cachedesc cacheinfo[] = {
 		 	0
 	 	},
 	 	2
+	},
+	{GpMatviewAuxId,		/* MVAUXOID */
+		GpMatviewAuxMvoidIndexId,
+		1,
+		{
+			Anum_gp_matview_aux_mvoid,
+			0,
+			0,
+			0
+		},
+		32
+	},
+	{GpMatviewTablesId,		/* MVTABLESMVRELOID */
+		GpMatviewTablesMvRelIndexId,
+		2,
+		{
+			Anum_gp_matview_tables_mvoid,
+			Anum_gp_matview_tables_relid,
+			0,
+			0
+		},
+		128
 	},
 	{UserMappingRelationId,		/* USERMAPPINGOID */
 		UserMappingOidIndexId,

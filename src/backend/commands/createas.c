@@ -70,6 +70,7 @@
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
 
+#include "catalog/gp_matview_aux.h"
 #include "catalog/oid_dispatch.h"
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbaocsam.h"
@@ -513,11 +514,21 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 		/* Restore userid and security context */
 		SetUserIdAndSecContext(save_userid, save_sec_context);
 
+		Oid matviewOid = address.objectId;
+		Relation matviewRel = table_open(matviewOid, NoLock);
+
+		/*
+		 * Record materialized view aux entry. 
+		 * This is used to check if a materialized view's meta data,
+		 * ex: data is up to date and etc.
+		 * The info is used for expanding Incremental Appedn Agg Plan
+		 * and Answer Query Using Materialized Views.
+		 */
+		if (IS_QD_OR_SINGLENODE())
+			InsertMatviewAuxEntry(matviewOid, (Query* )into->viewQuery, into->skipData);
+
 		if (into->ivm)
 		{
-			Oid matviewOid = address.objectId;
-			Relation matviewRel = table_open(matviewOid, NoLock);
-
 			/*
 			 * Mark relisivm field, if it's a matview and into->ivm is true.
 			 */
@@ -529,8 +540,8 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 				/* Create triggers on incremental maintainable materialized view */
 				CreateIvmTriggersOnBaseTables(query_immv, matviewOid);
 			}
-			table_close(matviewRel, NoLock);
 		}
+		table_close(matviewRel, NoLock);
 	}
 
 	{

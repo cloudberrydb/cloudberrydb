@@ -152,6 +152,7 @@ typedef enum ObjectClass
 	OCLASS_STORAGE_SERVER,		/* gp_storage_server */
 	OCLASS_STORAGE_USER_MAPPING,	/* gp_storage_user_mapping */
 	OCLASS_EXTPROTOCOL,			/* pg_extprotocol */
+	OCLASS_MATVIEW_AUX,			/* gp_matview_aux */
 	OCLASS_TASK,				/* pg_task */
 } ObjectClass;
 

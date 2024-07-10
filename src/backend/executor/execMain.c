@@ -89,6 +89,7 @@
 
 #include "catalog/pg_tablespace.h"
 #include "catalog/catalog.h"
+#include "catalog/gp_matview_aux.h"
 #include "catalog/oid_dispatch.h"
 #include "catalog/pg_directory_table.h"
 #include "catalog/pg_type.h"
@@ -972,6 +973,61 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 		}
 		if ((exec_identity == GP_IGNORE || exec_identity == GP_ROOT_SLICE) && operation != CMD_SELECT)
 			es_processed = mppExecutorWait(queryDesc);
+
+		/*
+		 * Update view info if possible.
+		 * Use the operation and result relation to indentify if
+		 * a table's data is changed.
+		 * This is a proper place for all tables of different AMs.
+		 * We handle INSERT/UPDATE/DELETE here as other operations should
+		 * be handled in utility commands.
+		 *
+		 * Use es_processed to indentify the actual rows we modified
+		 * to avoid case writablte query may not
+		 * change data when success, ex:
+		 *  insert into t1 select * from t2;
+		 * When t2 has zero rows, don't need to update view status.
+		 *
+		 * NB: This can't handle well in utility mode, should REFRESH by user
+		 * after that.
+		 */
+		if ((GP_ROLE_DISPATCH == Gp_role && es_processed > 0) ||
+			(IS_SINGLENODE() && (operation != CMD_SELECT) && estate->es_processed > 0))
+		{
+			if (operation == CMD_INSERT ||
+				operation == CMD_UPDATE ||
+				operation == CMD_DELETE)
+			{
+				List		*rtable =queryDesc->plannedstmt->rtable;
+				int			length = list_length(rtable);
+				ListCell	*lc;
+				foreach(lc, queryDesc->plannedstmt->resultRelations)
+				{
+					int varno = lfirst_int(lc);
+
+					/* Avoid crash in case we don't find a rte. */
+					if (varno > length + 1)
+					{
+						ereport(WARNING, (errmsg("could not find rte of varno: %u ", varno)));
+						continue;
+					}
+
+					RangeTblEntry *rte = rt_fetch(varno, rtable);
+					switch (operation)
+					{
+						case CMD_INSERT:
+							SetRelativeMatviewAuxStatus(rte->relid, MV_DATA_STATUS_EXPIRED_INSERT_ONLY);
+							break;
+						case CMD_UPDATE:
+						case CMD_DELETE:
+							SetRelativeMatviewAuxStatus(rte->relid, MV_DATA_STATUS_EXPIRED);
+							break;
+						default:
+							break;
+					}
+				}
+			}
+		}
     }
 	PG_CATCH();
 	{

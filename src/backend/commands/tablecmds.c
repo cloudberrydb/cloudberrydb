@@ -129,6 +129,7 @@
 #include "access/bitmap_private.h"
 #include "access/external.h"
 #include "catalog/aocatalog.h"
+#include "catalog/gp_matview_aux.h"
 #include "catalog/oid_dispatch.h"
 #include "nodes/altertablenodes.h"
 #include "cdb/cdbdisp.h"
@@ -2448,6 +2449,10 @@ ExecuteTruncateGuts(List *explicit_rels,
 			 * deletion at commit.
 			 */
 			RelationSetNewRelfilenode(rel, rel->rd_rel->relpersistence);
+
+			/* update view info */
+			if (IS_QD_OR_SINGLENODE())
+				SetRelativeMatviewAuxStatus(RelationGetRelid(rel), MV_DATA_STATUS_EXPIRED);
 
 			heap_relid = RelationGetRelid(rel);
 
@@ -14148,6 +14153,7 @@ ATExecAlterColumnType(AlteredTableInfo *tab, Relation rel,
 			case OCLASS_TASK:
 			case OCLASS_PROFILE:
 			case OCLASS_PASSWORDHISTORY:
+			case OCLASS_MATVIEW_AUX:
 			case OCLASS_STORAGE_SERVER:
 			case OCLASS_STORAGE_USER_MAPPING:
 

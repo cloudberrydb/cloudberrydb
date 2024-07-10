@@ -1028,6 +1028,7 @@ EventTriggerSupportsObjectClass(ObjectClass objclass)
 		case OCLASS_ROLE:
 		case OCLASS_PROFILE:
 		case OCLASS_PASSWORDHISTORY:
+		case OCLASS_MATVIEW_AUX:
 		case OCLASS_STORAGE_SERVER:
 		case OCLASS_STORAGE_USER_MAPPING:
 			/* no support for global objects */

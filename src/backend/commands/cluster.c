@@ -30,6 +30,7 @@
 #include "access/xlog.h"
 #include "catalog/catalog.h"
 #include "catalog/dependency.h"
+#include "catalog/gp_matview_aux.h"
 #include "catalog/heap.h"
 #include "catalog/index.h"
 #include "catalog/namespace.h"
@@ -219,6 +220,21 @@ cluster(ParseState *pstate, ClusterStmt *stmt, bool isTopLevel)
 										GetAssignedOidsForDispatch(),
 										NULL);
 		}
+
+		if (IS_QD_OR_SINGLENODE())
+		{
+			/*
+			 * Update view status.
+			 * In principle, CLUSTER command won't change the ligical data of
+			 * a table, it may change the physical pages by index.
+			 * But for Append Agg Plan in SERVERLESS mode, we need to fetch
+			 * delta tuples from base table which requires the ability of storage
+			 * to distint the pages instead, since latest relative materialized
+			 * view REFRESH.
+			 */
+			SetRelativeMatviewAuxStatus(tableOid, MV_DATA_STATUS_UP_REORGANIZED);
+
+		}
 	}
 	else
 	{
@@ -284,6 +300,9 @@ cluster(ParseState *pstate, ClusterStmt *stmt, bool isTopLevel)
 											GetAssignedOidsForDispatch(),
 											NULL);
 			}
+			/* See comments above. */
+			if (IS_QD_OR_SINGLENODE())
+				SetRelativeMatviewAuxStatus(rvtc->tableOid, MV_DATA_STATUS_UP_REORGANIZED);
 
 			PopActiveSnapshot();
 			CommitTransactionCommand();

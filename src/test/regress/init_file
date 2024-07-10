@@ -127,6 +127,9 @@ s/ERROR:  could not find hash function for hash operator.*/ERROR:  could not fin
 m/ERROR:  could not devise a plan.*/
 s/ERROR:  could not devise a plan.*/ERROR:  could not devise a plan (cdbpath.c:XXX)/
 
+m/ERROR:  cannot swap toast files by links for system catalogs.*/
+s/ERROR:  cannot swap toast files by links for system catalogs.*/ERROR:  cannot swap toast files by links for system catalogs (cluster.c:XXX)/
+
 m/nodename nor servname provided, or not known/
 s/nodename nor servname provided, or not known/Name or service not known/
 

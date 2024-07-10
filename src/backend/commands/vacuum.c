@@ -36,6 +36,7 @@
 #include "access/tableam.h"
 #include "access/transam.h"
 #include "access/xact.h"
+#include "catalog/gp_matview_aux.h"
 #include "catalog/namespace.h"
 #include "catalog/partition.h"
 #include "catalog/pg_database.h"
@@ -2580,6 +2581,17 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 	}
 	else /* Heap vacuum or AO/CO vacuum in specific phase */
 		table_relation_vacuum(rel, params, vac_strategy);
+
+	if (IS_QD_OR_SINGLENODE() && (params->options & VACOPT_FULL))
+	{
+		/*
+		 * Update view data status:
+		 * VACUUM FULL will change the physical pages of table.
+		 * FIXME: for auto vacuum process on segments, it's in utility mode,
+		 * we can't handle it yet. But it's not a problem for SERVERLESS.
+		 */
+		SetRelativeMatviewAuxStatus(relid, MV_DATA_STATUS_UP_REORGANIZED);
+	}
 
 	/* Roll back any GUC changes executed by index functions */
 	AtEOXact_GUC(false, save_nestlevel);

@@ -59,7 +59,7 @@ insert into pg_ext_aux.extaux_t values(1,'hello');
 ERROR:  permission denied: "extaux_t" is a system catalog
 -- fail: should not allowed to refresh by user
 refresh materialized view pg_ext_aux.extaux_mv;
-ERROR:  cannot swap toast files by links for system catalogs (cluster.c:1424)
+ERROR:  cannot swap toast files by links for system catalogs (cluster.c:XXX)
 -- fail: should not allow to be dropped by user
 drop view pg_ext_aux.extaux_v;
 ERROR:  permission denied: "extaux_v" is a system catalog
