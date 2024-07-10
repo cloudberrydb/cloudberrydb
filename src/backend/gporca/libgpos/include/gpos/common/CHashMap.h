@@ -177,12 +177,10 @@ private:
 	}
 
 public:
-	CHashMap(const CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn> &) =
-		delete;
+	CHashMap(const CHashMap &) = delete;
 
 	// ctor
-	CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>(CMemoryPool *mp,
-														 ULONG num_chains = 127)
+	CHashMap(CMemoryPool *mp, ULONG num_chains = 127)
 		: m_mp(mp),
 		  m_num_chains(num_chains),
 		  m_size(0),
@@ -196,7 +194,7 @@ public:
 	}
 
 	// dtor
-	~CHashMap<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>() override
+	~CHashMap() override
 	{
 		// release all hash chains
 		Clear();

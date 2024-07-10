@@ -30,15 +30,15 @@ class CAutoRef : public CAutoP<T>
 {
 private:
 public:
-	CAutoRef<T>(const CAutoRef &) = delete;
+	CAutoRef(const CAutoRef &) = delete;
 
 	// ctor
-	explicit CAutoRef<T>() : CAutoP<T>()
+	explicit CAutoRef() : CAutoP<T>()
 	{
 	}
 
 	// ctor
-	explicit CAutoRef<T>(T *object) : CAutoP<T>(object)
+	explicit CAutoRef(T *object) : CAutoP<T>(object)
 	{
 	}
 
