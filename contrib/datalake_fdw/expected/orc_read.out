@@ -15,11 +15,11 @@ CREATE FOREIGN DATA WRAPPER datalake_fdw
   OPTIONS ( mpp_execute 'all segments' );
 CREATE SERVER foreign_server
         FOREIGN DATA WRAPPER datalake_fdw
-        OPTIONS (host 'pek3b.qingstor.com', protocol 'qs', isvirtual 'false',
+        OPTIONS (host 'obs.cn-north-4.myhuaweicloud.com', protocol 'huawei', isvirtual 'false',
         ishttps 'false');
 CREATE USER MAPPING FOR gpadmin
         SERVER foreign_server
-        OPTIONS (user 'gpadmin', accesskey 'KGCPPHVCHRMZMFEAWLLC', secretkey '0SJIWiIATh6jOlmAKr8DGq6hOAGBI1BnsnvgJmTs');
+        OPTIONS (user 'gpadmin', accesskey 'J04WCCF5VQP6BAIQUFHP', secretkey 'jGDwttCct2b9b4rEf0hsLD7CeP9WubZuqqz90iQU');
 SELECT pg_sleep(5);
  pg_sleep 
 ----------

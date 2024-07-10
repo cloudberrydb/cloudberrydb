@@ -5,7 +5,7 @@
 #include "orcInputStream.h"
 #include <set>
 
-#define ORC_BATCH_SIZE (1000)
+#define ORC_BATCH_SIZE (16384)
 
 namespace Datalake {
 namespace Internal {

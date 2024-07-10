@@ -16,7 +16,7 @@ CREATE FOREIGN TABLE ir_orc_read (
     col9 text
 )
 SERVER foreign_server
-OPTIONS (filePath '/gopher-test/irsearch/', enableCache 'true', format 'orc');
+OPTIONS (filePath '/ossext-ci-test/irsearch/', enableCache 'true', format 'orc');
 select count(*) from ir_orc_read;
    count   
 -----------

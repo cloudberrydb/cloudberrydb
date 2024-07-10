@@ -91,6 +91,7 @@ fileState orcRead::getFileState()
 void orcRead::destroyHandler()
 {
 	tupleIndex = 0;
+	fileReader.closeORCReader();
 	releaseResources();
 }
 
@@ -129,6 +130,7 @@ bool orcRead::readNextFile()
 
 bool orcRead::getStripeFromSmallFile(metaInfo info)
 {
+	fileReader.closeORCReader();
 	if (!fileReader.createORCReader((void*)scanstate->options, info.fileName, info.fileLength, options))
 	{
 		/* file format not orc skip it */
@@ -148,6 +150,7 @@ bool orcRead::getStripeFromBigFile(metaInfo info)
 	if (curFileName != info.fileName)
 	{
 		fileReader.readInterface.stripes.clear();
+		fileReader.closeORCReader();
 		if (!fileReader.createORCReader((void*)scanstate->options, info.fileName, info.fileLength, options))
 		{
 			/* file format not orc skip it */

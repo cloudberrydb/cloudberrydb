@@ -531,6 +531,7 @@ gopherConfig* createGopherConfig(void *opt)
 
 		conf->useVirtualHost = options->useVirtualHost;
 		conf->useHttps = options->useHttps;
+		conf->useListV2 = options->useListV2;
 
 		//TODO need add debug guc values gopher_oss_liboss2_log_level and gopher_oss_log_level
 

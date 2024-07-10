@@ -247,7 +247,16 @@ GopherRemoveFileMetaUnderGphdfs(dataLakeOptions *options)
 		return -1;
 	}
 	gopherDestroyHandle(stream);
-	return GopherRemoveFileMetaUnderGphdfsUfsPath(ufsId, options->filePath, mRecursive, mForce);
+	int result = 0;
+	if (PROTOCOL_IS_HDFS(options->gopher->gopherType))
+	{
+		result = GopherRemoveFileMetaUnderGphdfsUfsPath(ufsId, options->filePath, mRecursive, mForce);
+	}
+	else
+	{
+		result = GopherRemoveFileMetaUnderGphdfsUfsPath(ufsId, options->prefix, mRecursive, mForce);
+	}
+	return result;
 }
 
 /*

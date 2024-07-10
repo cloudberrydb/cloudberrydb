@@ -31,6 +31,7 @@
 #define DATALAKE_OPTION_PORT "port"
 #define DATALAKE_OPTION_ISVIRTUAL "isvirtual"
 #define DATALAKE_OPTION_ISHTTPS "ishttps"
+#define DATALAKE_OPTION_LISTV2 "listv2"
 
 /* server hdfs options */
 #define DATALAKE_OPTION_HDFS_NAMENODE "hdfs_namenodes"
@@ -165,6 +166,7 @@ typedef struct gopherOptions
 	char*	bucket;
 	bool	useVirtualHost;
 	bool	useHttps;
+	bool	useListV2;
 	char*	protocol;
 	char*	accessKey;
 	char*	secretKey;

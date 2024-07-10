@@ -95,7 +95,7 @@ ifdef ICEBERG_HUDI_TEST
 REGRESS = iceberg_read hudi_read
 else
 REGRESS = hive_connecter_orc_read hive_connecter_orc_vec_read hive_connecter_parquet_read \
-          hive_connecter_avro_read hive_connector orc_read parquet_read avro_read
+          hive_connecter_avro_read hive_connector orc_read parquet_read avro_read iresearch_orc_test iresearch_orc_vec_test
 endif
 
 PG_CPPFLAGS += -fPIC

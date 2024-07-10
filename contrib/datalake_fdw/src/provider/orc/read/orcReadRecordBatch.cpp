@@ -31,6 +31,7 @@ void orcReadRecordBatch::createHandler(void *sstate)
 void orcReadRecordBatch::destroyHandler()
 {
 	tupleIndex = 0;
+	fileReader.closeORCReader();
 	releaseResources();
 }
 

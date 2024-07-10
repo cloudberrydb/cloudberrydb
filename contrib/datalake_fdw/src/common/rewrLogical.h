@@ -20,7 +20,7 @@ namespace Internal {
 #define BLOCK_POLICY_SIZE (16 * 1024 * 1024)
 
 #define SUPPORT_ENABLE_CACHE(option) \
-	((option.enableCache == true) && (option.ptype == PROTOTCOL_HDFS)) \
+	((option.enableCache == true)) \
 
 
 typedef enum fileState

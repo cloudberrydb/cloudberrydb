@@ -33,6 +33,7 @@ static const struct datalakeFdwOption valid_oss_server_options[] = {
 	{DATALAKE_OPTION_PORT, ForeignServerRelationId},
 	{DATALAKE_OPTION_ISVIRTUAL, ForeignServerRelationId},
 	{DATALAKE_OPTION_ISHTTPS, ForeignServerRelationId},
+	{DATALAKE_OPTION_LISTV2, ForeignServerRelationId},
 	{NULL, InvalidOid}
 };
 
@@ -287,6 +288,18 @@ void parseOssServerOption(dataLakeOptions* opt, List *options)
 			else
 			{
 				opt->gopher->useHttps = false;
+			}
+		}
+
+		if (pg_strcasecmp(def->defname, DATALAKE_OPTION_LISTV2) == 0)
+		{
+			if (pg_strcasecmp(defGetString(def), "true") == 0)
+			{
+				opt->gopher->useListV2 = true;
+			}
+			else
+			{
+				opt->gopher->useListV2 = false;
 			}
 		}
 	}
