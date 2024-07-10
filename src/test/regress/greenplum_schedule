@@ -315,6 +315,9 @@ test: offload_entry_to_qe
 # Tests of Answer Query Using Materialized Views.
 test: aqumv
 
+# Tests of materialized view data catalog maintenance
+test: matview_data
+
 # test access method with encoding options
 test: am_encoding
 

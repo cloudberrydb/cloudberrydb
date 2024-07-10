@@ -56,6 +56,7 @@
 #include "access/external.h"
 #include "access/url.h"
 #include "catalog/catalog.h"
+#include "catalog/gp_matview_aux.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_extprotocol.h"
 #include "cdb/cdbappendonlyam.h"
@@ -442,9 +443,17 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 				*processed = CopyFrom(cstate);	/* copy from file to database */
 
 			/* Handle copy to replicated table returns processed number */
-			if (Gp_role == GP_ROLE_DISPATCH && cstate->rel->rd_cdbpolicy &&
-				cstate->rel->rd_cdbpolicy->ptype == POLICYTYPE_REPLICATED)
+			if (Gp_role == GP_ROLE_DISPATCH &&
+				GpPolicyIsReplicated(cstate->rel->rd_cdbpolicy))
 				*processed = *processed / cstate->rel->rd_cdbpolicy->numsegments;
+
+			/*
+			 * Update view info if we actualy copy data from other place.
+			 */
+			if (IS_QD_OR_SINGLENODE() && *processed > 0)
+			{
+				SetRelativeMatviewAuxStatus(relid, MV_DATA_STATUS_EXPIRED_INSERT_ONLY);
+			}
 		}
 		PG_CATCH();
 		{

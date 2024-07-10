@@ -4150,6 +4150,9 @@ getObjectDescription(const ObjectAddress *object, bool missing_ok)
 				break;
 			}
 
+		case OCLASS_MATVIEW_AUX:
+			break;
+
 		case OCLASS_STORAGE_SERVER:
 			{
 				StorageServer *srv;
@@ -4779,6 +4782,10 @@ getObjectTypeDescription(const ObjectAddress *object, bool missing_ok)
 
 		case OCLASS_DIRTABLE:
 			appendStringInfoString(&buffer, "directory table");
+			break;
+
+		case OCLASS_MATVIEW_AUX:
+			appendStringInfoString(&buffer, "matview_aux");
 			break;
 
 		case OCLASS_STORAGE_SERVER:
@@ -6196,6 +6203,9 @@ getObjectIdentityParts(const ObjectAddress *object,
 
 				break;
 			}
+
+		case OCLASS_MATVIEW_AUX:
+			break;
 
 		default:
 		{

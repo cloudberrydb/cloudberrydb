@@ -33,7 +33,9 @@ COORDINATOR_ONLY_TABLES = [
     'pg_statistic_ext',
     'pg_statistic_ext_data',
     'gp_partition_template', # GPDB_12_MERGE_FIXME: is gp_partition_template intentionally missing from segments?
-    'pg_event_trigger'
+    'pg_event_trigger',
+    'gp_matview_aux',
+    'gp_matview_tables',
     ]
 
 # Hard coded tables that have different values on every segment

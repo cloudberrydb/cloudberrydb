@@ -1,0 +1,333 @@
+-- disable ORCA
+SET optimizer TO off;
+create schema matview_data_schema;
+set search_path to matview_data_schema;
+create table t1(a int, b int);
+create table t2(a int, b int);
+insert into t1 select i, i+1 from generate_series(1, 5) i;
+insert into t1 select i, i+1 from generate_series(1, 3) i;
+create materialized view mv0 as select * from t1;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'a' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+create materialized view mv1 as select a, count(*), sum(b) from t1 group by a;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'a' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+create materialized view mv2 as select * from t2;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'a' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+-- all mv are up to date
+select mvname, datastatus from gp_matview_aux where mvname in ('mv0','mv1', 'mv2');
+ mvname | datastatus 
+--------+------------
+ mv0    | u
+ mv1    | u
+ mv2    | u
+(3 rows)
+
+-- truncate in self transaction
+begin;
+create table t3(a int, b int);
+create materialized view mv3 as select * from t3;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'a' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+select datastatus from gp_matview_aux where mvname = 'mv3';
+ datastatus 
+------------
+ u
+(1 row)
+
+truncate t3;
+select datastatus from gp_matview_aux where mvname = 'mv3';
+ datastatus 
+------------
+ e
+(1 row)
+
+end;
+-- trcuncate
+refresh materialized view mv3;
+select datastatus from gp_matview_aux where mvname = 'mv3';
+ datastatus 
+------------
+ u
+(1 row)
+
+truncate t3;
+select datastatus from gp_matview_aux where mvname = 'mv3';
+ datastatus 
+------------
+ e
+(1 row)
+
+-- insert and refresh
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ u
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ u
+(1 row)
+
+insert into t1 values (1, 2); 
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ i
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ i
+(1 row)
+
+-- insert but no rows changes
+refresh materialized view mv0;
+refresh materialized view mv1;
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ u
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ u
+(1 row)
+
+insert into t1 select * from t3; 
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ u
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ u
+(1 row)
+
+-- update
+refresh materialized view mv0;
+refresh materialized view mv1;
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ u
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ u
+(1 row)
+
+update t1 set a = 10 where a = 1;
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ e
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ e
+(1 row)
+
+-- delete
+refresh materialized view mv0;
+refresh materialized view mv1;
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ u
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ u
+(1 row)
+
+delete from t1 where a = 10;
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ e
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ e
+(1 row)
+
+-- vacuum
+refresh materialized view mv0;
+refresh materialized view mv1;
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ u
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ u
+(1 row)
+
+vacuum t1;
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ u
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ u
+(1 row)
+
+vacuum full t1;
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ r
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ r
+(1 row)
+
+-- insert after vacuum full 
+insert into t1 values(1, 2);
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ e
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ e
+(1 row)
+
+-- vacuum full after insert
+refresh materialized view mv0;
+refresh materialized view mv1;
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ u
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ u
+(1 row)
+
+insert into t1 values(1, 2);
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ i
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ i
+(1 row)
+
+vacuum full t1;
+select datastatus from gp_matview_aux where mvname = 'mv0';
+ datastatus 
+------------
+ e
+(1 row)
+
+select datastatus from gp_matview_aux where mvname = 'mv1';
+ datastatus 
+------------
+ e
+(1 row)
+
+-- Refresh With No Data
+refresh materialized view mv2;
+select datastatus from gp_matview_aux where mvname = 'mv2';
+ datastatus 
+------------
+ u
+(1 row)
+
+refresh materialized view mv2 with no data;
+select datastatus from gp_matview_aux where mvname = 'mv2';
+ datastatus 
+------------
+ e
+(1 row)
+
+-- Copy
+refresh materialized view mv2;
+select datastatus from gp_matview_aux where mvname = 'mv2';
+ datastatus 
+------------
+ u
+(1 row)
+
+-- 0 rows
+COPY t2 from stdin;
+select datastatus from gp_matview_aux where mvname = 'mv2';
+ datastatus 
+------------
+ u
+(1 row)
+
+COPY t2 from stdin;
+select datastatus from gp_matview_aux where mvname = 'mv2';
+ datastatus 
+------------
+ i
+(1 row)
+
+-- test drop table
+select mvname, datastatus from gp_matview_aux where mvname in ('mv0','mv1', 'mv2', 'mv3');
+ mvname | datastatus 
+--------+------------
+ mv3    | e
+ mv0    | e
+ mv1    | e
+ mv2    | i
+(4 rows)
+
+drop materialized view mv2;
+drop table t1 cascade;
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to materialized view mv0
+drop cascades to materialized view mv1
+select mvname, datastatus from gp_matview_aux where mvname in ('mv0','mv1', 'mv2', 'mv3');
+ mvname | datastatus 
+--------+------------
+ mv3    | e
+(1 row)
+
+drop schema matview_data_schema cascade;
+NOTICE:  drop cascades to 3 other objects
+DETAIL:  drop cascades to table t2
+drop cascades to table t3
+drop cascades to materialized view mv3
+reset enable_answer_query_using_materialized_views;
+reset optimizer;

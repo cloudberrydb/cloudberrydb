@@ -24,6 +24,7 @@
 #include "access/xact.h"
 #include "access/xlog.h"
 #include "catalog/catalog.h"
+#include "catalog/gp_matview_aux.h"
 #include "catalog/indexing.h"
 #include "catalog/namespace.h"
 #include "catalog/oid_dispatch.h"
@@ -469,6 +470,18 @@ ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 	 * if we fail later).
 	 */
 	SetMatViewPopulatedState(matviewRel, !stmt->skipData);
+
+	if (IS_QD_OR_SINGLENODE())
+	{
+		/*
+		 * Update view info:
+		 * It's actually a TRUNCATE command if skipData is true.
+		 */
+		if (stmt->skipData)
+			SetMatviewAuxStatus(RelationGetRelid(matviewRel), MV_DATA_STATUS_EXPIRED);
+		else
+			SetMatviewAuxStatus(RelationGetRelid(matviewRel), MV_DATA_STATUS_UP_TO_DATE);
+	}
 
 	/*
 	 * The stored query was rewritten at the time of the MV definition, but

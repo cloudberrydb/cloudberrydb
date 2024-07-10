@@ -100,6 +100,7 @@
 #include "catalog/pg_profile.h"
 #include "catalog/pg_password_history.h"
 #include "commands/tablecmds.h"
+#include "catalog/gp_matview_aux.h"
 
 
 /*
@@ -209,7 +210,8 @@ static const Oid object_classes[] = {
 	StorageServerRelationId,	/* OCLASS_STORAGE_SERVER */
 	StorageUserMappingRelationId,	/* OCLASS_STORAGE_USER_MAPPING */
 	ExtprotocolRelationId,		/* OCLASS_EXTPROTOCOL */
-	TaskRelationId				/* OCLASS_TASK */
+	GpMatviewAuxId,				/* OCLASS_MATVIEW_AUX */
+	TaskRelationId,				/* OCLASS_TASK */
 };
 
 
@@ -1552,6 +1554,10 @@ doDeletion(const ObjectAddress *object, int flags)
 			break;
 		case OCLASS_TASK:
 			RemoveTaskById(object->objectId);
+			break;
+
+		case OCLASS_MATVIEW_AUX:
+			RemoveMatviewAuxEntry(object->objectId);
 			break;
 
 		case OCLASS_CAST:
@@ -2977,6 +2983,9 @@ getObjectClass(const ObjectAddress *object)
 
 		case TaskRelationId:
 			return OCLASS_TASK;
+
+		case GpMatviewAuxId:
+			return OCLASS_MATVIEW_AUX;
 
 		case DirectoryTableRelationId:
 			return OCLASS_DIRTABLE;

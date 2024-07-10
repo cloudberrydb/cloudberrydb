@@ -152,6 +152,8 @@ ORDER BY 1;
  gp_distribution_policy
  gp_fastsequence
  gp_id
+ gp_matview_aux
+ gp_matview_tables
  gp_partition_template
  gp_version_at_initdb
  gp_warehouse
@@ -173,7 +175,7 @@ ORDER BY 1;
  pg_stat_last_operation
  pg_stat_last_shoperation
  pg_type_encoding
-(25 rows)
+(27 rows)
 
 -- system catalog unique indexes not wrapped in a constraint
 -- (There should be none.)

@@ -1283,6 +1283,10 @@ def checkTableMissingEntry(cat):
     if catname == "gp_segment_configuration":
         return
 
+    # Skip gp_matview_aux or gp_matview_tables
+    if catname == "gp_matview_aux" or catname == "gp_matview_tables":
+        return
+
     # skip shared/non-shared tables
     if GV.opt['-S']:
         if re.match("none", GV.opt['-S'], re.I) and isShared:
@@ -1531,6 +1535,10 @@ def checkTableInconsistentEntry(cat):
 
     # Skip gp_segment_configuration or pg_appendonly
     if catname == "gp_segment_configuration" or catname == "pg_appendonly":
+        return
+
+    # Skip gp_matview_aux or gp_matview_tables
+    if catname == "gp_matview_aux" or catname == "gp_matview_tables":
         return
 
     # skip shared/non-shared tables
