@@ -20,7 +20,7 @@ CREATE EXTENSION datalake_fdw;
 
 ## Basic usage
 
-datalake-ext support visite oss and hdfs storage.
+datalake-ext support visite oss, hdfs, and ftp storage.
 
 ### visite oss storage
 visite oss storage example SQL:
@@ -280,6 +280,34 @@ CREATE FOREIGN TABLE example (
 
 ```
 the parameters are the same as the oss storage.
+### support FTP
+visite FTP storage example SQL:
+
+1.create a data wrapper
+```sql
+CREATE FOREIGN DATA WRAPPER datalake_fdw
+HANDLER datalake_fdw_handler
+VALIDATOR datalake_fdw_validator
+OPTIONS ( mpp_execute 'all segments' );
+```
+2.create a server
+```sql
+CREATE SERVER ftp_foreign_server
+FOREIGN DATA WRAPPER datalake_fdw
+OPTIONS (host '192.168.198.144', protocol 'ftp');
+```
+3.create user mapping
+```sql
+CREATE USER MAPPING FOR gpadmin
+SERVER ftp_foreign_server
+OPTIONS (user 'ftp', password 'ftp');
+```
+4.create foreign table
+```sql
+CREATE FOREIGN TABLE orc_read (a int, b int)
+SERVER ftp_foreign_server
+OPTIONS (filePath '/orc', format 'orc');
+```
 
 ### support iceberg & hudi
 

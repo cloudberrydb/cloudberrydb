@@ -449,6 +449,18 @@ gopherConfig* createGopherConfig(void *opt)
 			conf->hdfs_ha_configs_num = options->hdfs_ha_configs_num;
 		}
 	}
+	else if (pg_strcasecmp(strConvertLow(options->gopherType), "ftp") == 0)
+	{
+		conf->ufs_type = FTP;
+		// ftp://username:password@host/path/to/file
+		conf->config = (ftpConfig *) palloc0(sizeof(ftpConfig));
+		std::string ftp_url = "ftp://";
+		ftp_url.append(options->ftp_username).append(":");
+		ftp_url.append(options->ftp_password).append("@");
+		ftp_url.append(options->host).append("/");
+		ftp_url.append(options->ftp_path);
+		conf->config->host = pstrdup(ftp_url.c_str());
+	}
 	else
 	{
 		if (pg_strcasecmp(strConvertLow(options->gopherType), "qs") == 0)

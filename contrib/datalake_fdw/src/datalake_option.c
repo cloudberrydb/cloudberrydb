@@ -54,6 +54,12 @@ static const struct datalakeFdwOption valid_hdfs_server_options[] = {
 	{NULL, InvalidOid}
 };
 
+static const struct datalakeFdwOption valid_ftp_server_options[] = {
+	{DATALAKE_OPTION_PROTOCOL, ForeignServerRelationId},
+	{DATALAKE_OPTION_HOST, ForeignServerRelationId},
+	{NULL, InvalidOid}
+};
+
 static const struct datalakeFdwOption valid_foreign_options[] = {
 	{DATALAKE_OPTION_COMPRESS, ForeignTableRelationId},
 	{DATALAKE_OPTION_FILEPATH, ForeignTableRelationId},
@@ -95,6 +101,7 @@ static const struct datalakeFdwOption valid_usermaping_options[] = {
 	{DATALAKE_OPTION_ACCESKEY, UserMappingRelationId},
 	{DATALAKE_OPTION_SECRETKEY, UserMappingRelationId},
 	{DATALAKE_OPTION_USER, UserMappingRelationId},
+	{DATALAKE_OPTION_PASSWORD, UserMappingRelationId},
 	{NULL, InvalidOid}
 };
 
@@ -112,6 +119,8 @@ PG_FUNCTION_INFO_V1(datalake_fdw_validator);
 bool IsValidForeignOption(const char *option, Oid context);
 
 bool IsValidHdfsServerOption(const char *option, Oid context);
+
+bool IsValidFtpServerOption(const char *option, Oid context);
 
 bool IsValidOSSServerOption(const char *option, Oid context);
 
@@ -141,6 +150,10 @@ void checkValidRecordBatchOpt(dataLakeOptions *options);
 void parserUri(dataLakeOptions *opt);
 
 void parserHdfsServerOption(dataLakeOptions *datalakeopt, List *options);
+
+void parserFtpServerOption(dataLakeOptions *opt, List *options);
+
+void parserFtpUserMappingOption(dataLakeOptions *opt, List *options);
 
 void parseForeignTableOptions(dataLakeOptions* opt, List *options);
 
@@ -490,6 +503,13 @@ dataLakeOptions *getOptions(Oid foreigntableid)
 		parseForeignTableOptions(opt, table->options);
 		opt->prefix = pstrdup(opt->filePath);
 	}
+	else if (pg_strcasecmp(protocol, DATALAKE_FTP_PROTOCOL) == 0)
+	{
+		parserFtpServerOption(opt, server->options);
+		parserFtpUserMappingOption(opt, user->options);
+		parseForeignTableOptions(opt, table->options);
+		opt->gopher->ftp_path = pstrdup(opt->filePath);
+	}
 	else
 	{
 		parseOssServerOption(opt, server->options);
@@ -662,6 +682,43 @@ void parserHdfsServerOption(dataLakeOptions *datalakeopt, List *options)
 			{
 				datalakeopt->gopher->dfs_client_failover = pstrdup(defGetString(def));
 			}
+		}
+	}
+}
+
+void parserFtpServerOption(dataLakeOptions *opt, List *options)
+{
+	ListCell	*lc;
+	foreach(lc, options)
+	{
+		DefElem *def = (DefElem *) lfirst(lc);
+		/* server options */
+		if (pg_strcasecmp(def->defname, DATALAKE_OPTION_PROTOCOL) == 0)
+		{
+			opt->gopher->gopherType = pstrdup(defGetString(def));
+		}
+		if (pg_strcasecmp(def->defname, DATALAKE_OPTION_HOST) == 0)
+		{
+			opt->gopher->host = pstrdup(defGetString(def));
+		}
+	}
+}
+
+void parserFtpUserMappingOption(dataLakeOptions *opt, List *options)
+{
+	ListCell   *lc;
+	foreach(lc, options)
+	{
+		DefElem *def = (DefElem *) lfirst(lc);
+		/* user mapping options */
+		if (pg_strcasecmp(def->defname, DATALAKE_OPTION_USER) == 0)
+		{
+			opt->gopher->ftp_username = pstrdup(defGetString(def));
+		}
+
+		if (pg_strcasecmp(def->defname, DATALAKE_OPTION_PASSWORD) == 0)
+		{
+			opt->gopher->ftp_password = pstrdup(defGetString(def));
 		}
 	}
 }
@@ -917,6 +974,20 @@ void check_server_option(List *options_list, Oid catalog)
 		}
 		checkHdfsCombin(options_list, catalog);
 	}
+	else if (pg_strcasecmp(protocol, DATALAKE_FTP_PROTOCOL) == 0)
+	{
+		foreach(cell, options_list)
+		{
+			DefElem *def = (DefElem *) lfirst(cell);
+			if (!IsValidFtpServerOption(def->defname, catalog))
+			{
+				ereport(ERROR,
+						(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
+						 errmsg("invalid ftp option \"%s\".",
+								def->defname)));
+			}
+		}
+	}
 	else
 	{
 		if (!check_protocol_values(protocol))
@@ -1087,6 +1158,17 @@ bool IsValidHdfsServerOption(const char *option, Oid context)
 {
 	const struct datalakeFdwOption *entry;
 	for (entry = valid_hdfs_server_options; entry->optname; entry++)
+	{
+		if (context == entry->optcontext && strcmp(entry->optname, option) == 0)
+			return true;
+	}
+	return false;
+}
+
+bool IsValidFtpServerOption(const char *option, Oid context)
+{
+	const struct datalakeFdwOption *entry;
+	for (entry = valid_ftp_server_options; entry->optname; entry++)
 	{
 		if (context == entry->optcontext && strcmp(entry->optname, option) == 0)
 			return true;

@@ -25,6 +25,7 @@
 #define DATALAKE_OSS_PROTOCOL_HUAWEI "huawei"
 #define DATALAKE_OSS_PROTOCOL_KS3 "ks3"
 #define DATALAKE_HDFS_PROTOCOL "hdfs"
+#define DATALAKE_FTP_PROTOCOL "ftp"
 
 /* server oss options */
 #define DATALAKE_OPTION_HOST "host"
@@ -54,6 +55,7 @@
 #define DATALAKE_OPTION_ACCESKEY "accesskey"
 #define DATALAKE_OPTION_SECRETKEY "secretkey"
 #define DATALAKE_OPTION_USER "user"
+#define DATALAKE_OPTION_PASSWORD "password"
 
 /* foreign table options */
 #define DATALAKE_OPTION_COMPRESS "compression"
@@ -191,6 +193,11 @@ typedef struct gopherOptions
 	char*	dfs_ha_namenode_rpc_addr;
 	char*	dfs_client_failover;
 	int		hdfs_ha_configs_num;
+
+	/* ftp config */
+	char*	ftp_path;
+	char*	ftp_username;
+	char*	ftp_password;
 }gopherOptions;
 
 typedef struct hiveOptions
