@@ -187,7 +187,7 @@ CICGTest::EresUnittest_RunUnsupportedMinidumpTests()
 						true /*value*/);
 
 	CAutoTraceFlag atf2(
-		EopttraceDisableXformBase + CXform::ExfDynamicGet2DynamicTableScan,
+		EopttraceDisableXformBase + static_cast<int>(CXform::ExfDynamicGet2DynamicTableScan),
 		true);
 
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);

@@ -39,14 +39,14 @@ protected:
 	T *m_object;
 
 public:
-	CAutoP<T>(const CAutoP &) = delete;
+	CAutoP(const CAutoP &) = delete;
 
 	// ctor
-	explicit CAutoP<T>() : m_object(nullptr)
+	explicit CAutoP() : m_object(nullptr)
 	{
 	}
 
-	explicit CAutoP<T>(T *object) : m_object(object)
+	explicit CAutoP(T *object) : m_object(object)
 	{
 	}
 

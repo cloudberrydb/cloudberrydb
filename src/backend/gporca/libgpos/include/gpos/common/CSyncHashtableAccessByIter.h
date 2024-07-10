@@ -58,11 +58,10 @@ private:
 	}
 
 public:
-	CSyncHashtableAccessByIter<T, K>(const CSyncHashtableAccessByIter<T, K> &) =
-		delete;
+	CSyncHashtableAccessByIter(const CSyncHashtableAccessByIter &) = delete;
 
 	// ctor
-	explicit CSyncHashtableAccessByIter<T, K>(CSyncHashtableIter<T, K> &iter)
+	explicit CSyncHashtableAccessByIter(CSyncHashtableIter<T, K> &iter)
 		: Base(iter.m_ht, iter.m_bucket_idx), m_iter(iter)
 	{
 	}

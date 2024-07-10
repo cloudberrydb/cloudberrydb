@@ -59,19 +59,17 @@ private:
 	}
 
 public:
-	CHashMapIter(const CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>
-					 &) = delete;
+	CHashMapIter(const CHashMapIter &) = delete;
 
 	// ctor
-	CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>(TMap *ptm)
+	CHashMapIter(TMap *ptm)
 		: m_map(ptm), m_chain_idx(0), m_key_idx(0)
 	{
 		GPOS_ASSERT(nullptr != ptm);
 	}
 
 	// dtor
-	virtual ~CHashMapIter<K, T, HashFn, EqFn, DestroyKFn, DestroyTFn>() =
-		default;
+	virtual ~CHashMapIter() = default;
 
 	// advance iterator to next element
 	BOOL

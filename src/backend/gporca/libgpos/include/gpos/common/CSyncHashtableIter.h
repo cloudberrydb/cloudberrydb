@@ -113,10 +113,10 @@ private:
 	BOOL m_invalid_elem_inserted;
 
 public:
-	CSyncHashtableIter<T, K>(const CSyncHashtableIter<T, K> &) = delete;
+	CSyncHashtableIter(const CSyncHashtableIter &) = delete;
 
 	// ctor
-	explicit CSyncHashtableIter<T, K>(CSyncHashtable<T, K> &ht)
+	explicit CSyncHashtableIter(CSyncHashtable<T, K> &ht)
 		: m_ht(ht),
 		  m_bucket_idx(0),
 		  m_invalid_elem(nullptr),
@@ -133,7 +133,7 @@ public:
 	}
 
 	// dtor
-	~CSyncHashtableIter<T, K>()
+	~CSyncHashtableIter()
 	{
 		if (m_invalid_elem_inserted)
 		{
