@@ -1,5 +1,9 @@
 #include "parquetRead.h"
 
+extern "C" {
+	#include "src/common/random_segment.h"
+}
+
 namespace Datalake {
 namespace Internal {
 
@@ -7,11 +11,13 @@ void parquetRead::createHandler(void *sstate)
 {
 	initParameter(sstate);
 	initializeColumnValue();
-	createPolicy();
+	bool exec = createPolicy();
+	if (exec)
+		initFileStream();
 	readNextGroup();
 }
 
-void parquetRead::createPolicy()
+bool parquetRead::createPolicy()
 {
 	std::vector<ListContainer> lists;
 	if (scanstate->options->hiveOption->hivePartitionKey != NULL)
@@ -24,9 +30,19 @@ void parquetRead::createPolicy()
 	{
 		extraFragmentLists(lists, scanstate->fragments);
 	}
-	blockPolicy.build(segId, segnum, BLOCK_POLICY_SIZE, lists);
+
+	bool exec = false;
+	int dummy_segid = 0;
+	int dummy_segnums = 0;
+	exec_segment(selected_segments, segId, segnum, &exec, &dummy_segid, &dummy_segnums);
+	if (!exec)
+		lists.clear();
+
+	blockPolicy.build(dummy_segid, dummy_segnums, BLOCK_POLICY_SIZE, lists);
 	blockPolicy.distBlock();
 	blockSerial = blockPolicy.start;
+
+	return exec;
 }
 
 void parquetRead::restart()

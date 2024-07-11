@@ -24,6 +24,7 @@ void readLogical::releaseResources()
 void readLogical::initParameter(void *sstate)
 {
 	scanstate = (dataLakeFdwScanState*)sstate;
+	selected_segments = scanstate->selected_segments;
 	tupdesc = scanstate->rel->rd_att;
     ncolumns = tupdesc->natts;
 	curFileName = "";
@@ -42,7 +43,7 @@ void readLogical::initParameter(void *sstate)
 		options.ptype = PROTOTCOL_OSS;
 	}
 	std::vector<ListContainer> lists;
-	fileStream = createFileStream();
+	// fileStream = createFileStream();
 
 	getAttrsUsed(scanstate->retrieved_attrs, attrs_used);
 	setOptionAttrsUsed(attrs_used);
@@ -57,6 +58,11 @@ void readLogical::initParameter(void *sstate)
 	}
 
 	return;
+}
+
+void readLogical::initFileStream()
+{
+	fileStream = createFileStream();
 }
 
 void readLogical::setOptionAttrsUsed(std::set<int> used)
@@ -177,9 +183,9 @@ void readLogical::closeFile()
 	return;
 }
 
-void readLogical::createPolicy()
+bool readLogical::createPolicy()
 {
-	return;
+	return false;
 }
 
 ossFileStream readLogical::createFileStream()

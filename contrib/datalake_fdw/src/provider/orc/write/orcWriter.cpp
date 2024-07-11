@@ -102,7 +102,7 @@ void orcWrite::initORC()
 	std::string orcName = generateWriteFileName(fdwState->options->prefix, ORC_WRITE_SUFFIX, segid);
 
 	generateOrcSchema();
-	batchSize = ORC_BATCH_SIZE;
+	batchSize = ORC_WRITER_BATCH_SIZE;
 	uint64_t stripeSize = (64 * 1024 * 1024); // 64M
 	uint64_t blockSize = 64 * 1024;     // 64K
 	orc::CompressionKind compression = orc::CompressionKind_NONE;

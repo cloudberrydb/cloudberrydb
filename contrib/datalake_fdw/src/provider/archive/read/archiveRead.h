@@ -20,7 +20,7 @@ public:
 	virtual void destroyHandler();
 
 private:
-	virtual void createPolicy();
+	virtual bool createPolicy();
 
 	virtual bool readNextFile();
 

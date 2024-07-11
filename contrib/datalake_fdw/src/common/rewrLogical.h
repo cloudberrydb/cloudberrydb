@@ -104,6 +104,8 @@ public:
 
 	virtual void initParameter(void *sstate);
 
+	virtual void initFileStream();
+
 	virtual void initReadLogical();
 
 	virtual bool readNextGroup();
@@ -118,7 +120,7 @@ public:
 
 	virtual void closeFile();
 
-	virtual void createPolicy();
+	virtual bool createPolicy();
 
 	virtual fileState getFileState();
 
@@ -151,6 +153,7 @@ protected:
 	readOption options;
 	ossFileStream fileStream;
 	bool last;
+	List *selected_segments;
 
 	/* for partition table */
 	int *defMap;

@@ -15,7 +15,7 @@ extern "C" {
 
 
 
-#define ORC_BATCH_SIZE (1000)
+#define ORC_WRITER_BATCH_SIZE (1000)
 #define ORC_COLUMNS (65536)
 #define ORC_DEFAULT_POOL_SIZE (4 * 1024 * 1024)
 /**

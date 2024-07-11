@@ -1,0 +1,534 @@
+DROP SCHEMA IF EXISTS synctab CASCADE;
+NOTICE:  schema "synctab" does not exist, skipping
+DROP SCHEMA IF EXISTS syncdb CASCADE;
+CREATE SCHEMA synctab;
+CREATE SCHEMA syncdb;
+DROP USER MAPPING IF EXISTS FOR CURRENT_USER SERVER hive_server;
+NOTICE:  server "hive_server" does not exist, skipping
+DROP SERVER IF EXISTS hive_server;
+NOTICE:  server "hive_server" does not exist, skipping
+set vector.enable_vectorization=off;
+set datalake.external_table_limit_segment_num = 1;
+SET datestyle = ISO, MDY;
+SELECT public.create_foreign_server('hive_server', 'gpadmin', 'datalake_fdw', 'paa_cluster');
+ create_foreign_server 
+-----------------------
+ t
+(1 row)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','text_default','paa_cluster', 'synctab.text_default', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.text_default order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 1
+ 2 | 2 | 2 | 2
+ 3 | 3 | 3 | 3
+ 4 | 4 | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','text_custom','paa_cluster', 'synctab.text_custom', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.text_custom order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 
+ 2 | 2 |   | 2
+ 3 | 3 | 3 | 3
+ 4 |   | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','csv_default','paa_cluster', 'synctab.csv_default', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.csv_default order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 1
+ 2 | 2 | 2 | 
+ 3 | 3 | 3 | 3
+ 4 |   | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','csv_custom','paa_cluster', 'synctab.csv_custom', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.csv_custom order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 
+ 2 | 2 | 2 | 2
+ 3 |   | 3 | 3
+ 4 | 4 | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_orc_transactional','paa_cluster', 'synctab.empty_orc_transactional', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_orc_transactional;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_orc','paa_cluster', 'synctab.empty_orc', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_orc;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_parquet','paa_cluster', 'synctab.empty_parquet', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_parquet;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_orc_partition','paa_cluster', 'synctab.empty_orc_partition', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_orc_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_parquet_partition','paa_cluster', 'synctab.empty_parquet_partition', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_parquet_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_avro','paa_cluster', 'synctab.empty_avro', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_avro;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_avro_partition','paa_cluster', 'synctab.empty_avro_partition', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_avro_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_database('hive_cluster', 'mytestdb', 'paa_cluster', 'syncdb', 'hive_server');
+ sync_hive_database 
+--------------------
+ t
+(1 row)
+
+SELECT * FROM syncdb.text_default order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 1
+ 2 | 2 | 2 | 2
+ 3 | 3 | 3 | 3
+ 4 | 4 | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT * FROM syncdb.text_custom order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 
+ 2 | 2 |   | 2
+ 3 | 3 | 3 | 3
+ 4 |   | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT * FROM syncdb.csv_default order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 1
+ 2 | 2 | 2 | 
+ 3 | 3 | 3 | 3
+ 4 |   | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT * FROM syncdb.csv_custom order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 
+ 2 | 2 | 2 | 2
+ 3 |   | 3 | 3
+ 4 | 4 | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT * FROM syncdb.empty_orc_transactional;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT * FROM syncdb.empty_orc;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT * FROM syncdb.empty_parquet;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT * FROM syncdb.empty_orc_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT * FROM syncdb.empty_parquet_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT * FROM syncdb.empty_avro;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT * FROM syncdb.empty_avro_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+DROP FOREIGN TABLE IF EXISTS synctab.text_default;
+DROP FOREIGN TABLE IF EXISTS synctab.text_custom;
+DROP FOREIGN TABLE IF EXISTS synctab.csv_default;
+DROP FOREIGN TABLE IF EXISTS synctab.csv_custom;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_orc_transactional;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_orc;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_parquet;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_orc_partition;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_parquet_partition;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_avro;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_avro_partition;
+DROP FOREIGN TABLE IF EXISTS syncdb.text_default;
+DROP FOREIGN TABLE IF EXISTS syncdb.text_custom;
+DROP FOREIGN TABLE IF EXISTS syncdb.csv_default;
+DROP FOREIGN TABLE IF EXISTS syncdb.csv_custom;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_orc_transactional;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_orc;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_parquet;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_orc_partition;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_parquet_partition;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_avro;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_avro_partition;
+DROP SCHEMA IF EXISTS synctab;
+DROP SCHEMA IF EXISTS syncd;
+NOTICE:  schema "syncd" does not exist, skipping
+DROP SERVER hive_server CASCADE;
+NOTICE:  drop cascades to user mapping for gpadmin on server hive_server
+-- external_table_limit_segment_num = 2
+DROP SCHEMA IF EXISTS synctab CASCADE;
+NOTICE:  schema "synctab" does not exist, skipping
+DROP SCHEMA IF EXISTS syncdb CASCADE;
+CREATE SCHEMA synctab;
+CREATE SCHEMA syncdb;
+DROP USER MAPPING IF EXISTS FOR CURRENT_USER SERVER hive_server;
+NOTICE:  server "hive_server" does not exist, skipping
+DROP SERVER IF EXISTS hive_server;
+NOTICE:  server "hive_server" does not exist, skipping
+set datalake.external_table_limit_segment_num = 2;
+SET datestyle = ISO, MDY;
+SELECT public.create_foreign_server('hive_server', 'gpadmin', 'datalake_fdw', 'paa_cluster');
+ create_foreign_server 
+-----------------------
+ t
+(1 row)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','text_default','paa_cluster', 'synctab.text_default', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.text_default order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 1
+ 2 | 2 | 2 | 2
+ 3 | 3 | 3 | 3
+ 4 | 4 | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','text_custom','paa_cluster', 'synctab.text_custom', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.text_custom order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 
+ 2 | 2 |   | 2
+ 3 | 3 | 3 | 3
+ 4 |   | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','csv_default','paa_cluster', 'synctab.csv_default', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.csv_default order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 1
+ 2 | 2 | 2 | 
+ 3 | 3 | 3 | 3
+ 4 |   | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','csv_custom','paa_cluster', 'synctab.csv_custom', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.csv_custom order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 
+ 2 | 2 | 2 | 2
+ 3 |   | 3 | 3
+ 4 | 4 | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_orc_transactional','paa_cluster', 'synctab.empty_orc_transactional', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_orc_transactional;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_orc','paa_cluster', 'synctab.empty_orc', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_orc;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_parquet','paa_cluster', 'synctab.empty_parquet', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_parquet;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_orc_partition','paa_cluster', 'synctab.empty_orc_partition', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_orc_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_parquet_partition','paa_cluster', 'synctab.empty_parquet_partition', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_parquet_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_avro','paa_cluster', 'synctab.empty_avro', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_avro;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_avro_partition','paa_cluster', 'synctab.empty_avro_partition', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_avro_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_database('hive_cluster', 'mytestdb', 'paa_cluster', 'syncdb', 'hive_server');
+ sync_hive_database 
+--------------------
+ t
+(1 row)
+
+SELECT * FROM syncdb.text_default order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 1
+ 2 | 2 | 2 | 2
+ 3 | 3 | 3 | 3
+ 4 | 4 | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT * FROM syncdb.text_custom order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 
+ 2 | 2 |   | 2
+ 3 | 3 | 3 | 3
+ 4 |   | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT * FROM syncdb.csv_default order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 1
+ 2 | 2 | 2 | 
+ 3 | 3 | 3 | 3
+ 4 |   | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT * FROM syncdb.csv_custom order by a, b, c, d;
+ a | b | c | d 
+---+---+---+---
+ 1 | 1 | 1 | 
+ 2 | 2 | 2 | 2
+ 3 |   | 3 | 3
+ 4 | 4 | 4 | 4
+ 5 | 5 | 5 | 5
+(5 rows)
+
+SELECT * FROM syncdb.empty_orc_transactional;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT * FROM syncdb.empty_orc;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT * FROM syncdb.empty_parquet;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT * FROM syncdb.empty_orc_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT * FROM syncdb.empty_parquet_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT * FROM syncdb.empty_avro;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT * FROM syncdb.empty_avro_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+DROP FOREIGN TABLE IF EXISTS synctab.text_default;
+DROP FOREIGN TABLE IF EXISTS synctab.text_custom;
+DROP FOREIGN TABLE IF EXISTS synctab.csv_default;
+DROP FOREIGN TABLE IF EXISTS synctab.csv_custom;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_orc_transactional;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_orc;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_parquet;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_orc_partition;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_parquet_partition;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_avro;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_avro_partition;
+DROP FOREIGN TABLE IF EXISTS syncdb.text_default;
+DROP FOREIGN TABLE IF EXISTS syncdb.text_custom;
+DROP FOREIGN TABLE IF EXISTS syncdb.csv_default;
+DROP FOREIGN TABLE IF EXISTS syncdb.csv_custom;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_orc_transactional;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_orc;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_parquet;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_orc_partition;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_parquet_partition;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_avro;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_avro_partition;
+DROP SCHEMA IF EXISTS synctab;
+DROP SCHEMA IF EXISTS syncd;
+NOTICE:  schema "syncd" does not exist, skipping
+DROP SERVER hive_server CASCADE;
+NOTICE:  drop cascades to user mapping for gpadmin on server hive_server

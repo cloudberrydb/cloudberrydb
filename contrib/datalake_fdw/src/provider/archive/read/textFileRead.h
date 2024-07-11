@@ -42,7 +42,7 @@ private:
 
     // void configureReadPolicy(const std::vector<ListContainer>& listObjects, int segindex, int segnum);
 
-	void createPolicy();
+	bool createPolicy();
 
     int64_t readWithBufferInternal(void* buffer, int64_t length);
 

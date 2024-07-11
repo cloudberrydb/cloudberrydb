@@ -20,7 +20,9 @@ void orcReadRecordBatch::createHandler(void *sstate)
 {
 	initParameter(sstate);
 	initializeColumnValue();
-	createPolicy();
+	bool exec = createPolicy();
+	if (exec)
+		initFileStream();
 	deltaFile.readDeleteDeltaLists((void*)scanstate->options,
 		readPolicy.deleteDeltaLists, setStreamWhetherCache(options));
 	pool = arrow::default_memory_pool();

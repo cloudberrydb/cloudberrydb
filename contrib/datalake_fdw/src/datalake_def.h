@@ -282,6 +282,7 @@ typedef struct dataLakeFdwScanState
 	MemoryContext		initcontext;
 	List  				*quals;
 	dataLakeCopyState	cstate;
+	List				*selected_segments;
 } dataLakeFdwScanState;
 
 

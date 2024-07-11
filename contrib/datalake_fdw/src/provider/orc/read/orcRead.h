@@ -18,7 +18,7 @@ public:
 	virtual void destroyHandler();
 
 protected:
-	virtual void createPolicy();
+	virtual bool createPolicy();
 
 	virtual fileState getFileState();
 

@@ -4,6 +4,10 @@
 #include <cassert>
 #include <sstream>
 
+extern "C" {
+	#include "src/common/random_segment.h"
+}
+
 namespace Datalake {
 namespace Internal {
 
@@ -12,13 +16,15 @@ void orcRead::createHandler(void *sstate)
 	initParameter(sstate);
 	options.transactionTable = scanstate->options->hiveOption->transactional;
 	initializeColumnValue();
-	createPolicy();
+	bool exec = createPolicy();
+	if (exec)
+		initFileStream();
 	deltaFile.readDeleteDeltaLists((void*)scanstate->options,
 		readPolicy.deleteDeltaLists, setStreamWhetherCache(options));
 	readNextGroup();
 }
 
-void orcRead::createPolicy()
+bool orcRead::createPolicy()
 {
 	std::vector<ListContainer> lists;
 	if (scanstate->options->hiveOption->hivePartitionKey != NULL)
@@ -31,10 +37,20 @@ void orcRead::createPolicy()
 	{
 		extraFragmentLists(lists, scanstate->fragments);
 	}
+
+	bool exec = false;
+	int dummy_segid = 0;
+	int dummy_segnums = 0;
+	exec_segment(selected_segments, segId, segnum, &exec, &dummy_segid, &dummy_segnums);
+	if (!exec)
+		lists.clear();
+
 	readPolicy.hiveTranscation = options.transactionTable;
-	readPolicy.build(segId, segnum, BLOCK_POLICY_SIZE, lists);
+	readPolicy.build(dummy_segid, dummy_segnums, BLOCK_POLICY_SIZE, lists);
 	readPolicy.distBlock();
 	blockSerial = readPolicy.start;
+
+	return exec;
 }
 
 void orcRead::restart()

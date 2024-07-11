@@ -11,6 +11,7 @@ extern "C"
 #include "utils/timestamp.h"
 #include "utils/builtins.h"
 #include "fmgr.h"
+#include "src/common/random_segment.h"
 }
 
 #define AVRO_READ_BUFFER_SIZE (8 * 1024 * 1024)
@@ -22,7 +23,9 @@ void avroRead::createHandler(void *sstate)
 {
     initParameter(sstate);
     initializeColumnValue();
-    createPolicy();
+    bool exec = createPolicy();
+	if (exec)
+		initFileStream();
     readBuffer_ = std::make_unique<AvroStreamBuffer>(AVRO_READ_BUFFER_SIZE);
     readNextGroup();
 }
@@ -189,7 +192,7 @@ bool avroRead::checkSchema(const avro::ValidSchema &dataSchema)
     return true;
 }
 
-void avroRead::createPolicy()
+bool avroRead::createPolicy()
 {
     std::vector<ListContainer> lists;
     if (scanstate->options->hiveOption->hivePartitionKey != NULL)
@@ -202,9 +205,19 @@ void avroRead::createPolicy()
     {
         extraFragmentLists(lists, scanstate->fragments);
     }
-    blockPolicy.build(segId, segnum, BLOCK_POLICY_SIZE, lists);
+
+    bool exec = false;
+    int dummy_segid = 0;
+    int dummy_segnums = 0;
+    exec_segment(selected_segments, segId, segnum, &exec, &dummy_segid, &dummy_segnums);
+    if (!exec)
+        lists.clear();
+
+    blockPolicy.build(dummy_segid, dummy_segnums, BLOCK_POLICY_SIZE, lists);
     blockPolicy.distBlock();
     blockSerial = blockPolicy.start;
+
+	return exec;
 }
 
 bool avroRead::getNextGroup()

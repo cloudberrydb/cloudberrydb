@@ -10,6 +10,7 @@
 #include "datalake_fragment.h"
 #include "common/fileSystemWrapper.h"
 #include "common/partition_selector.h"
+#include "common/random_segment.h"
 #include "src/dlproxy/datalake.h"
 
 #include "postgres.h"
@@ -201,6 +202,7 @@ bool disableCacheFile;
 int icebergPostionDeletesThreshold;
 int hudiLogMergerThreshold;
 double hudiLogSizeScaleFactor;
+int external_table_limit_segment_num;
 
 void
 _PG_init(void)
@@ -282,6 +284,19 @@ _PG_init(void)
 							1.3,
 							1,
 							10,
+							PGC_USERSET,
+							0,
+							NULL,
+							NULL,
+							NULL);
+
+	DefineCustomIntVariable("datalake.external_table_limit_segment_num",
+							"Limit the number of segments executed external table.",
+							NULL,
+							&external_table_limit_segment_num,
+							0,
+							0,
+							INT_MAX,
 							PGC_USERSET,
 							0,
 							NULL,
@@ -598,6 +613,8 @@ dataLakeBeginForeignScan(ForeignScanState *node, int eflags)
 	dataLakesstate->rel						= node->ss.ss_currentRelation;
 	List* fragmentData						= NIL;
 	ForeignScan *foreignScan      			= (ForeignScan *) node->ss.ps.plan;
+	int segmentcount						= getgpsegmentCount();
+	List *selected_segments					= NIL;
 	dataLakesstate->provider = NULL;
 	if (gp_external_enable_filter_pushdown)
 		dataLakesstate->quals = node->ss.ps.plan->qual;
@@ -619,11 +636,25 @@ dataLakeBeginForeignScan(ForeignScanState *node, int eflags)
 		fragmentData = GetExternalFragmentList(dataLakesstate->rel, dataLakesstate->quals, dataLakesstate->options, NULL);
 		foreignScan->fdw_private = list_concat(foreignScan->fdw_private, fragmentData);
 		/* master does not process any fragments */
+		List *random_segments = select_random_segments(segmentcount, external_table_limit_segment_num);
+		/* put the random segments into the list */
+		foreignScan->fdw_private = list_concat(foreignScan->fdw_private, random_segments);
 		return;
 	}
 
+	/* the last segmentcount elements are the selected random segments */
+	int len = list_length(foreignScan->fdw_private);
+	for (int i = segmentcount; i >= 1; i--)
+	{
+		int idx = intVal(list_nth(foreignScan->fdw_private, len - i));
+		selected_segments = lappend_int(selected_segments, idx);
+	}
+
+	/* remove the last segmentcount elements */
+	foreignScan->fdw_private = list_truncate(foreignScan->fdw_private, len - segmentcount);
 	fragmentData = deserializeExternalFragmentList(dataLakesstate->rel, dataLakesstate->quals, dataLakesstate->options, foreignScan->fdw_private);
 
+	dataLakesstate->selected_segments = selected_segments;
 	dataLakesstate->options->readFdw = true;
 	dataLakesstate->provider = initProvider(dataLakesstate->options->format, dataLakesstate->options->readFdw, dataLakesstate->options->vectorization);
 	dataLakesstate->rel = node->ss.ss_currentRelation;

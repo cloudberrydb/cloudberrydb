@@ -1,21 +1,37 @@
 #include "archiveRead.h"
 
+extern "C" {
+	#include "src/common/random_segment.h"
+}
+
 namespace Datalake {
 namespace Internal {
 
 void archiveRead::createHandler(void *sstate)
 {
 	initParameter(sstate);
-	createPolicy();
+	bool exec = createPolicy();
+	if (exec)
+		initFileStream();
 	readNextFile();
 }
 
-void archiveRead::createPolicy()
+bool archiveRead::createPolicy()
 {
 	std::vector<ListContainer> lists;
 	extraFragmentLists(lists, scanstate->fragments);
-	readPolicy.accordingConsistentHash(segId, segnum, lists);
+
+	bool exec = false;
+	int dummy_segid = 0;
+	int dummy_segnums = 0;
+	exec_segment(selected_segments, segId, segnum, &exec, &dummy_segid, &dummy_segnums);
+	if (!exec)
+		lists.clear();
+
+	readPolicy.accordingConsistentHash(dummy_segid, dummy_segnums, lists);
 	blockSerial = 0;
+
+	return exec;
 }
 
 bool archiveRead::readNextFile()

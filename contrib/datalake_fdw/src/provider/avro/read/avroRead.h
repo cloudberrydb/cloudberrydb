@@ -39,7 +39,7 @@ public:
 private:
     bool checkSchema(const avro::ValidSchema &schema);
 
-    virtual void createPolicy();
+    virtual bool createPolicy();
 
     virtual bool getNextGroup();
 

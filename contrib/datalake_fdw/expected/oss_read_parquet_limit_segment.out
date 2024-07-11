@@ -1,0 +1,411 @@
+-- create datalake_fdw
+-- clean table
+DROP USER MAPPING IF EXISTS FOR CURRENT_USER SERVER foreign_server;
+DROP SERVER IF EXISTS foreign_server cascade;
+NOTICE:  drop cascades to foreign table oss_read
+DROP FOREIGN DATA WRAPPER IF EXISTS datalake_fdw cascade;
+CREATE EXTENSION IF NOT EXISTS datalake_fdw;
+NOTICE:  extension "datalake_fdw" already exists, skipping
+CREATE FOREIGN DATA WRAPPER datalake_fdw
+  HANDLER datalake_fdw_handler
+  VALIDATOR datalake_fdw_validator 
+  OPTIONS ( mpp_execute 'all segments' );
+CREATE SERVER foreign_server
+        FOREIGN DATA WRAPPER datalake_fdw
+        OPTIONS (host 'obs.cn-north-4.myhuaweicloud.com', protocol 'huawei', isvirtual 'false',
+        ishttps 'false');
+CREATE USER MAPPING FOR gpadmin
+        SERVER foreign_server
+        OPTIONS (user 'gpadmin', accesskey 'J04WCCF5VQP6BAIQUFHP', secretkey 'jGDwttCct2b9b4rEf0hsLD7CeP9WubZuqqz90iQU');
+SELECT pg_sleep(5);
+ pg_sleep 
+----------
+ 
+(1 row)
+
+set vector.enable_vectorization=off;
+SET datalake.external_table_limit_segment_num = 0;
+-- numeric
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+NOTICE:  foreign table "readtable_table" does not exist, skipping
+CREATE FOREIGN TABLE readtable_table (
+  col numeric(2,1),
+  col2 numeric(9,6),
+  col3 numeric(18,3),
+  col4 numeric(38,3),
+  col5 numeric(18,17),
+  col6 numeric(38,37)
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/numeric/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY col, col2, col3, col4, col5;
+ col |   col2   |        col3         |                  col4                  |        col5         |                  col6                   
+-----+----------+---------------------+----------------------------------------+---------------------+-----------------------------------------
+ 0.0 | 0.000000 |               0.000 |                                  0.000 | 0.00000000000000000 | 0.0000000000000000000000000000000000000
+ 1.0 | 1.000001 |               1.001 |                                  1.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.000001 | 100000000000000.001 | 1000000000000000000000000000000000.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.234561 | 123456789123456.781 | 1234567891234567891234567891234567.891 | 1.12345678912345671 | 1.1234567891234567891234567891234567891
+ 9.9 | 9.999999 | 999999999999999.999 | 9999999999999999999999999999999999.999 | 9.99999999999999999 | 9.9999999999999999999999999999999999999
+(5 rows)
+
+-- date
+SET datestyle = ISO, MDY;
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  a date
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/coldate_table/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY a;
+     a      
+------------
+ 1577-12-31
+ 1877-12-31
+ 1977-12-31
+ 2022-02-22
+ 2999-12-31
+ 3999-12-22
+ 7777-07-07
+ 9999-12-31
+(8 rows)
+
+-- col null
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  a int, 
+  b text, 
+  c int, 
+  d text
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/colnull_table/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY a, b, c, d;
+ a | b  | c | d  
+---+----+---+----
+ 1 |    | 2 | se
+ 1 |    | 2 | 
+ 2 | aa |   | se
+ 3 | bb | 3 | 
+ 4 |    |   | 
+ 5 |    | 2 | se
+   |    | 2 | se
+   |    | 2 | se
+(8 rows)
+
+-- col timestamp
+SET datestyle = ISO, MDY;
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  a timestamp
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/coltimestamp_table/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY a;
+             a              
+----------------------------
+ 0001-10-19 02:18:11.123456
+ 0001-12-31 15:54:16.999999
+ 0031-01-12 15:54:16.999999
+ 0099-10-19 02:18:11.123456
+ 0099-10-19 02:18:11.123456
+ 1577-12-31 15:54:16.999999
+ 1900-10-19 02:18:11.123456
+ 1969-12-31 16:00:00.999999
+ 1970-01-01 15:59:59.999999
+ 1970-10-19 02:23:54.123456
+ 2000-10-19 02:23:54.123456
+ 2004-10-19 02:23:54
+ 2004-10-19 02:23:54.1234
+ 2004-10-19 02:23:54.123457
+ 2019-01-10 02:23:54.123456
+ 9999-12-29 16:00:01.123457
+(16 rows)
+
+SET datalake.external_table_limit_segment_num = 1;
+-- numeric
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  col numeric(2,1),
+  col2 numeric(9,6),
+  col3 numeric(18,3),
+  col4 numeric(38,3),
+  col5 numeric(18,17),
+  col6 numeric(38,37)
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/numeric/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY col, col2, col3, col4, col5;
+ col |   col2   |        col3         |                  col4                  |        col5         |                  col6                   
+-----+----------+---------------------+----------------------------------------+---------------------+-----------------------------------------
+ 0.0 | 0.000000 |               0.000 |                                  0.000 | 0.00000000000000000 | 0.0000000000000000000000000000000000000
+ 1.0 | 1.000001 |               1.001 |                                  1.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.000001 | 100000000000000.001 | 1000000000000000000000000000000000.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.234561 | 123456789123456.781 | 1234567891234567891234567891234567.891 | 1.12345678912345671 | 1.1234567891234567891234567891234567891
+ 9.9 | 9.999999 | 999999999999999.999 | 9999999999999999999999999999999999.999 | 9.99999999999999999 | 9.9999999999999999999999999999999999999
+(5 rows)
+
+-- date
+SET datestyle = ISO, MDY;
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  a date
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/coldate_table/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY a;
+     a      
+------------
+ 1577-12-31
+ 1877-12-31
+ 1977-12-31
+ 2022-02-22
+ 2999-12-31
+ 3999-12-22
+ 7777-07-07
+ 9999-12-31
+(8 rows)
+
+-- col null
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  a int, 
+  b text, 
+  c int, 
+  d text
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/colnull_table/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY a, b, c, d;
+ a | b  | c | d  
+---+----+---+----
+ 1 |    | 2 | se
+ 1 |    | 2 | 
+ 2 | aa |   | se
+ 3 | bb | 3 | 
+ 4 |    |   | 
+ 5 |    | 2 | se
+   |    | 2 | se
+   |    | 2 | se
+(8 rows)
+
+-- col timestamp
+SET datestyle = ISO, MDY;
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  a timestamp
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/coltimestamp_table/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY a;
+             a              
+----------------------------
+ 0001-10-19 02:18:11.123456
+ 0001-12-31 15:54:16.999999
+ 0031-01-12 15:54:16.999999
+ 0099-10-19 02:18:11.123456
+ 0099-10-19 02:18:11.123456
+ 1577-12-31 15:54:16.999999
+ 1900-10-19 02:18:11.123456
+ 1969-12-31 16:00:00.999999
+ 1970-01-01 15:59:59.999999
+ 1970-10-19 02:23:54.123456
+ 2000-10-19 02:23:54.123456
+ 2004-10-19 02:23:54
+ 2004-10-19 02:23:54.1234
+ 2004-10-19 02:23:54.123457
+ 2019-01-10 02:23:54.123456
+ 9999-12-29 16:00:01.123457
+(16 rows)
+
+SET datalake.external_table_limit_segment_num = 2;
+-- numeric
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  col numeric(2,1),
+  col2 numeric(9,6),
+  col3 numeric(18,3),
+  col4 numeric(38,3),
+  col5 numeric(18,17),
+  col6 numeric(38,37)
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/numeric/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY col, col2, col3, col4, col5;
+ col |   col2   |        col3         |                  col4                  |        col5         |                  col6                   
+-----+----------+---------------------+----------------------------------------+---------------------+-----------------------------------------
+ 0.0 | 0.000000 |               0.000 |                                  0.000 | 0.00000000000000000 | 0.0000000000000000000000000000000000000
+ 1.0 | 1.000001 |               1.001 |                                  1.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.000001 | 100000000000000.001 | 1000000000000000000000000000000000.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.234561 | 123456789123456.781 | 1234567891234567891234567891234567.891 | 1.12345678912345671 | 1.1234567891234567891234567891234567891
+ 9.9 | 9.999999 | 999999999999999.999 | 9999999999999999999999999999999999.999 | 9.99999999999999999 | 9.9999999999999999999999999999999999999
+(5 rows)
+
+-- date
+SET datestyle = ISO, MDY;
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  a date
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/coldate_table/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY a;
+     a      
+------------
+ 1577-12-31
+ 1877-12-31
+ 1977-12-31
+ 2022-02-22
+ 2999-12-31
+ 3999-12-22
+ 7777-07-07
+ 9999-12-31
+(8 rows)
+
+-- col null
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  a int, 
+  b text, 
+  c int, 
+  d text
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/colnull_table/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY a, b, c, d;
+ a | b  | c | d  
+---+----+---+----
+ 1 |    | 2 | se
+ 1 |    | 2 | 
+ 2 | aa |   | se
+ 3 | bb | 3 | 
+ 4 |    |   | 
+ 5 |    | 2 | se
+   |    | 2 | se
+   |    | 2 | se
+(8 rows)
+
+-- col timestamp
+SET datestyle = ISO, MDY;
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  a timestamp
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/coltimestamp_table/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY a;
+             a              
+----------------------------
+ 0001-10-19 02:18:11.123456
+ 0001-12-31 15:54:16.999999
+ 0031-01-12 15:54:16.999999
+ 0099-10-19 02:18:11.123456
+ 0099-10-19 02:18:11.123456
+ 1577-12-31 15:54:16.999999
+ 1900-10-19 02:18:11.123456
+ 1969-12-31 16:00:00.999999
+ 1970-01-01 15:59:59.999999
+ 1970-10-19 02:23:54.123456
+ 2000-10-19 02:23:54.123456
+ 2004-10-19 02:23:54
+ 2004-10-19 02:23:54.1234
+ 2004-10-19 02:23:54.123457
+ 2019-01-10 02:23:54.123456
+ 9999-12-29 16:00:01.123457
+(16 rows)
+
+SET datalake.external_table_limit_segment_num = 3;
+-- numeric
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  col numeric(2,1),
+  col2 numeric(9,6),
+  col3 numeric(18,3),
+  col4 numeric(38,3),
+  col5 numeric(18,17),
+  col6 numeric(38,37)
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/numeric/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY col, col2, col3, col4, col5;
+ col |   col2   |        col3         |                  col4                  |        col5         |                  col6                   
+-----+----------+---------------------+----------------------------------------+---------------------+-----------------------------------------
+ 0.0 | 0.000000 |               0.000 |                                  0.000 | 0.00000000000000000 | 0.0000000000000000000000000000000000000
+ 1.0 | 1.000001 |               1.001 |                                  1.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.000001 | 100000000000000.001 | 1000000000000000000000000000000000.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.234561 | 123456789123456.781 | 1234567891234567891234567891234567.891 | 1.12345678912345671 | 1.1234567891234567891234567891234567891
+ 9.9 | 9.999999 | 999999999999999.999 | 9999999999999999999999999999999999.999 | 9.99999999999999999 | 9.9999999999999999999999999999999999999
+(5 rows)
+
+-- date
+SET datestyle = ISO, MDY;
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  a date
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/coldate_table/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY a;
+     a      
+------------
+ 1577-12-31
+ 1877-12-31
+ 1977-12-31
+ 2022-02-22
+ 2999-12-31
+ 3999-12-22
+ 7777-07-07
+ 9999-12-31
+(8 rows)
+
+-- col null
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  a int, 
+  b text, 
+  c int, 
+  d text
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/colnull_table/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY a, b, c, d;
+ a | b  | c | d  
+---+----+---+----
+ 1 |    | 2 | se
+ 1 |    | 2 | 
+ 2 | aa |   | se
+ 3 | bb | 3 | 
+ 4 |    |   | 
+ 5 |    | 2 | se
+   |    | 2 | se
+   |    | 2 | se
+(8 rows)
+
+-- col timestamp
+SET datestyle = ISO, MDY;
+DROP FOREIGN TABLE IF EXISTS readtable_table;
+CREATE FOREIGN TABLE readtable_table (
+  a timestamp
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_parquet/parquet_v1/coltimestamp_table/', enableCache 'false', format 'parquet');
+SELECT * FROM readtable_table ORDER BY a;
+             a              
+----------------------------
+ 0001-10-19 02:18:11.123456
+ 0001-12-31 15:54:16.999999
+ 0031-01-12 15:54:16.999999
+ 0099-10-19 02:18:11.123456
+ 0099-10-19 02:18:11.123456
+ 1577-12-31 15:54:16.999999
+ 1900-10-19 02:18:11.123456
+ 1969-12-31 16:00:00.999999
+ 1970-01-01 15:59:59.999999
+ 1970-10-19 02:23:54.123456
+ 2000-10-19 02:23:54.123456
+ 2004-10-19 02:23:54
+ 2004-10-19 02:23:54.1234
+ 2004-10-19 02:23:54.123457
+ 2019-01-10 02:23:54.123456
+ 9999-12-29 16:00:01.123457
+(16 rows)
+

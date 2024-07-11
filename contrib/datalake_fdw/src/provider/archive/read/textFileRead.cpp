@@ -9,6 +9,7 @@ extern "C"
 #include "catalog/pg_foreign_table.h"
 #include "commands/defrem.h"
 #include "utils/lsyscache.h"
+#include "src/common/random_segment.h"
 
 static List *getExtTableEntryOptions(Oid relid) {
 	Relation	pg_foreign_table_rel;
@@ -69,7 +70,9 @@ void textFileRead::createHandler(void* sstate) {
 	dataLakeFdwScanState *ss = (dataLakeFdwScanState*)sstate;
 	initParameter(sstate);
     initializeDataStructures(ss);
-	createPolicy();
+	bool exec = createPolicy();
+	if (exec)
+		initFileStream();
     readNextGroup();
 }
 
@@ -118,15 +121,24 @@ void textFileRead::createFileStream(dataLakeFdwScanState *ss) {
 	freeGopherConfig(conf);
 }
 
-void textFileRead::createPolicy() {
+bool textFileRead::createPolicy() {
 	std::vector<ListContainer> lists;
 	extraFragmentLists(lists, scanstate->fragments);
 
-	segid = GpIdentity.segindex;
-	readPolicy.textFileBuild(segid, segnum, CUT_TEXTFILE_BLOCK_SIZE, lists, fileStream, options);
+	bool exec = false;
+	int dummy_segid = 0;
+	int dummy_segnums = 0;
+	exec_segment(selected_segments, segId, segnum, &exec, &dummy_segid, &dummy_segnums);
+	if (!exec)
+		lists.clear();
+
+	segid = dummy_segid;
+	readPolicy.textFileBuild(dummy_segid, dummy_segnums, CUT_TEXTFILE_BLOCK_SIZE, lists, fileStream, options);
 	readPolicy.distBlock();
 	serial = readPolicy.start;
-	lineReader->setSegId(segid);
+	lineReader->setSegId(dummy_segid);
+
+	return exec;
 }
 
 void textFileRead::allocateDataBuffer() {
