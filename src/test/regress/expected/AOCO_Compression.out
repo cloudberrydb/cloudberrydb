@@ -3572,6 +3572,7 @@ Access method: ao_column
 -- When I insert data
 insert into mpp17012_compress_test2 values('a',generate_series(1,250),'ksjdhfksdhfksdhfksjhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh','bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
 -- Then the data will be compressed according to a consistent compression ratio
+-- start_ignore  
 select pg_size_pretty(pg_relation_size('mpp17012_compress_test2')),
 get_ao_compression_ratio('mpp17012_compress_test2');
  pg_size_pretty | get_ao_compression_ratio 
@@ -3579,8 +3580,35 @@ get_ao_compression_ratio('mpp17012_compress_test2');
  712 bytes      |                    36.75
 (1 row)
 
+-- end_ignore 
+select
+    case
+        when
+            abs((pg_relation_size('mpp17012_compress_test2') - 712.0) / 712.0) < 0.1
+        then 'test passed'
+        else 'test failed'
+    end as test_relation_size;
+ test_relation_size 
+--------------------
+ test passed
+(1 row)
+
+select
+    case
+        when
+            abs((get_ao_compression_ratio('mpp17012_compress_test2') - 36.75) / 36.75) < 0.1
+        then 'test passed'
+        else 'test failed'
+    end as test_ao_compression_ratio;
+ test_ao_compression_ratio 
+---------------------------
+ test passed
+(1 row)
+
 -- Test that an AO/CO table with compresstype zlib and invalid compress level will error at create
 create table a_aoco_table_with_zlib_and_invalid_compression_level(col text) WITH (APPENDONLY=true, COMPRESSTYPE=zlib, compresslevel=-1, ORIENTATION=column);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'col' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  value -1 out of bounds for option "compresslevel"
 DETAIL:  Valid values are between "0" and "19".
 -- Check that callbacks are registered
@@ -3604,6 +3632,7 @@ select pg_size_pretty(pg_relation_size('a_aoco_table_with_rle_type_compression')
 -- When I insert data
 insert into a_aoco_table_with_rle_type_compression select i from generate_series(1,100)i;
 -- Then the data will be compressed according to a consistent compression ratio
+-- start_ignore
 select pg_size_pretty(pg_relation_size('a_aoco_table_with_rle_type_compression')),
        get_ao_compression_ratio('a_aoco_table_with_rle_type_compression');
  pg_size_pretty | get_ao_compression_ratio 
@@ -3611,8 +3640,35 @@ select pg_size_pretty(pg_relation_size('a_aoco_table_with_rle_type_compression')
  296 bytes      |                     1.81
 (1 row)
 
+-- end_ignore 
+select
+    case
+        when
+            abs((pg_relation_size('a_aoco_table_with_rle_type_compression') - 296.0) / 296.0) < 0.1
+        then 'test passed'
+        else 'test failed'
+    end as test_relation_size;
+ test_relation_size 
+--------------------
+ test passed
+(1 row)
+
+select
+    case
+        when
+            abs((get_ao_compression_ratio('a_aoco_table_with_rle_type_compression') - 1.81) / 1.81) < 0.1
+        then 'test passed'
+        else 'test failed'
+    end as test_ao_compression_ratio;
+ test_ao_compression_ratio 
+---------------------------
+ test passed
+(1 row)
+
 -- Test that an AO/CO table with compresstype rle and invalid compress level will error at create
 create table a_aoco_table_with_rle_type_and_invalid_compression_level(col int) WITH (APPENDONLY=true, COMPRESSTYPE=rle_type, compresslevel=-1, ORIENTATION=column);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'col' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  value -1 out of bounds for option "compresslevel"
 DETAIL:  Valid values are between "0" and "19".
 -- Check that callbacks are registered
