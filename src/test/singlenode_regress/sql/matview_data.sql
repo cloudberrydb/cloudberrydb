@@ -114,6 +114,50 @@ drop materialized view mv2;
 drop table t1 cascade;
 select mvname, datastatus from gp_matview_aux where mvname in ('mv0','mv1', 'mv2', 'mv3');
 
+--
+-- Test triggers only for singlenode mode.
+-- All tables are on QD, so triggers could work well, ex
+-- modify another table.
+create table tri_t1(a int, b int);
+create table tri_t2(a int, b int);
+create table tri_t3(a int, b int);
+create materialized view tri_mv1 as select * from tri_t1;
+create materialized view tri_mv2 as select * from tri_t2;
+insert into tri_t3 values (1, 2);
+create materialized view tri_mv3 as select * from tri_t3;
+
+create function trigger_insert_tri_t2()
+returns trigger AS
+$$
+begin
+  execute 'insert into tri_t2 values(1, 1)';
+  execute 'update tri_t3 set b = 10 where a = 1;';
+  return NEW;
+end;
+$$
+language plpgsql;
+
+create trigger trigger_insert_tri_t2 before insert ON tri_t1
+  for each row execute procedure trigger_insert_tri_t2();
+
+select mvname, datastatus from gp_matview_aux where mvname in ('tri_mv1', 'tri_mv2', 'tri_mv3');
+select * from tri_t1;
+select * from tri_t2;
+select * from tri_t3;
+
+insert into tri_t1 values(1, 2);
+select * from tri_t1;
+-- should also insert data
+select * from tri_t2;
+-- shoud be updated
+select * from tri_t3;
+-- check mv status
+select mvname, datastatus from gp_matview_aux where mvname in ('tri_mv1', 'tri_mv2', 'tri_mv3');
+drop trigger trigger_insert_tri_t2 on tri_t1;
+drop function trigger_insert_tri_t2;
+
+-- start_ignore
 drop schema matview_data_schema cascade;
+-- end_ignore
 reset enable_answer_query_using_materialized_views;
 reset optimizer;
