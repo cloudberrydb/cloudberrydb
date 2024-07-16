@@ -388,6 +388,8 @@ COPY BINARY dir_table2 TO '@abs_srcdir@/data/dir_table2';  -- fail
 COPY BINARY dir_table1 TO '@abs_srcdir@/data/dir_table1';   -- fail
 \COPY BINARY DIRECTORY TABLE dir_table1 'nation1' TO '@abs_srcdir@/data/nation1';   -- OK
 COPY BINARY DIRECTORY TABLE dir_table1 'nation1' TO '@abs_srcdir@/data/nation1';   -- OK
+\COPY BINARY DIRECTORY TABLE dir_table1 'unknown' TO '@abs_srcdir@/data/unknown';   -- OK
+COPY BINARY DIRECTORY TABLE dir_table1 'unknown' TO '@abs_srcdir@/data/unknown';    -- OK
 \COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdin; -- OK
 COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdin; -- OK
 \COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdout; -- OK
