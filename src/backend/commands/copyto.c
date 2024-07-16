@@ -1878,7 +1878,10 @@ CopyToDispatchDirectoryTable(CopyToState cstate)
 
 	pfree(cdbCopy);
 
-	return 1;
+	if (processed)
+		return 1;
+	else
+		return 0;
 }
 
 /*

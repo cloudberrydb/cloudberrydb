@@ -1044,6 +1044,8 @@ COPY BINARY dir_table1 TO '@abs_srcdir@/data/dir_table1';   -- fail
 ERROR:  COPY to directory table must specify the relative_path name.
 \COPY BINARY DIRECTORY TABLE dir_table1 'nation1' TO '@abs_srcdir@/data/nation1';   -- OK
 COPY BINARY DIRECTORY TABLE dir_table1 'nation1' TO '@abs_srcdir@/data/nation1';   -- OK
+\COPY BINARY DIRECTORY TABLE dir_table1 'unknown' TO '@abs_srcdir@/data/unknown';   -- OK
+COPY BINARY DIRECTORY TABLE dir_table1 'unknown' TO '@abs_srcdir@/data/unknown';    -- OK
 \COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdin; -- OK
 0|ALGERIA|0| haggle. carefully final deposits detect slyly agai
 1|ARGENTINA|1|al foxes promise slyly according to the regular accounts. bold requests alon
