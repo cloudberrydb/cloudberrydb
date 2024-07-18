@@ -58,16 +58,15 @@ static Node *aqumv_adjust_varno_mutator(Node *node, aqumv_adjust_varno_context *
 
 typedef struct
 {
-	List	*mv_pure_vars_index; 		/* Index list of pure Vars. */
-	List	*mv_nonpure_vars_index; 	/* Index list of nonpure Vars. */
 	List	*mv_query_tlist;			/* view query's target list. */
+	List	*mv_tlist_ordered_index; 	/* Index list by complexity order. */
 	TupleDesc mv_tupledesc;				/* mv relation's tuple desc. */
 	bool has_unmatched;		/* True if we fail to rewrite an expression. */
 } aqumv_equivalent_transformation_context;
 
 static aqumv_equivalent_transformation_context* aqumv_init_context(List *view_tlist, TupleDesc mv_tupledesc);
 static bool aqumv_process_targetlist(aqumv_equivalent_transformation_context *context, List *query_tlist, List **mv_final_tlist);
-static void aqumv_process_nonpure_vars_expr(aqumv_equivalent_transformation_context* context);
+static void aqumv_sort_targetlist(aqumv_equivalent_transformation_context* context);
 static Node *aqumv_adjust_sub_matched_expr_mutator(Node *node, aqumv_equivalent_transformation_context *context);
 
 typedef struct
@@ -290,9 +289,6 @@ answer_query_using_materialized_views(PlannerInfo *root,
 
 		context = aqumv_init_context(viewQuery->targetList, matviewRel->rd_att);
 
-		/* Sort nonpure vars expression, prepare for Greedy Algorithm. */
-		aqumv_process_nonpure_vars_expr(context);
-
 		/*
 		 * Process and rewrite target list, return false if failed.
 		 */
@@ -444,8 +440,6 @@ static aqumv_equivalent_transformation_context*
 aqumv_init_context(List *view_tlist, TupleDesc mv_tupledesc)
 {
 	aqumv_equivalent_transformation_context *context = palloc0(sizeof(aqumv_equivalent_transformation_context));
-	List	*mv_pure_vars_index = NIL; /* Index of TargetEntry[Var] in view query. */
-	List	*mv_nonpure_vars_index = NIL; /* Index of nonpure[Var] expression in view query. */
 	ListCell *lc;
 
 	/*
@@ -465,17 +459,16 @@ aqumv_init_context(List *view_tlist, TupleDesc mv_tupledesc)
 		if(!contain_var_clause((Node*)tle))
 			continue;
 
-		if (IsA(tle->expr, Var))
-			mv_pure_vars_index = lappend_int(mv_pure_vars_index, i);
-		else
-			mv_nonpure_vars_index = lappend_int(mv_nonpure_vars_index, i);
+		/* To be sorted later */
+		context->mv_tlist_ordered_index = lappend_int(context->mv_tlist_ordered_index, i);
 	}
 
-	context->mv_pure_vars_index = mv_pure_vars_index;
-	context->mv_nonpure_vars_index = mv_nonpure_vars_index;
 	context->mv_tupledesc = mv_tupledesc;
 	context->mv_query_tlist = view_tlist;
 	context->has_unmatched = false;
+
+	/* Sort target list expressions, prepare for Greedy Algorithm. */
+	aqumv_sort_targetlist(context);
 	return context;
 }
 
@@ -503,14 +496,14 @@ nonpure_vars_expr_compare(const ListCell *a, const ListCell *b)
 }
 
 /*
- * In-place update order of mv_nonpure_vars_index List
+ * In-place update order of mv_tlist_ordered_index List
  */
 static void
-aqumv_process_nonpure_vars_expr(aqumv_equivalent_transformation_context* context)
+aqumv_sort_targetlist(aqumv_equivalent_transformation_context* context)
 {
 	ListCell* lc;
 	List	*expr_to_sort_list = NIL;
-	foreach(lc, context->mv_nonpure_vars_index)
+	foreach(lc, context->mv_tlist_ordered_index)
 	{
 		int index = lfirst_int(lc);
 		Node *expr = lfirst(list_nth_cell(context->mv_query_tlist, index));
@@ -524,13 +517,14 @@ aqumv_process_nonpure_vars_expr(aqumv_equivalent_transformation_context* context
 
 	/* Sort the expr list */
 	list_sort(expr_to_sort_list, nonpure_vars_expr_compare);
-	/* Reorder mv_nonpure_vars_index */
-	context->mv_nonpure_vars_index = NIL;
+	/* Reorder */
+	context->mv_tlist_ordered_index = NIL;
 	foreach(lc, expr_to_sort_list)
 	{
 		expr_to_sort *ets = (expr_to_sort *) lfirst(lc);
-		context->mv_nonpure_vars_index = lappend_int(context->mv_nonpure_vars_index, ets->tlist_index);
+		context->mv_tlist_ordered_index = lappend_int(context->mv_tlist_ordered_index, ets->tlist_index);
 	}
+	list_free_deep(expr_to_sort_list);
 	return;
 }
 
@@ -606,7 +600,7 @@ static Node *aqumv_adjust_sub_matched_expr_mutator(Node *node, aqumv_equivalent_
 		return is_targetEntry ? node : (Node *)node_expr;
 
 	ListCell 	*lc = NULL;
-	foreach(lc, context->mv_nonpure_vars_index)
+	foreach(lc, context->mv_tlist_ordered_index)
 	{
 		int index = lfirst_int(lc);
 		TargetEntry *tle = list_nth_node(TargetEntry, context->mv_query_tlist, index);
@@ -618,17 +612,12 @@ static Node *aqumv_adjust_sub_matched_expr_mutator(Node *node, aqumv_equivalent_
 								attr->atttypid,
 								attr->atttypmod,
 								attr->attcollation,
-								0 /* AQUMV_FIXME_MVP: no subquery. */);
-			newVar->location = -2; /* hack here, use -2 to indicate already rewrited by mv rel Vars. */
+								0 /* AQUMV_FIXME_MVP: consider subquery? */);
+			newVar->location = -1;
 			if (is_targetEntry)
 			{
-				TargetEntry *qtle = (TargetEntry *) node;
-				/*
-				 * AQUMV_FIXME_MVP:
-				 * resorigtbl, resorigcol, resjunck in viewQuery is also rejunck in mv table itself ?
-				 */
-				TargetEntry *mvtle = makeTargetEntry((Expr *)newVar, qtle->resno, qtle->resname, qtle->resjunk);
-				return (Node *) mvtle;
+				((TargetEntry *) node)->expr = (Expr*) newVar;
+				return node;
 			}
 			else
 				return (Node *) newVar;
@@ -642,39 +631,14 @@ static Node *aqumv_adjust_sub_matched_expr_mutator(Node *node, aqumv_equivalent_
 	 */
 	if (!contain_var_clause((Node *)node_expr))
 		return is_targetEntry ? node : (Node *)node_expr;
-	
-	/* Try match with mv_pure_vars_index, but do not disturb already rewrited exprs(Var->location = -2)  */
-	if (IsA(node_expr, Var))
-	{
-		Var *var = (Var *)node_expr;
-		if (var->location == -2)
-			return node;
 
-		lc = NULL;
-		foreach(lc, context->mv_pure_vars_index)
-		{
-			int index = lfirst_int(lc);
-			TargetEntry *tle = list_nth_node(TargetEntry, context->mv_query_tlist, index);
-			if (equal(node_expr, tle->expr))
-			{
-				Form_pg_attribute attr = TupleDescAttr(context->mv_tupledesc, index);
-				Var *newVar =  makeVar(1, /* AQUMV_FIXME_MVP: single relation */
-								attr->attnum,
-								attr->atttypid,
-								attr->atttypmod,
-								attr->attcollation,
-								0 /* AQUMV_FIXME_MVP: no subquery. */);
-				if (is_targetEntry)
-				{
-					((TargetEntry *)node)->expr = (Expr *)newVar;
-					return node;
-				}
-				else
-					return (Node *)newVar;
-			}
-		}
+	/*
+	 * Failed to rewrite.
+	 * We have walked through all exprs in mv_tlist_ordered_index,
+	 * but didn't find a match for Var at leaf nodes.
+	 */
+	if (IsA(node_expr, Var))
 		context->has_unmatched = true;
-	}
 	
 	return expression_tree_mutator(node, aqumv_adjust_sub_matched_expr_mutator, context);
 }
