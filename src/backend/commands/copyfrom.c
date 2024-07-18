@@ -717,35 +717,18 @@ formDirTableSlot(CopyFromState cstate,
 				 int64 fileSize,
 				 char *md5sum,
 				 char *tags,
-				 StringInfo	buf,
 				 Datum *values,
 				 bool *nulls)
 {
 	TupleDesc	tupDesc;
 	AttrNumber	num_phys_attrs;
 	ListCell   *cur;
-	char	   *field[6];
+	char	   *field[5];
 	FmgrInfo   *in_functions = cstate->in_functions;
 	Oid		   *typioparams = cstate->typioparams;
 	List	   *attnumlist = cstate->qd_attnumlist;
 	pg_time_t	stampTime = (pg_time_t) time(NULL);
 	char		lastModified[128];
-	char	*encode_file;
-	int		encode_file_len;
-
-	encode_file_len = pg_b64_enc_len(buf->len);
-	encode_file = (char *) palloc0(encode_file_len + 1);
-
-	encode_file_len = pg_b64_encode(buf->data, buf->len, encode_file, encode_file_len);
-	if (encode_file_len < 0)
-	{
-		elog(ERROR, "base 64 encode failed in copy from directory table");
-	}
-	encode_file[encode_file_len] = '\0';
-	if (buf->data)
-	{
-		pfree(buf->data);
-	}
 
 	pg_strftime(lastModified, sizeof(lastModified),
 				"%Y-%m-%d %H:%M:%S",
@@ -761,10 +744,11 @@ formDirTableSlot(CopyFromState cstate,
 	field[1] = psprintf(INT64_FORMAT, fileSize); /* size */
 	field[2] = lastModified; /* last_modified */
 	field[3] = md5sum; /* md5sum */
+	if (md5sum == NULL)
+		nulls[3] = true;
 	field[4] = tags; /* tags */
 	if (tags == NULL)
 		nulls[4] = true;
-	field[5] = encode_file;
 
 	/* Loop to read the user attributes on the line. */
 	foreach(cur, attnumlist)
@@ -793,7 +777,6 @@ CopyFromDirectoryTable(CopyFromState cstate)
 	ResultRelInfo *target_resultRelInfo;
 	EState	   *estate = CreateExecutorState();
 	TupleTableSlot *myslot = NULL;
-	StringInfoData	buf;
 	ExprContext *econtext;
 	int			bytesRead;
 	char		hexMd5Sum[256];
@@ -861,7 +844,7 @@ CopyFromDirectoryTable(CopyFromState cstate)
 	/*
 	 * build tupledesc and slot for copy from
 	 */
-	tupdesc = CreateTemplateTupleDesc(6);
+	tupdesc = CreateTemplateTupleDesc(5);
 	TupleDescInitEntry(tupdesc, (AttrNumber) 1, "relative_path",
 					   TEXTOID, -1, 0);
 	TupleDescInitEntry(tupdesc, (AttrNumber) 2, "size",
@@ -872,8 +855,6 @@ CopyFromDirectoryTable(CopyFromState cstate)
 					   TEXTOID, -1, 0);
 	TupleDescInitEntry(tupdesc, (AttrNumber) 5, "tag",
 					   TEXTOID, -1 ,0);
-	TupleDescInitEntry(tupdesc, (AttrNumber) 6, "file",
-					   TEXTOID, -1, 0);
 
 	myslot = MakeSingleTupleTableSlot(tupdesc, &TTSOpsVirtual);
 
@@ -933,6 +914,18 @@ CopyFromDirectoryTable(CopyFromState cstate)
 		cstate->dispatch_msgbuf = makeStringInfo();
 		enlargeStringInfo(cstate->dispatch_msgbuf, SizeOfCopyFromDispatchRow);
 
+		formDirTableSlot(cstate, 
+						 dirTable->spcId,
+						 relaFileName,
+						 0,
+						 NULL,
+						 cstate->opts.tags,
+						 myslot->tts_values,
+						 myslot->tts_isnull);
+		ExecStoreVirtualTuple(myslot);
+
+		targetSeg = GetTargetSeg(distData, myslot);
+
 		/*
 		 * prepare to COPY data into segDBs:
 		 */
@@ -950,75 +943,6 @@ CopyFromDirectoryTable(CopyFromState cstate)
 		 */
 		SendCopyFromForwardedHeader(cstate, cdbCopy);
 
-		/* FIXME:
-		 *
-		 * Even if we use FileExist function, writing to the same file in two
-		 * concurrent sessions can still cause the file content to be corrupted.
-		 *
-		 * 1. Some DFS don't support renaming files, which means we can't use
-		 * the common technique of generating a random filename for upload and
-		 * then renaming it to the final name once it's complete.
-		 *
-		 * 2. Seems like unique index could be a good solution to fix the issue,
-		 * But unique indexes can cause concurrent sessions to wait for each
-		 * other(see comments in _bt_doinsert), and uploads can take a long time,
-		 * so transactions waiting for each other for a long time without releasing
-		 * resources is also not ideal(I know that we can set lock timeout).
-		 *
-		 * Another reason for not using unique index is that the file is uploading
-		 * in the copy context, based on the current copy protocol, we are not able
-		 * to insert a record first, then, once the file is uploaded, we could update
-		 * the record.
-		 *
-		 * 3. We should probably create a file status table in catalog service
-		 * to keep track of files currrently being uploaded.
-		 */
-		initStringInfo(&buf);
-
-		hashCtx = pg_cryptohash_create(PG_MD5);
-		if (hashCtx == NULL)
-			ereport(ERROR,
-						(errcode(ERRCODE_OUT_OF_MEMORY),
-						 errmsg("failed to create md5hash context: out of memory")));
-		pg_cryptohash_init(hashCtx);
-
-		for (;;)
-		{
-			CHECK_FOR_INTERRUPTS();
-
-			bytesRead = CopyReadBinaryData(cstate, buffer, DIR_FILE_BUFF_SIZE);
-
-			if (bytesRead > 0)
-			{
-				appendBinaryStringInfo(&buf, buffer, bytesRead);
-
-				fileSize += bytesRead;
-				pg_cryptohash_update(hashCtx, (const uint8 *) buffer, bytesRead);
-			}
-
-			if (bytesRead != DIR_FILE_BUFF_SIZE)
-			{
-				Assert(cstate->raw_reached_eof == true);
-				break;
-			}
-		}
-
-		pg_cryptohash_final(hashCtx, md5Sum, sizeof(md5Sum));
-		pg_cryptohash_free(hashCtx);
-		bytesToHex(md5Sum, hexMd5Sum);
-
-		formDirTableSlot(cstate,
-						 dirTable->spcId,
-						 relaFileName,
-						 fileSize,
-						 hexMd5Sum,
-						 cstate->opts.tags,
-						 &buf,
-						 myslot->tts_values,
-						 myslot->tts_isnull);
-		ExecStoreVirtualTuple(myslot);
-
-		targetSeg = GetTargetSeg(distData, myslot);
 		/* in the QD, forward the row to the correct segment(s). */
 		SendCopyFromForwardedTuple(cstate, cdbCopy, false,
 								   targetSeg,
@@ -1029,6 +953,25 @@ CopyFromDirectoryTable(CopyFromState cstate)
 								   myslot->tts_values,
 								   myslot->tts_isnull,
 								   true);
+
+		for (;;)
+		{
+			CHECK_FOR_INTERRUPTS();
+
+			bytesRead = CopyReadBinaryData(cstate, buffer, DIR_FILE_BUFF_SIZE);
+
+			if (bytesRead > 0)
+			{
+				cdbCopySendData(cdbCopy, targetSeg, buffer, bytesRead);
+			}
+
+			if (bytesRead != DIR_FILE_BUFF_SIZE)
+			{
+				Assert(cstate->raw_reached_eof == true);
+				break;
+			}
+		}
+
 		{
 			int64		total_completed_from_qes;
 			int64		total_rejected_from_qes;
@@ -1044,27 +987,18 @@ CopyFromDirectoryTable(CopyFromState cstate)
 	{
 #define DIRECTORY_TABLE_COLUMNS	5
 		List	   *recheckIndexes = NIL;
-		TupleTableSlot *tmpslot = NULL;
 		CommandId	mycid = GetCurrentCommandId(true);
 		MemoryContext oldcontext = CurrentMemoryContext;
 		char		errorMessage[256];
 		UFile		*file;
-		char 		*file_buf;
-		int			i;
-		char 		*decode_file;
-		int			decode_file_len;
+		bool		has_tuple = false;
+		bool		update_indexes;
 
 		econtext = GetPerTupleExprContext(estate);
 
 		if (NextCopyFromExecute(cstate, econtext, myslot->tts_values, myslot->tts_isnull, true))
 		{
-			tmpslot = MakeSingleTupleTableSlot(cstate->rel->rd_att, &TTSOpsVirtual);
-
-			for (i = 0; i < DIRECTORY_TABLE_COLUMNS; i++)
-			{
-				tmpslot->tts_values[i] = myslot->tts_values[i];
-				tmpslot->tts_isnull[i] = myslot->tts_isnull[i];
-			}
+			has_tuple = true;
 
 			/*
 			 * Reset the per-tuple exprcontext. We do this after every tuple, to
@@ -1084,23 +1018,23 @@ CopyFromDirectoryTable(CopyFromState cstate)
 			 */
 			resultRelInfo = estate->es_result_relations[0];
 
-			ExecStoreVirtualTuple(tmpslot);
+			ExecStoreVirtualTuple(myslot);
 
 			/*
 			 * Constraints and where clause might reference the tableoid column,
 			 * so (re-)initialize tts_tableOid before evaluating them.
 			 */
-			tmpslot->tts_tableOid = RelationGetRelid(target_resultRelInfo->ri_RelationDesc);
+			myslot->tts_tableOid = RelationGetRelid(target_resultRelInfo->ri_RelationDesc);
 
 			/* Triggers and stuff need to be invoked in query context. */
 			MemoryContextSwitchTo(oldcontext);
 
 			/* OK, store the tuple and create index entries for it */
 			table_tuple_insert(resultRelInfo->ri_RelationDesc,
-							   tmpslot, mycid, 0, NULL);
+							   myslot, mycid, 0, NULL);
 
 			recheckIndexes = ExecInsertIndexTuples(resultRelInfo,
-												   tmpslot,
+												   myslot,
 												   estate,
 												   false,
 												   false,
@@ -1108,11 +1042,16 @@ CopyFromDirectoryTable(CopyFromState cstate)
 												   NIL);
 
 			/* AFTER ROW INSERT Triggers */
-			ExecARInsertTriggers(estate, resultRelInfo, tmpslot,
+			ExecARInsertTriggers(estate, resultRelInfo, myslot,
 								 recheckIndexes, cstate->transition_capture);
 
 			list_free(recheckIndexes);
 
+			CommandCounterIncrement();
+		}
+
+		if (has_tuple)
+		{
 			if (UFileExists(dirTable->spcId, orgiFileName))
 			{
 				UFileUnlink(dirTable->spcId, orgiFileName);
@@ -1122,32 +1061,71 @@ CopyFromDirectoryTable(CopyFromState cstate)
 				UFileEnsurePath(dirTable->spcId, orgiFileDir);
 
 			file = UFileOpen(dirTable->spcId,
-						 	orgiFileName,
-						 	O_CREAT | O_WRONLY,
-						 	errorMessage,
-						 	sizeof(errorMessage));
+							 orgiFileName,
+							 O_CREAT | O_WRONLY,
+							 errorMessage,
+							 sizeof(errorMessage));
+
 			if (file == NULL)
 				ereport(ERROR,
 							(errcode(ERRCODE_IO_ERROR),
-						 	 errmsg("failed to open file \"%s\": %s", orgiFileName, errorMessage)));
+							 errmsg("failed to open file \"%s\": %s", orgiFileName, errorMessage)));
 
 			/* Delete uploaded file when the transaction fails */
 			UFileAddPendingDelete(cstate->rel, dirTable->spcId, orgiFileName, false);
 
-			file_buf = TextDatumGetCString(myslot->tts_values[5]);
-			decode_file_len = strlen(file_buf);
-			decode_file = (char *) palloc0(decode_file_len);
-			decode_file_len = pg_b64_decode(file_buf, strlen(file_buf), decode_file, decode_file_len);
-
-			if (decode_file_len < 0)
-			{
-				elog(ERROR, "can not decode in copy from directory table, b64_msg is empty");
-			}
-
-			if (UFileWrite(file, decode_file, decode_file_len) == -1)
+			/* FIXME:
+			 *
+			 * Even if we use FileExist function, writing to the same file in two
+			 * concurrent sessions can still cause the file content to be corrupted.
+			 *
+			 * 1. Some DFS don't support renaming files, which means we can't use
+			 * the common technique of generating a random filename for upload and
+			 * then renaming it to the final name once it's complete.
+			 *
+			 * 2. Seems like unique index could be a good solution to fix the issue,
+			 * But unique indexes can cause concurrent sessions to wait for each
+			 * other(see comments in _bt_doinsert), and uploads can take a long time,
+			 * so transactions waiting for each other for a long time without releasing
+			 * resources is also not ideal(I know that we can set lock timeout).
+			 *
+			 * Another reason for not using unique index is that the file is uploading
+			 * in the copy context, based on the current copy protocol, we are not able
+			 * to insert a record first, then, once the file is uploaded, we could update
+			 * the record.
+			 *
+			 * 3. We should probably create a file status table in catalog service
+			 * to keep track of files currrently being uploaded.
+			 */
+			hashCtx = pg_cryptohash_create(PG_MD5);
+			if (hashCtx == NULL)
 				ereport(ERROR,
-							(errcode(ERRCODE_IO_ERROR),
-							 errmsg("failed to write file \"%s\": %s", orgiFileName, UFileGetLastError(file))));
+							(errcode(ERRCODE_OUT_OF_MEMORY),
+							 errmsg("failed to create md5hash context: out of memory")));
+			pg_cryptohash_init(hashCtx);
+
+			for (;;)
+			{
+				CHECK_FOR_INTERRUPTS();
+
+				bytesRead = CopyGetData(cstate, buffer, DIR_FILE_BUFF_SIZE, DIR_FILE_BUFF_SIZE);
+
+				if (bytesRead > 0)
+				{
+					if (UFileWrite(file, buffer, bytesRead) == -1)
+						ereport(ERROR,
+									(errcode(ERRCODE_IO_ERROR),
+									 errmsg("failed to write file \"%s\": %s", orgiFileName, UFileGetLastError(file))));
+
+					fileSize += bytesRead;
+					pg_cryptohash_update(hashCtx, (const uint8 *) buffer, bytesRead);
+				}
+
+				if (bytesRead != DIR_FILE_BUFF_SIZE)
+				{
+					break;
+				}
+			}
 
 			if (UFileSync(file) != 0)
 				ereport(ERROR,
@@ -1155,10 +1133,19 @@ CopyFromDirectoryTable(CopyFromState cstate)
 							 errmsg("unable to sync file \"%s\": %s", glob_copystmt->dirfilename, UFileGetLastError(file))));
 
 			UFileClose(file);
-			
-			ReleaseTupleDesc(cstate->rel->rd_att);
+
+			pg_cryptohash_final(hashCtx, md5Sum, sizeof(md5Sum));
+			pg_cryptohash_free(hashCtx);
+			bytesToHex(md5Sum, hexMd5Sum);
+
+			myslot->tts_values[1] = Int64GetDatum(fileSize);
+			myslot->tts_values[3] = CStringGetTextDatum((char *) hexMd5Sum);
+			myslot->tts_isnull[3] = false;
+
+			simple_table_tuple_update(resultRelInfo->ri_RelationDesc, &myslot->tts_tid, myslot,
+									  estate->es_snapshot, &update_indexes);
+
 			ExecClearTuple(myslot);
-			ExecClearTuple(tmpslot);
 
 			/*
 			 * We count only tuples not suppressed by a BEFORE INSERT trigger
@@ -1172,6 +1159,7 @@ CopyFromDirectoryTable(CopyFromState cstate)
 			 */
 			pgstat_progress_update_param(PROGRESS_COPY_TUPLES_PROCESSED,
 										 ++processed);
+			
 		}
 	}
 	else
@@ -1312,7 +1300,7 @@ BeginCopyFromDirectoryTable(ParseState *pstate,
 	/*
 	 * build tupledesc and slot for copy from
 	 */
-	tupDesc = CreateTemplateTupleDesc(6);
+	tupDesc = CreateTemplateTupleDesc(5);
 	TupleDescInitEntry(tupDesc, (AttrNumber) 1, "relative_path",
 					   TEXTOID, -1, 0);
 	TupleDescInitEntry(tupDesc, (AttrNumber) 2, "size",
@@ -1323,8 +1311,6 @@ BeginCopyFromDirectoryTable(ParseState *pstate,
 					   TEXTOID, -1, 0);
 	TupleDescInitEntry(tupDesc, (AttrNumber) 5, "tag",
 					   TEXTOID, -1 ,0);
-	TupleDescInitEntry(tupDesc, (AttrNumber) 6, "file",
-					   TEXTOID, -1, 0);
 
 	num_phys_attrs = tupDesc->natts;
 
@@ -3426,7 +3412,7 @@ NextCopyFromExecute(CopyFromState cstate, ExprContext *econtext, Datum *values, 
 	}
 	else
 	{
-		tupDesc = CreateTemplateTupleDesc(6);
+		tupDesc = CreateTemplateTupleDesc(5);
 		TupleDescInitEntry(tupDesc, (AttrNumber) 1, "relative_path",
 						   TEXTOID, -1, 0);
 		TupleDescInitEntry(tupDesc, (AttrNumber) 2, "size",
@@ -3437,8 +3423,6 @@ NextCopyFromExecute(CopyFromState cstate, ExprContext *econtext, Datum *values, 
 						   TEXTOID, -1, 0);
 		TupleDescInitEntry(tupDesc, (AttrNumber) 5, "tag",
 						   TEXTOID, -1 ,0);
-		TupleDescInitEntry(tupDesc, (AttrNumber) 6, "file",
-						   TEXTOID, -1, 0);
 	}
 	num_phys_attrs = tupDesc->natts;
 	attr_count = list_length(cstate->attnumlist);
@@ -3766,7 +3750,7 @@ SendCopyFromForwardedTuple(CopyFromState cstate,
 	}
 	else
 	{
-		tupDesc = CreateTemplateTupleDesc(6);
+		tupDesc = CreateTemplateTupleDesc(5);
 		TupleDescInitEntry(tupDesc, (AttrNumber) 1, "relative_path",
 						   TEXTOID, -1, 0);
 		TupleDescInitEntry(tupDesc, (AttrNumber) 2, "size",
@@ -3777,8 +3761,6 @@ SendCopyFromForwardedTuple(CopyFromState cstate,
 						   TEXTOID, -1, 0);
 		TupleDescInitEntry(tupDesc, (AttrNumber) 5, "tag",
 						   TEXTOID, -1 ,0);
-		TupleDescInitEntry(tupDesc, (AttrNumber) 6, "file",
-						   TEXTOID, -1, 0);
 	}
 	attr = tupDesc->attrs;
 	num_phys_attrs = tupDesc->natts;
