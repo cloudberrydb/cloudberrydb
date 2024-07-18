@@ -71,6 +71,13 @@ website, extensions, connectors, adapters, and other utilities.
 * [cloudberrydb/bootcamp](https://github.com/cloudberrydb/bootcamp): help you quickly try out Cloudberry Database via one Docker-based Sandbox.
 * [cloudberrydb/gpbackup](https://github.com/cloudberrydb/gpbackup): backup utility for Cloudberry Database.
 * [cloudberrydb/gp-common-go-libs](https://github.com/cloudberrydb/gp-common-go-libs): gp-common-go-libs for Cloudberry Database.
+* [cloudberrydb/gpbackup-s3-plugin](https://github.com/cloudberrydb/gpbackup-s3-plugin): S3 plugin for use with Cloudberry Database backup utility. 
+* [cloudberrydb/filedump](https://github.com/cloudberrydb/filedump): format heap/index/control files into a human-readable form.
+* [cloudberrydb/postgis](https://github.com/cloudberrydb/postgis): PostGIS for Cloudberry Database.
+* [cloudberrydb/pxf](https://github.com/cloudberrydb/pxf): Platform Extension Framework (PXF) for Cloudberry Database.
+* [cloudberrydb/madlib](https://github.com/cloudberrydb/madlib): MADlib® for Cloudberry Database.
+* [cloudberrydb/plr](https://github.com/cloudberrydb/plr): PL/R for Cloudberry Database. 
+* [cloudberrydb/pljava](https://github.com/cloudberrydb/pljava): PL/Java for Cloudberry Database.
 * More is coming...
 
 ## Community & Support

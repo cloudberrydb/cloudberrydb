@@ -28,6 +28,9 @@ Enter the repository and install dependencies according to your operating system
 
 ### For CentOS 7
 
+> [!WARNING]
+> CentOS Linux 7 reached the end of life (EOL) on June 30, 2024. You can change the mirror to vault.centos.org to install software.
+
 The following steps work on CentOS 7. For other CentOS versions, these steps might work but are not guaranteed to work.
 
 1. Run the bash script `README.CentOS.bash` in the `deploy/build` directory of the `cloudberrydb/cloudberrydb` repository. To run this script, password is required. Then, some required dependencies will be automatically downloaded.
