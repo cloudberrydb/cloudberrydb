@@ -7,6 +7,7 @@ CREATE TABLE t3 (
     PARTITION t3_2 VALUES ('c')
 );
 INSERT INTO t3 VALUES ('a'), ('b'), ('c');
+ANALYZE t3;
 SELECT * FROM t3 ORDER BY str;
 \d+ t3
 
@@ -18,6 +19,7 @@ CREATE TABLE t4 (
     PARTITION t4_2 VALUES ('c')
 );
 INSERT INTO t4 VALUES ('a'), ('b'), ('c');
+ANALYZE t4;
 SELECT * FROM t4 ORDER BY str;
 \d+ t4
 

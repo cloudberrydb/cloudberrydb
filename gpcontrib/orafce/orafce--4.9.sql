@@ -4012,6 +4012,40 @@ RETURNS text
 AS 'MODULE_PATHNAME','orafce_textregexreplace'
 LANGUAGE 'c' IMMUTABLE PARALLEL SAFE;
 
+-- Add regexp_not_like based on regexp_like
+
+-- REGEXP_NOT_LIKE( string text, pattern text) -> boolean
+-- If one of the param is NULL returns NULL, declared STRICT
+CREATE OR REPLACE FUNCTION oracle.regexp_not_like(text, text)
+RETURNS boolean
+AS $$
+  -- Oracle default behavior is newline-sensitive,
+  -- PostgreSQL not, so force 'p' modifier to affect
+  -- newline-sensitivity but not ^ and $ search.
+  SELECT CASE WHEN (count(*) > 0) THEN false ELSE true END FROM regexp_matches($1, $2, 'p');
+$$
+LANGUAGE 'sql' STRICT;
+
+-- REGEXP_NOT_LIKE( string text, pattern text, flags text ) -> boolean
+CREATE OR REPLACE FUNCTION oracle.regexp_not_like(text, text, text)
+RETURNS boolean
+AS $$
+DECLARE
+  modifiers text;
+BEGIN
+  -- Only modifier can be NULL
+  IF $1 IS NULL OR $2 IS NULL THEN
+    RETURN NULL;
+  END IF;
+  modifiers := oracle.translate_oracle_modifiers($3, false);
+  IF (regexp_matches($1, $2, modifiers))[1] IS NOT NULL THEN
+    RETURN false;
+  END IF;
+  RETURN true;
+END;
+$$
+LANGUAGE plpgsql;
+
 ----
 -- Add LEAST/GREATEST declaration to return NULL on NULL input.
 -- PostgreSQL only returns NULL when all the parameters are NULL.
