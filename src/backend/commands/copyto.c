@@ -2133,10 +2133,6 @@ CopyToDirectoryTable(CopyToState cstate)
 								scopedFileUrl, errorMessage)));
 
 		file_size = UFileSize(file);
-		if (file_size > MaxAllocSize - VARHDRSZ)
-			ereport(ERROR,
-						(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-						 errmsg("out of memory")));
 
 		while (true)
 		{
