@@ -130,18 +130,16 @@ psql_start_test(const char *testname,
 	 *     $(cat prehook infile)
 	 *     EOF
 	 */
-	offset += snprintf(psql_cmd + offset, sizeof(psql_cmd) - offset,
-					   "%s \"%s%spsql\" -X -a -q -d \"%s\" %s > \"%s\" 2>&1 <<EOF\n"
-					   "$(cat \"%s\" \"%s\")\n"
-					   "EOF",
-					   use_utility_mode ? "env PGOPTIONS='-c gp_role=utility'" : "",
-					   bindir ? bindir : "",
-					   bindir ? "/" : "",
-					   dblist->str,
-					   "-v HIDE_TABLEAM=on -v HIDE_TOAST_COMPRESSION=on",
-					   outfile,
-					   prehook[0] ? prehook : "/dev/null",
-					   infile);
+        offset += snprintf(psql_cmd + offset, sizeof(psql_cmd) - offset,
+                                           "%s \"%s%spsql\" -X -a -q -d \"%s\" %s > \"%s\" < <(cat \"%s\" \"%s\") 2>&1\n",
+                                           use_utility_mode ? "env PGOPTIONS='-c gp_role=utility'" : "",
+                                           bindir ? bindir : "",
+                                           bindir ? "/" : "",
+                                           dblist->str,
+                                           "-v HIDE_TABLEAM=on -v HIDE_TOAST_COMPRESSION=on",
+                                           outfile,
+                                           prehook[0] ? prehook : "/dev/null",
+                                           infile);
 	if (offset >= sizeof(psql_cmd))
 	{
 		fprintf(stderr, _("command too long\n"));
