@@ -988,6 +988,118 @@ select count(c2), count(*) from aqumv_t2 where c1 > 90;
 (1 row)
 
 abort;
+-- Test use normal materialized views
+create table t1(c1 int, c2 int, c3 int) distributed by (c1);
+insert into t1 select i, i+1, i+2 from generate_series(1, 100) i;
+insert into t1 values (91, NULL, 95);
+analyze t1;
+create materialized view normal_mv_t1 as
+  select c3 as mc3, c1 as mc1
+  from t1 where c1 > 90;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'mc1' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+analyze normal_mv_t1;
+set enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select count(c3) from t1 where c1 > 90;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Finalize Aggregate
+   Output: count(c3)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: (PARTIAL count(c3))
+         ->  Partial Aggregate
+               Output: PARTIAL count(c3)
+               ->  Seq Scan on aqumv.t1
+                     Output: c1, c2, c3
+                     Filter: (t1.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'off', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+select count(c3) from t1 where c1 > 90;
+ count 
+-------
+    11
+(1 row)
+
+set enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select count(c3) from t1 where c1 > 90;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Finalize Aggregate
+   Output: count(mc3)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: (PARTIAL count(mc3))
+         ->  Partial Aggregate
+               Output: PARTIAL count(mc3)
+               ->  Seq Scan on aqumv.normal_mv_t1
+                     Output: mc3, mc1
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(10 rows)
+
+select count(c3) from t1 where c1 > 90;
+ count 
+-------
+    11
+(1 row)
+
+vacuum full t1;
+explain(costs off, verbose)
+select count(c3) from t1 where c1 > 90;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Finalize Aggregate
+   Output: count(mc3)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: (PARTIAL count(mc3))
+         ->  Partial Aggregate
+               Output: PARTIAL count(mc3)
+               ->  Seq Scan on aqumv.normal_mv_t1
+                     Output: mc3, mc1
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(10 rows)
+
+explain(costs off, verbose)
+select c3 from t1 where c1 > 90;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: mc3
+   ->  Seq Scan on aqumv.normal_mv_t1
+         Output: mc3
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(6 rows)
+
+-- insert data after refresh
+insert into t1 values (91, NULL, 95);
+explain(costs off, verbose)
+select count(c3) from t1 where c1 > 90;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Finalize Aggregate
+   Output: count(c3)
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: (PARTIAL count(c3))
+         ->  Partial Aggregate
+               Output: PARTIAL count(c3)
+               ->  Seq Scan on aqumv.t1
+                     Output: c1, c2, c3
+                     Filter: (t1.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+select mvname, datastatus from gp_matview_aux where mvname = 'normal_mv_t1';
+    mvname    | datastatus 
+--------------+------------
+ normal_mv_t1 | e
+(1 row)
+
 -- Test Agg on IMMV who has less columns than origin table.
 begin;
 create table aqumv_t2(c1 int, c2 int, c3 int) distributed by (c1);
@@ -2471,5 +2583,7 @@ select c2, c3 from aqumv_t7 where c1 > 90 order by c2, c3 fetch first 3 rows wit
 abort;
 reset optimizer;
 reset enable_answer_query_using_materialized_views;
-drop table aqumv_t1 cascade;
+-- start_ignore
+drop schema aqumv cascade;
+-- end_ignore
 reset search_path;
