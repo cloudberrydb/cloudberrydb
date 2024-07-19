@@ -291,6 +291,39 @@ select count(c2), count(*) from aqumv_t2 where c1 > 90;
 select count(c2), count(*) from aqumv_t2 where c1 > 90;
 abort;
 
+-- Test use normal materialized views
+create table t1(c1 int, c2 int, c3 int) distributed by (c1);
+insert into t1 select i, i+1, i+2 from generate_series(1, 100) i;
+insert into t1 values (91, NULL, 95);
+analyze t1;
+
+create materialized view normal_mv_t1 as
+  select c3 as mc3, c1 as mc1
+  from t1 where c1 > 90;
+analyze normal_mv_t1;
+
+set enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select count(c3) from t1 where c1 > 90;
+select count(c3) from t1 where c1 > 90;
+set enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select count(c3) from t1 where c1 > 90;
+select count(c3) from t1 where c1 > 90;
+
+vacuum full t1;
+explain(costs off, verbose)
+select count(c3) from t1 where c1 > 90;
+
+explain(costs off, verbose)
+select c3 from t1 where c1 > 90;
+
+-- insert data after refresh
+insert into t1 values (91, NULL, 95);
+explain(costs off, verbose)
+select count(c3) from t1 where c1 > 90;
+select mvname, datastatus from gp_matview_aux where mvname = 'normal_mv_t1';
+
 -- Test Agg on IMMV who has less columns than origin table.
 begin;
 create table aqumv_t2(c1 int, c2 int, c3 int) distributed by (c1);
@@ -595,5 +628,7 @@ abort;
 
 reset optimizer;
 reset enable_answer_query_using_materialized_views;
-drop table aqumv_t1 cascade;
+-- start_ignore
+drop schema aqumv cascade;
+-- end_ignore
 reset search_path;

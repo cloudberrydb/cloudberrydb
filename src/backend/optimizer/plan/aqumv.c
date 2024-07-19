@@ -18,6 +18,7 @@
 #include "access/htup_details.h"
 #include "access/table.h"
 #include "catalog/catalog.h"
+#include "catalog/gp_matview_aux.h"
 #include "catalog/pg_class_d.h"
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_rewrite.h"
@@ -167,12 +168,18 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		matviewRel = table_open(rewrite_tup->ev_class, AccessShareLock);
 		need_close = true;
 
+		if (!RelationIsPopulated(matviewRel))
+			continue;
+
 		/*
 		 * AQUMV
 		 * Currently the data of IVM is always up-to-date if there were.
-		 * Take care of this when IVM defered-fefresh is supported.
+		 * Take care of this when IVM defered-fefresh is supported(in SERVERLESS mode).
+		 * 
+		 * Normal materialized views could also be used if its data is up to date.
 		 */
-		if (!(RelationIsIVM(matviewRel) && RelationIsPopulated(matviewRel)))
+		if (!RelationIsIVM(matviewRel) &&
+			!MatviewIsGeneralyUpToDate(RelationGetRelid(matviewRel)))
 			continue;
 
 		if (matviewRel->rd_rel->relhasrules == false ||
