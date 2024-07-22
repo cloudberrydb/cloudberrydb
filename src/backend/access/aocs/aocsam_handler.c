@@ -316,6 +316,9 @@ aoco_dml_finish(Relation relation, CmdType operation)
 		Assert(state->insertDesc->aoi_rel == relation);
 		aocs_insert_finish(state->insertDesc, &state->head);
 		state->insertDesc = NULL;
+		state->insertMultiFiles = 0;
+		pfree(state->used_segment_files);
+		state->used_segment_files = NIL;
 	}
 
 	if (state->uniqueCheckDesc)
@@ -1071,9 +1074,21 @@ aoco_multi_insert(Relation relation, TupleTableSlot **slots, int ntuples,
 	AOCSInsertDesc insertDesc;
 	insertDesc = get_insert_descriptor(relation);
 
+	AOCODMLState *state;
+	state = find_dml_state(RelationGetRelid(relation));
+
 	for (int i = 0; i < ntuples; i++)
 	{
 		slot_getallattrs(slots[i]);
+		/*
+		 * For bulk insert, we may switch insertDesc
+		 * on the fly. 
+		 */
+		if (state->insertMultiFiles && state->insertDesc->range == gp_appendonly_insert_files_tuples_range)
+		{
+			insertDesc = get_insert_descriptor(relation);
+		}
+
 		aocs_insert_values(insertDesc, slots[i]->tts_values, slots[i]->tts_isnull, (AOTupleId *) &slots[i]->tts_tid);
 	}
 

@@ -286,6 +286,9 @@ appendonly_dml_finish(Relation relation, CmdType operation)
 		Assert(state->insertDesc->aoi_rel == relation);
 		appendonly_insert_finish(state->insertDesc, &state->head);
 		state->insertDesc = NULL;
+		state->insertMultiFiles = 0;
+		pfree(state->used_segment_files);
+		state->used_segment_files = NIL;
 	}
 
 	if (state->uniqueCheckDesc)
@@ -930,10 +933,12 @@ appendonly_multi_insert(Relation relation, TupleTableSlot **slots, int ntuples,
 						CommandId cid, int options, BulkInsertState bistate)
 {
 	AppendOnlyInsertDesc insertDesc;
+	AppendOnlyDMLState *state;
 	MemTuple *mtuple;
 	int ndone = 0;
 	int nthisBlock = 0;
 	insertDesc = get_insert_descriptor(relation);
+	state = find_dml_state(RelationGetRelid(relation));
 	Oid tableOid = RelationGetRelid(relation);
 	mtuple = palloc(ntuples * sizeof(MemTuple));
 	for (int i = 0; i < ntuples; i++)
@@ -943,11 +948,29 @@ appendonly_multi_insert(Relation relation, TupleTableSlot **slots, int ntuples,
 	}
 	while (ndone < ntuples)
 	{
+		/*
+		 * For bulk insert, we may switch insertDesc
+		 * on the fly. 
+		 */
+		if (state->insertMultiFiles && state->insertDesc->range == gp_appendonly_insert_files_tuples_range)
+		{
+			insertDesc = get_insert_descriptor(relation);
+		}
+
 		appendonly_insert(insertDesc, mtuple[ndone], (AOTupleId *) &slots[ndone]->tts_tid);
 		for (nthisBlock = 1; ndone + nthisBlock < ntuples; nthisBlock++)
 		{
 			if (insertDesc->useNoToast)
 			{
+				/*
+				 * This is a hack way to insert into AO of CBDB.
+				 * Check switch insertDesc again.
+				 */
+				if (state->insertMultiFiles && state->insertDesc->range == gp_appendonly_insert_files_tuples_range)
+				{
+					insertDesc = get_insert_descriptor(relation);
+				}
+
 				MemTuple tup = mtuple[ndone + nthisBlock] ;
 				uint8 *itemPtr = NULL;
 				VarBlockByteLen itemLen;
@@ -968,6 +991,7 @@ appendonly_multi_insert(Relation relation, TupleTableSlot **slots, int ntuples,
 				{
 					memcpy(itemPtr, tup, itemLen);
 					insertDesc->insertCount++;
+					insertDesc->range++;
 					insertDesc->lastSequence++;
 					if (insertDesc->numSequences > 0)
 						(insertDesc->numSequences)--;
