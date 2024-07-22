@@ -332,4 +332,7 @@ test: subtrx_overflow
 
 test: bfv_meta_track
 
+# tests of ao/aoco seg file count for parallel plan
+test: ao_segfile
+
 # end of tests
