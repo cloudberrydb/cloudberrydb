@@ -210,13 +210,13 @@ $$
 language plpgsql;
 select test_auto_stats_in_function('copy t_test_auto_stats_in_function from program ''echo 1''',
                                    false, 't_test_auto_stats_in_function');
-INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=none, ntuples=0
+INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=none, ntuples=-1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
-INFO:  gp_autostats_mode=on_no_stats, gp_autostats_mode_in_functions=none, ntuples=0
+INFO:  gp_autostats_mode=on_no_stats, gp_autostats_mode_in_functions=none, ntuples=-1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
 INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_no_stats, ntuples=1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
-INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_no_stats, ntuples=0
+INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_no_stats, ntuples=-1
 INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_change, ntuples=1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
  test_auto_stats_in_function 
@@ -226,8 +226,8 @@ NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
 
 select test_auto_stats_in_function('create table tmp_test_auto_stats_in_function as select * from t_test_auto_stats_in_function distributed randomly',
                                    true, 'tmp_test_auto_stats_in_function');
-INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=none, ntuples=0
-INFO:  gp_autostats_mode=on_no_stats, gp_autostats_mode_in_functions=none, ntuples=0
+INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=none, ntuples=-1
+INFO:  gp_autostats_mode=on_no_stats, gp_autostats_mode_in_functions=none, ntuples=-1
 INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_no_stats, ntuples=1
 INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_no_stats, ntuples=<NULL>
 INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_change, ntuples=1
@@ -238,9 +238,9 @@ INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_change, ntuples
 
 select test_auto_stats_in_function('delete from t_test_auto_stats_in_function',
                                    true, 't_test_auto_stats_in_function');
-INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=none, ntuples=0
+INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=none, ntuples=-1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
-INFO:  gp_autostats_mode=on_no_stats, gp_autostats_mode_in_functions=none, ntuples=0
+INFO:  gp_autostats_mode=on_no_stats, gp_autostats_mode_in_functions=none, ntuples=-1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
 INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_no_stats, ntuples=1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
@@ -307,27 +307,27 @@ $$
 language plpgsql;
 call test_auto_stats_in_function('copy t_test_auto_stats_in_function from program ''echo 1''',
                                    false, 't_test_auto_stats_in_function');
-INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=none, ntuples=0
+INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=none, ntuples=-1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
-INFO:  gp_autostats_mode=on_no_stats, gp_autostats_mode_in_functions=none, ntuples=0
+INFO:  gp_autostats_mode=on_no_stats, gp_autostats_mode_in_functions=none, ntuples=-1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
 INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_no_stats, ntuples=1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
-INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_no_stats, ntuples=0
+INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_no_stats, ntuples=-1
 INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_change, ntuples=1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
 call test_auto_stats_in_function('create table tmp_test_auto_stats_in_function as select * from t_test_auto_stats_in_function distributed randomly',
                                    true, 'tmp_test_auto_stats_in_function');
-INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=none, ntuples=0
-INFO:  gp_autostats_mode=on_no_stats, gp_autostats_mode_in_functions=none, ntuples=0
+INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=none, ntuples=-1
+INFO:  gp_autostats_mode=on_no_stats, gp_autostats_mode_in_functions=none, ntuples=-1
 INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_no_stats, ntuples=1
 INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_no_stats, ntuples=<NULL>
 INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_change, ntuples=1
 call test_auto_stats_in_function('delete from t_test_auto_stats_in_function',
                                    true, 't_test_auto_stats_in_function');
-INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=none, ntuples=0
+INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=none, ntuples=-1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
-INFO:  gp_autostats_mode=on_no_stats, gp_autostats_mode_in_functions=none, ntuples=0
+INFO:  gp_autostats_mode=on_no_stats, gp_autostats_mode_in_functions=none, ntuples=-1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping
 INFO:  gp_autostats_mode=none, gp_autostats_mode_in_functions=on_no_stats, ntuples=1
 NOTICE:  table "tmp_test_auto_stats_in_function" does not exist, skipping

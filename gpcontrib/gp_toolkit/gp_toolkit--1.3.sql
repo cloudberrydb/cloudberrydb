@@ -198,7 +198,7 @@ CREATE EXTERNAL WEB TABLE gp_toolkit.__gp_log_segment_ext
     logline int,
     logstack text
 )
-EXECUTE E'cat $GP_SEG_LOGDIR/*.csv'
+EXECUTE E'cat $GP_SEG_DATADIR/log/*.csv'
 FORMAT 'CSV' (DELIMITER AS ',' NULL AS '' QUOTE AS '"');
 
 REVOKE ALL ON TABLE gp_toolkit.__gp_log_segment_ext FROM public;
@@ -245,7 +245,7 @@ CREATE EXTERNAL WEB TABLE gp_toolkit.__gp_log_coordinator_ext
     logline int,
     logstack text
 )
-EXECUTE E'cat $GP_SEG_LOGDIR/*.csv' ON COORDINATOR
+EXECUTE E'cat $GP_SEG_DATADIR/log/*.csv' ON COORDINATOR
 FORMAT 'CSV' (DELIMITER AS ',' NULL AS '' QUOTE AS '"');
 
 REVOKE ALL ON TABLE gp_toolkit.__gp_log_coordinator_ext FROM public;
@@ -1435,9 +1435,9 @@ AS
                         THEN 0
                         ELSE pg_catalog.pg_relation_size(sotd.sotdoid) *
                                 CASE
-                                    WHEN pg_catalog.get_ao_compression_ratio(sotd.sotdoid) = -1
+                                    WHEN (select pg_catalog.get_ao_compression_ratio(sotd.sotdoid)) = -1
                                     THEN NULL
-                                    ELSE pg_catalog.get_ao_compression_ratio(sotd.sotdoid)
+                                    ELSE (select pg_catalog.get_ao_compression_ratio(sotd.sotdoid))
                                 END
                     END
                 ELSE sotd.sotdsize

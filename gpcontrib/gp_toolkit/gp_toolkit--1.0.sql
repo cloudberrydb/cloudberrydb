@@ -1963,12 +1963,12 @@ LANGUAGE plpgsql;
 --
 --------------------------------------------------------------------------------
 
-CREATE FUNCTION gp_toolkit.__gp_workfile_entries_f_on_master()
+CREATE FUNCTION gp_toolkit.__gp_workfile_entries_f_on_coordinator()
 RETURNS SETOF record
 AS '$libdir/gp_workfile_mgr', 'gp_workfile_mgr_cache_entries'
 LANGUAGE C VOLATILE EXECUTE ON COORDINATOR;
 
-GRANT EXECUTE ON FUNCTION gp_toolkit.__gp_workfile_entries_f_on_master() TO public;
+GRANT EXECUTE ON FUNCTION gp_toolkit.__gp_workfile_entries_f_on_coordinator() TO public;
 
 CREATE FUNCTION gp_toolkit.__gp_workfile_entries_f_on_segments()
 RETURNS SETOF record
@@ -1990,7 +1990,7 @@ GRANT EXECUTE ON FUNCTION gp_toolkit.__gp_workfile_entries_f_on_segments() TO pu
 CREATE VIEW gp_toolkit.gp_workfile_entries AS
 WITH all_entries AS (
    SELECT C.*
-          FROM gp_toolkit.__gp_workfile_entries_f_on_master() AS C (
+          FROM gp_toolkit.__gp_workfile_entries_f_on_coordinator() AS C (
             segid int,
             prefix text,
             size bigint,

@@ -72,7 +72,8 @@ static PartitionDesc RelationBuildPartitionDesc(Relation rel,
 PartitionDesc
 RelationGetPartitionDesc(Relation rel, bool omit_detached)
 {
-	Assert(rel->rd_rel->relkind == RELKIND_PARTITIONED_TABLE);
+	if (rel->rd_rel->relkind != RELKIND_PARTITIONED_TABLE)
+		return NULL;
 
 	/*
 	 * If relcache has a partition descriptor, use that.  However, we can only

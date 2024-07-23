@@ -94,7 +94,7 @@ CREATE
 CREATE
 0U: select definition from pg_views where viewname = 'misc_v2';
  definition                                                  
-------------
+-------------------------------------------------------------
    FROM gp_dist_random('pg_class'); 
   SELECT 1 AS "?column?"
 (1 row)
@@ -114,7 +114,7 @@ DROP
 -- use a different database to do the test, otherwise we might be reporting tons
 -- of orphaned files produced by the many intential PANICs/restarts in the isolation2 tests.
 create database check_orphaned_db;
-CREATE DATABASE
+CREATE
 1:@db_name check_orphaned_db: begin;
 BEGIN
 2:@db_name check_orphaned_db: select * from gp_toolkit.gp_check_orphaned_files;
@@ -124,4 +124,4 @@ CONTEXT:  PL/pgSQL function gp_toolkit.__gp_check_orphaned_files_func() line 15 
 2q: ... <quitting>
 
 drop database check_orphaned_db;
-DROP DATABASE
+DROP
