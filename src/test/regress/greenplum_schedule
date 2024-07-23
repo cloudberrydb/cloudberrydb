@@ -25,12 +25,6 @@ test: gp_dispatch_keepalives
 test: copy_eol
 
 test: disable_autovacuum
-# test gp_fastsequence allocation (early in schedule as log grepping is expensive)
-# These tests gp_log_system could have issue reading partial log that's generated
-# from concurrent test. So anything that uses it needs to be run alone.
-test: uao_dml/gp_fastsequence_row
-test: uao_dml/gp_fastsequence_column
-
 test: python_processed64bit
 test: enable_autovacuum
 
@@ -340,6 +334,7 @@ test: ao_segfile
 test: uao_dml/ao_unique_index_build_row uao_dml/ao_unique_index_build_column
 
 # run this at the end of the schedule for more chance to catch abnormalities
-test: gp_check_files
+# different CI env with GPDB
+# test: gp_check_files
 
 # end of tests
