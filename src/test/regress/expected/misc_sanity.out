@@ -137,7 +137,7 @@ ORDER BY 1, 2;
  pg_task_run_history      | return_message     | text
  pg_task_run_history      | status             | text
  pg_task_run_history      | username           | text
-(33 rows)
+(34 rows)
 
 -- system catalogs without primary keys
 --
@@ -179,7 +179,7 @@ ORDER BY 1;
  pg_stat_last_operation
  pg_stat_last_shoperation
  pg_type_encoding
-(27 rows)
+(28 rows)
 
 -- system catalog unique indexes not wrapped in a constraint
 -- (There should be none.)
