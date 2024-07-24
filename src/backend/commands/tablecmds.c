@@ -645,7 +645,6 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 	if (relkind == RELKIND_DIRECTORY_TABLE)
 	{
 		schema = GetDirectoryTableSchema();
-		stmt->distributedBy = GetDirectoryTableDistributedBy();
 	}
 	else
 	{
