@@ -511,15 +511,15 @@ SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname
 CREATE DIRECTORY TABLE dir_table1;
 CREATE DIRECTORY TABLE dir_table2 TABLESPACE directory_tblspc;
 CREATE DIRECTORY TABLE dir_table3 TABLESPACE directory_tblspc DISTRIBUTED BY(relative_path);    -- fail
-ERROR:  Create directory table is not allowed to set distributed by.
+ERROR:  syntax error at or near "DISTRIBUTED"
 LINE 1: ...TORY TABLE dir_table3 TABLESPACE directory_tblspc DISTRIBUTE...
                                                              ^
 CREATE DIRECTORY TABLE dir_table3 TABLESPACE directory_tblspc DISTRIBUTED RANDOMLY; -- fail
-ERROR:  Create directory table is not allowed to set distributed by.
+ERROR:  syntax error at or near "DISTRIBUTED"
 LINE 1: ...TORY TABLE dir_table3 TABLESPACE directory_tblspc DISTRIBUTE...
                                                              ^
 CREATE DIRECTORY TABLE dir_table3 TABLESPACE directory_tblspc DISTRIBUTED REPLICATED;   -- fail
-ERROR:  Create directory table is not allowed to set distributed by.
+ERROR:  syntax error at or near "DISTRIBUTED"
 LINE 1: ...TORY TABLE dir_table3 TABLESPACE directory_tblspc DISTRIBUTE...
                                                              ^
 CREATE DIRECTORY TABLE dir_table3 TABLESPACE directory_tblspc;

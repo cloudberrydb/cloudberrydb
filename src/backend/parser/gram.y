@@ -8414,7 +8414,7 @@ AlterStorageUserMappingStmt:
 
 CreateDirectoryTableStmt:
             CREATE DIRECTORY TABLE qualified_name
-            table_access_method_clause OptTableSpace OptDistributedBy OptTagOptList
+            table_access_method_clause OptTableSpace OptTagOptList
                 {
                     CreateDirectoryTableStmt *n = makeNode(CreateDirectoryTableStmt);
                     $4->relpersistence = RELPERSISTENCE_PERMANENT;
@@ -8427,20 +8427,15 @@ CreateDirectoryTableStmt:
                     /* TODO: support tablespace for data table ? */
                     n->base.tablespacename = NULL;
                     n->base.if_not_exists = false;
-                    n->base.distributedBy = (DistributedBy *) $7;
-                    if (n->base.distributedBy != NULL)
-                        ereport(ERROR,
-                                    (errcode(ERRCODE_SYNTAX_ERROR),
-                                     errmsg("Create directory table is not allowed to set distributed by."),
-                                     parser_errposition(@7)));
+                    n->base.distributedBy = GetDirectoryTableDistributedBy();
                     n->base.relKind = RELKIND_DIRECTORY_TABLE;
-                    n->base.tags = $8;
+                    n->base.tags = $7;
                     n->tablespacename = $6;
 
                     $$ = (Node *) n;
                 }
             | CREATE DIRECTORY TABLE IF_P NOT EXISTS qualified_name
-            table_access_method_clause OptTableSpace OptDistributedBy OptTagOptList
+            table_access_method_clause OptTableSpace OptTagOptList
                 {
                     CreateDirectoryTableStmt *n = makeNode(CreateDirectoryTableStmt);
                     $7->relpersistence = RELPERSISTENCE_PERMANENT;
@@ -8453,14 +8448,9 @@ CreateDirectoryTableStmt:
                     /* TODO: support tablespace for data table? */
                     n->base.tablespacename = NULL;
                     n->base.if_not_exists = true;
-                    n->base.distributedBy = (DistributedBy *) $10;
-                    if (n->base.distributedBy != NULL)
-                        ereport(ERROR,
-                                    (errcode(ERRCODE_SYNTAX_ERROR),
-                                     errmsg("Create directory table is not allowed to set distributed by."),
-                                     parser_errposition(@10)));
+                    n->base.distributedBy = GetDirectoryTableDistributedBy();
                     n->base.relKind = RELKIND_DIRECTORY_TABLE;
-                    n->base.tags = $11;
+                    n->base.tags = $10;
                     n->tablespacename = $9;
 
                     $$ = (Node *) n;
