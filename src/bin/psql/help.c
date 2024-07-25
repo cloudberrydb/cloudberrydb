@@ -100,6 +100,7 @@ usage(unsigned short int pager)
 	fprintf(output, _("  -e, --echo-queries       echo commands sent to server\n"));
 	fprintf(output, _("  -E, --echo-hidden        display queries that internal commands generate\n"));
 	fprintf(output, _("  -L, --log-file=FILENAME  send session log to file\n"));
+	fprintf(output, _("      --ignore-log-file    do not log psql:filename prefix in log file\n"));
 	fprintf(output, _("  -n, --no-readline        disable enhanced command line editing (readline)\n"));
 	fprintf(output, _("  -o, --output=FILENAME    send query results to file (or |pipe)\n"));
 	fprintf(output, _("  -q, --quiet              run quietly (no messages, only query output)\n"));

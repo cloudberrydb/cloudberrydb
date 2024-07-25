@@ -131,9 +131,8 @@ psql_start_test(const char *testname,
 	 *     EOF
 	 */
 	offset += snprintf(psql_cmd + offset, sizeof(psql_cmd) - offset,
-					   "%s \"%s%spsql\" -X -a -q -d \"%s\" %s > \"%s\" 2>&1 <<EOF\n"
-					   "$(cat \"%s\" \"%s\")\n"
-					   "EOF",
+					   "%s \"%s%spsql\" -X -a -q -d \"%s\" %s > \"%s\" 2>&1  "
+					   "-f \"%s\" -f \"%s\" --ignore-log-file\n",
 					   use_utility_mode ? "env PGOPTIONS='-c gp_role=utility'" : "",
 					   bindir ? bindir : "",
 					   bindir ? "/" : "",

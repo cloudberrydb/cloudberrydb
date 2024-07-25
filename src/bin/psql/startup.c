@@ -85,6 +85,8 @@ static void process_psqlrc(char *argv0);
 static void process_psqlrc_file(char *filename);
 static void showVersion(void);
 static void EstablishVariableSpace(void);
+/* ignore psql:filename in log output */
+bool ignore_log_file = false;
 
 #define NOPAGER		0
 
@@ -498,6 +500,7 @@ parse_psql_options(int argc, char *argv[], struct adhoc_opts *options)
 		{"no-psqlrc", no_argument, NULL, 'X'},
 		{"help", optional_argument, NULL, 1},
 		{"csv", no_argument, NULL, 2},
+		{"ignore-log-file", no_argument, NULL, 256},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -693,6 +696,9 @@ parse_psql_options(int argc, char *argv[], struct adhoc_opts *options)
 				break;
 			case 2:
 				pset.popt.topt.format = PRINT_CSV;
+				break;
+			case 256:
+				ignore_log_file = true;
 				break;
 			default:
 		unknown_option:
