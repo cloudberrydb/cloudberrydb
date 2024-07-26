@@ -23,7 +23,7 @@ source /usr/local/cloudberrydb/greenplum_path.sh
 
 # Start demo cluster
 make create-demo-cluster
-# (gpdemo-env.sh contains __PGPORT__ and __MASTER_DATA_DIRECTORY__ values)
+# (gpdemo-env.sh contains __PGPORT__, __COORDINATOR_DATA_DIRECTORY__ and __MASTER_DATA_DIRECTORY__ values)
 source gpAux/gpdemo/gpdemo-env.sh
 ```
 
