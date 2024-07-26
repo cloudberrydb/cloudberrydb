@@ -405,6 +405,7 @@ CDXLTokens::Init(CMemoryPool *mp)
 		{EdxltokenCmaxColName, GPOS_WSZ_LIT("cmax")},
 		{EdxltokenTableOidColName, GPOS_WSZ_LIT("tableoid")},
 		{EdxltokenGpSegmentIdColName, GPOS_WSZ_LIT("gp_segment_id")},
+		{EdxltokenGpForeignServerColName, GPOS_WSZ_LIT("gp_foreign_server")},
 
 		{EdxltokenActionColId, GPOS_WSZ_LIT("ActionCol")},
 		{EdxltokenOidColId, GPOS_WSZ_LIT("OidCol")},

@@ -374,9 +374,54 @@ add_paths_to_joinrel(PlannerInfo *root,
 	 */
 	if (joinrel->fdwroutine &&
 		joinrel->fdwroutine->GetForeignJoinPaths)
+	{
+		List *foreignRestrictlist = NIL;
+		List *oldRestrictlist = extra.restrictlist;
+		ListCell *cell;
+
+		foreach(cell, extra.restrictlist)
+		{
+			RestrictInfo *info;
+
+			info = lfirst(cell);
+
+			if (IsA(info->clause, OpExpr))
+			{
+				ListCell *cell2;
+				bool	skip = false;
+				OpExpr *op = (OpExpr *) info->clause;
+
+				foreach(cell2, op->args)
+				{
+					Var *var = lfirst(cell2);
+					if (var->varattno == GpForeignServerAttributeNumber)
+						skip = true;
+				}
+
+				if (skip)
+					continue;
+			}
+
+			foreignRestrictlist = lappend(foreignRestrictlist, info);
+		}
+
+		extra.restrictlist = foreignRestrictlist;
+
 		joinrel->fdwroutine->GetForeignJoinPaths(root, joinrel,
 												 outerrel, innerrel,
 												 jointype, &extra);
+
+		extra.restrictlist = oldRestrictlist;
+		foreach(lc, joinrel->pathlist)
+		{
+			Path	   *path = (Path *) lfirst(lc);
+
+			if (IsA(path, ForeignPath))
+			{
+				path->locus.numsegments = getgpsegmentCount();
+			}
+		}
+	}
 
 	/*
 	 * 6. Finally, give extensions a chance to manipulate the path list.

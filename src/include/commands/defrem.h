@@ -141,6 +141,7 @@ extern ObjectAddress CreateStorageUserMapping(CreateStorageUserMappingStmt *stmt
 extern ObjectAddress AlterStorageUserMapping(AlterStorageUserMappingStmt *stmt);
 extern Oid RemoveStorageUserMapping(DropStorageUserMappingStmt *stmt);
 extern void CreateForeignTable(CreateForeignTableStmt *stmt, Oid relid, bool skip_permission_check);
+extern void AddForeignSeg(AddForeignSegStmt *stmt);
 extern void ImportForeignSchema(ImportForeignSchemaStmt *stmt);
 extern Datum transformGenericOptions(Oid catalogId,
 									 Datum oldOptions,

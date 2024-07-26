@@ -71,7 +71,8 @@ static List *subbuild_joinrel_joinlist(RelOptInfo *joinrel,
 									   List *joininfo_list,
 									   List *new_joininfo);
 static void set_foreign_rel_properties(RelOptInfo *joinrel,
-									   RelOptInfo *outer_rel, RelOptInfo *inner_rel);
+									   RelOptInfo *outer_rel, RelOptInfo *inner_rel,
+									   List *restrictlist);
 static void add_join_rel(PlannerInfo *root, RelOptInfo *joinrel);
 static void build_joinrel_partition_info(RelOptInfo *joinrel,
 										 RelOptInfo *outer_rel, RelOptInfo *inner_rel,
@@ -256,6 +257,7 @@ build_simple_rel(PlannerInfo *root, int relid, RelOptInfo *parent)
 	rel->rel_parallel_workers = -1; /* set up in get_relation_info */
 	rel->amflags = 0;
 	rel->serverid = InvalidOid;
+	rel->segSeverids = NIL;
 	rel->userid = rte->checkAsUser;
 	rel->useridiscurrent = false;
 	rel->exec_location = FTEXECLOCATION_NOT_DEFINED;
@@ -636,37 +638,87 @@ find_join_rel(PlannerInfo *root, Relids relids)
  */
 static void
 set_foreign_rel_properties(RelOptInfo *joinrel, RelOptInfo *outer_rel,
-						   RelOptInfo *inner_rel)
+						   RelOptInfo *inner_rel, List *restrictlist)
 {
 	if (OidIsValid(outer_rel->serverid) &&
 		inner_rel->serverid == outer_rel->serverid &&
 		inner_rel->exec_location == outer_rel->exec_location)
 	{
+		if (inner_rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS)
+		{
+			ListCell *cell;
+			bool mppMatch = false;
+			List *l1;
+			List *l2;
+
+			l1 = inner_rel->segSeverids;
+			l2 = outer_rel->segSeverids;
+
+			if (list_difference_oid(l1, l2))
+				return;
+
+			foreach(cell, restrictlist)
+			{
+				RestrictInfo *info;
+
+				info = lfirst(cell);
+				if (IsA(info->clause, OpExpr))
+				{
+					Expr *larg;
+					Expr *rarg;
+					OpExpr *opExpr = (OpExpr *) info->clause;
+
+					if (list_length(opExpr->args) != 2)
+						continue;
+
+					larg = lfirst(list_head(opExpr->args));
+					rarg = lfirst(list_second_cell(opExpr->args));
+
+					if (IsA(larg, Var) && IsA(rarg, Var) &&
+						((Var *) larg)->varattno == GpForeignServerAttributeNumber &&
+						((Var *) rarg)->varattno == GpForeignServerAttributeNumber)
+					{
+						mppMatch = true;
+						break;
+					}
+				}
+			}
+
+			if (!mppMatch)
+				return;
+		}
+
 		if (inner_rel->userid == outer_rel->userid)
 		{
 			joinrel->serverid = outer_rel->serverid;
+			joinrel->segSeverids = outer_rel->segSeverids;
 			joinrel->userid = outer_rel->userid;
 			joinrel->useridiscurrent = outer_rel->useridiscurrent || inner_rel->useridiscurrent;
 			joinrel->fdwroutine = outer_rel->fdwroutine;
 			joinrel->exec_location = outer_rel->exec_location;
+			joinrel->num_segments = outer_rel->num_segments;
 		}
 		else if (!OidIsValid(inner_rel->userid) &&
 				 outer_rel->userid == GetUserId())
 		{
 			joinrel->serverid = outer_rel->serverid;
+			joinrel->segSeverids = outer_rel->segSeverids;
 			joinrel->userid = outer_rel->userid;
 			joinrel->useridiscurrent = true;
 			joinrel->fdwroutine = outer_rel->fdwroutine;
 			joinrel->exec_location = outer_rel->exec_location;
+			joinrel->num_segments = outer_rel->num_segments;
 		}
 		else if (!OidIsValid(outer_rel->userid) &&
 				 inner_rel->userid == GetUserId())
 		{
 			joinrel->serverid = outer_rel->serverid;
+			joinrel->segSeverids = outer_rel->segSeverids;
 			joinrel->userid = inner_rel->userid;
 			joinrel->useridiscurrent = true;
 			joinrel->fdwroutine = outer_rel->fdwroutine;
 			joinrel->exec_location = outer_rel->exec_location;
+			joinrel->num_segments = outer_rel->num_segments;
 		}
 	}
 }
@@ -1005,6 +1057,7 @@ build_join_rel(PlannerInfo *root,
 	joinrel->rel_parallel_workers = -1;
 	joinrel->amflags = 0;
 	joinrel->serverid = InvalidOid;
+	joinrel->segSeverids = NIL;
 	joinrel->userid = InvalidOid;
 	joinrel->useridiscurrent = false;
 	joinrel->exec_location = FTEXECLOCATION_NOT_DEFINED;
@@ -1029,9 +1082,6 @@ build_join_rel(PlannerInfo *root,
 	joinrel->all_partrels = NULL;
 	joinrel->partexprs = NULL;
 	joinrel->nullable_partexprs = NULL;
-
-	/* Compute information relevant to the foreign relations. */
-	set_foreign_rel_properties(joinrel, outer_rel, inner_rel);
 
 	/*
 	 * Create a new tlist containing just the vars that need to be output from
@@ -1079,6 +1129,10 @@ build_join_rel(PlannerInfo *root,
 	 */
 	restrictlist = build_joinrel_restrictlist(root, joinrel,
 											  outer_rel, inner_rel);
+
+	/* Compute information relevant to the foreign relations. */
+	set_foreign_rel_properties(joinrel, outer_rel, inner_rel, restrictlist);
+
 	if (restrictlist_ptr)
 		*restrictlist_ptr = restrictlist;
 	build_joinrel_joinlist(joinrel, outer_rel, inner_rel);
@@ -1223,6 +1277,7 @@ build_child_join_rel(PlannerInfo *root, RelOptInfo *outer_rel,
 	joinrel->subplan_params = NIL;
 	joinrel->amflags = 0;
 	joinrel->serverid = InvalidOid;
+	joinrel->segSeverids = NIL;
 	joinrel->userid = InvalidOid;
 	joinrel->useridiscurrent = false;
 	joinrel->fdwroutine = NULL;
@@ -1248,7 +1303,7 @@ build_child_join_rel(PlannerInfo *root, RelOptInfo *outer_rel,
 										   inner_rel->top_parent_relids);
 
 	/* Compute information relevant to foreign relations. */
-	set_foreign_rel_properties(joinrel, outer_rel, inner_rel);
+	set_foreign_rel_properties(joinrel, outer_rel, inner_rel, restrictlist);
 
 	/* Compute information needed for mapping Vars to the child rel */
 	appinfos = find_appinfos_by_relids(root, joinrel->relids, &nappinfos);

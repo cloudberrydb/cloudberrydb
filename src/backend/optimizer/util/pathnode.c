@@ -23,6 +23,7 @@
 #include "foreign/fdwapi.h"
 #include "miscadmin.h"
 #include "nodes/extensible.h"
+#include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
 #include "optimizer/appendinfo.h"
 #include "optimizer/clauses.h"
@@ -3641,25 +3642,19 @@ create_foreignscan_path(PlannerInfo *root, RelOptInfo *rel,
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		ForeignServer *server = NULL;
-
 		switch (rel->exec_location)
 		{
-		case FTEXECLOCATION_ANY:
-			CdbPathLocus_MakeGeneral(&(pathnode->path.locus));
-			break;
-		case FTEXECLOCATION_ALL_SEGMENTS:
-			server = GetForeignServer(rel->serverid);
-			if (server)
-				CdbPathLocus_MakeStrewn(&(pathnode->path.locus), server->num_segments, 0);
-			else
-				CdbPathLocus_MakeStrewn(&(pathnode->path.locus), getgpsegmentCount(), 0);
-			break;
-		case FTEXECLOCATION_COORDINATOR:
-			CdbPathLocus_MakeEntry(&(pathnode->path.locus));
-			break;
-		default:
-			elog(ERROR, "unrecognized exec_location '%c'", rel->exec_location);
+			case FTEXECLOCATION_ANY:
+				CdbPathLocus_MakeGeneral(&(pathnode->path.locus));
+				break;
+			case FTEXECLOCATION_ALL_SEGMENTS:
+				CdbPathLocus_MakeStrewn(&(pathnode->path.locus), rel->num_segments, 0);
+				break;
+			case FTEXECLOCATION_COORDINATOR:
+				CdbPathLocus_MakeEntry(&(pathnode->path.locus));
+				break;
+			default:
+				elog(ERROR, "unrecognized exec_location '%c'", rel->exec_location);
 		}
 	}
 	else
@@ -3718,18 +3713,13 @@ create_foreign_join_path(PlannerInfo *root, RelOptInfo *rel,
 	pathnode->path.total_cost = total_cost;
 	pathnode->path.pathkeys = pathkeys;
 
-	ForeignServer *server = NULL;
 	switch (rel->exec_location)
 	{
 		case FTEXECLOCATION_ANY:
 			CdbPathLocus_MakeGeneral(&(pathnode->path.locus));
 			break;
 		case FTEXECLOCATION_ALL_SEGMENTS:
-			server = GetForeignServer(rel->serverid);
-			if (server)
-				CdbPathLocus_MakeStrewn(&(pathnode->path.locus), server->num_segments, 0);
-			else
-				CdbPathLocus_MakeStrewn(&(pathnode->path.locus), getgpsegmentCount(), 0);
+			CdbPathLocus_MakeStrewn(&(pathnode->path.locus), rel->num_segments, 0);
 			break;
 		case FTEXECLOCATION_COORDINATOR:
 			CdbPathLocus_MakeEntry(&(pathnode->path.locus));
@@ -3789,7 +3779,7 @@ create_foreign_upper_path(PlannerInfo *root, RelOptInfo *rel,
 			CdbPathLocus_MakeGeneral(&(pathnode->path.locus));
 			break;
 		case FTEXECLOCATION_ALL_SEGMENTS:
-			CdbPathLocus_MakeStrewn(&(pathnode->path.locus), getgpsegmentCount(), 0);
+			CdbPathLocus_MakeStrewn(&(pathnode->path.locus), rel->num_segments, 0);
 			break;
 		case FTEXECLOCATION_COORDINATOR:
 			CdbPathLocus_MakeEntry(&(pathnode->path.locus));

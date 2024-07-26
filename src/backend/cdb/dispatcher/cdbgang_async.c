@@ -156,7 +156,7 @@ create_gang_retry:
 									 segdbDesc->isWriter,
 									 segdbDesc->identifier,
 									 segdbDesc->segment_database_info->hostPrimaryCount,
-									 totalSegs * 2);
+									 totalSegs * 2, i);
 
 			if (!ret)
 				ereport(ERROR,

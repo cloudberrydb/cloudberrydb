@@ -25,6 +25,7 @@
 #define MaxCommandIdAttributeNumber				(-5)
 #define TableOidAttributeNumber					(-6)
 #define GpSegmentIdAttributeNumber			    (-7)    /*CDB*/
-#define FirstLowInvalidHeapAttributeNumber		(-8)
+#define GpForeignServerAttributeNumber			(-8)    /*CDB*/
+#define FirstLowInvalidHeapAttributeNumber		(-9)
 
 #endif							/* SYSATTR_H */
