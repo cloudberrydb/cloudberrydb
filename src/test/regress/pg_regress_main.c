@@ -129,6 +129,17 @@ psql_start_test(const char *testname,
 	 *     psql <<EOF
 	 *     $(cat prehook infile)
 	 *     EOF
+	 *
+	 * CBDB:
+	 * However the above command will have strange behavior on some platforms,
+	 * like UOS1050a, UOS1060e. The input stream is unexpectedly changed
+	 * for psql. It looks like a system-level problem that we have nothing
+	 * to do. We change the above command to
+	 *
+	 *     psql -f prehook -f infile --ignore-log-file
+	 *
+	 * --ignore-log-file will suppress additional logging prefix that has
+	 *  the same effect like no filename is provided.
 	 */
 	offset += snprintf(psql_cmd + offset, sizeof(psql_cmd) - offset,
 					   "%s \"%s%spsql\" -X -a -q -d \"%s\" %s > \"%s\" 2>&1  "
