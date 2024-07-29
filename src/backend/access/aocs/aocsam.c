@@ -1561,7 +1561,7 @@ aocs_fetch_init(Relation relation,
 				create_datumstreamread(ct,
 									   clvl,
 									   checksum,
-									    /* safeFSWriteSize */ false,	/* UNDONE:Need to wire
+									    /* safeFSWriteSize */ 0,	/* UNDONE:Need to wire
 																		 * down pg_appendonly
 																		 * column */
 									   blksz,
