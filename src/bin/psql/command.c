@@ -4051,7 +4051,7 @@ process_file(char *filename, bool use_relative_path)
 	}
 
 	oldfilename = pset.inputfile;
-	pset.inputfile = filename;
+	pset.inputfile = ignore_log_file ? NULL : filename;
 
 	pg_logging_config(pset.inputfile ? 0 : PG_LOG_FLAG_TERSE);
 

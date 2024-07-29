@@ -152,7 +152,7 @@ typedef struct _psqlSettings
 } PsqlSettings;
 
 extern PsqlSettings pset;
-
+extern bool ignore_log_file;
 
 #ifndef EXIT_SUCCESS
 #define EXIT_SUCCESS 0
