@@ -10,8 +10,6 @@ env:
   FTS_MODE: "internal_fts"
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
-  ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: "node16"
 permissions:
   id-token: write
   contents: read
@@ -54,7 +52,6 @@ jobs:
           path: /opt/
       - name: Run icw-test script
         run: |
-          mkdir /code
           cp -a gpdb_src/ /code
           cd /code
           echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
@@ -102,7 +99,6 @@ jobs:
           path: /opt/
       - name: Run icw-test script
         run: |
-          mkdir /code
           cp -a gpdb_src/ /code
           cd /code
           echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
@@ -147,7 +143,6 @@ jobs:
           path: /opt/
       - name: Run icw-test script
         run: |
-          mkdir /code
           cp -a gpdb_src/ /code
           cd /code
           echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
@@ -190,7 +185,6 @@ jobs:
           path: /opt/
       - name: Run icw-orca-test script
         run: |
-          mkdir /code
           cp -a gpdb_src/ /code
           cd /code
           echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
@@ -237,7 +231,6 @@ jobs:
           path: /opt/
       - name: Run icw-parallel-test script
         run: |
-          mkdir /code
           cp -a gpdb_src/ /code
           cd /code
           echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
