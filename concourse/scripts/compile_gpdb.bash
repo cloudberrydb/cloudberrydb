@@ -162,7 +162,7 @@ function _main() {
 
 	generate_build_number
 	build_gpdb "${BLD_TARGET_OPTION[@]}"
-	git_info
+	# git_info
 
 	if [[ -z "${SKIP_UNITTESTS}" ]]; then
 		unittest_check_gpdb
