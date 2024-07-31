@@ -55,7 +55,6 @@ jobs:
           path: /opt/
       - name: Run icw-test script
         run: |
-          mkdir /code
           cp -a gpdb_src/ /code
           cd /code
           echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
