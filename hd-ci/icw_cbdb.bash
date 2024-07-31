@@ -7,7 +7,6 @@ source "${BASE_DIR}"/common.bash
 mkdir -p "${ROOT_PATH}/sqldump"
 
 compile_jansson() {
-        # wget https://artifactory.hashdata.xyz/artifactory/utility/jansson-2.13.1.tar.gz && \
         cp /opt/jansson-2.13.1.tar.gz . && \
         tar -xvf jansson-2.13.1.tar.gz && \
         rm -rf jansson-2.13.1.tar.gz && \
