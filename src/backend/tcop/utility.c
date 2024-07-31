@@ -91,6 +91,17 @@
 /* Hook for plugins to get control in ProcessUtility() */
 ProcessUtility_hook_type ProcessUtility_hook = NULL;
 
+/*
+ * Greenplumn specific code:
+ *   for detailed comments, please refer to the comments at the
+ *   definition of executor_run_nesting_level in execMain.c.
+ *   Greenplum now support create procedure, so auto_stats also
+ *   need to take inside a procedure as inside function call.
+ *   process_utility_nesting_level >= 2 implies in function call
+ *   when calling from procedure.
+ */
+static int process_utility_nesting_level = 0;
+
 /* counter to disable dispatch */
 int dispatch_nest_level = 0;
 
@@ -571,18 +582,33 @@ ProcessUtility(PlannedStmt *pstmt,
 	Assert(qc == NULL || qc->commandTag == CMDTAG_UNKNOWN);
 
 	/*
-	 * We provide a function hook variable that lets loadable plugins get
-	 * control when ProcessUtility is called.  Such a plugin would normally
-	 * call standard_ProcessUtility().
+	 * Greenplum specific code:
+	 *   Please refer to the comments at the definition of process_utility_nesting_level.
 	 */
-	if (ProcessUtility_hook)
-		(*ProcessUtility_hook) (pstmt, queryString, readOnlyTree,
-								context, params, queryEnv,
-								dest, qc);
-	else
-		standard_ProcessUtility(pstmt, queryString, readOnlyTree,
-								context, params, queryEnv,
-								dest, qc);
+	process_utility_nesting_level++;
+	PG_TRY();
+	{
+		/*
+		 * We provide a function hook variable that lets loadable plugins get
+		 * control when ProcessUtility is called.  Such a plugin would normally
+		 * call standard_ProcessUtility().
+		 */
+		if (ProcessUtility_hook)
+			(*ProcessUtility_hook) (pstmt, queryString, readOnlyTree,
+									context, params, queryEnv,
+									dest, qc);
+		else
+			standard_ProcessUtility(pstmt, queryString, readOnlyTree,
+									context, params, queryEnv,
+									dest, qc);
+		process_utility_nesting_level--;
+	}
+	PG_CATCH();
+	{
+		process_utility_nesting_level--;
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
 }
 
 /*
@@ -4591,4 +4617,10 @@ GpRecoveryFromError()
 	 * See HOLD_DISPATCH()
 	 */
 	CLEAR_DISPATCH();
+}
+
+bool
+utility_nested(void)
+{
+	return process_utility_nesting_level >= 2;
 }

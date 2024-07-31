@@ -791,7 +791,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 	LOCALTIME LOCALTIMESTAMP LOCATION LOCK_P LOCKED LOCUS LOGGED
 
 	MAPPING MATCH MATERIALIZED MAXVALUE MEMORY_LIMIT
-	METHOD MINUTE_P MINVALUE MODE MONTH_P MOVE
+	METHOD MINUTE_P MINVALUE MIN_COST MODE MONTH_P MOVE
 
 	NAME_P NAMES NATIONAL NATURAL NCHAR NEW NEXT NFC NFD NFKC NFKD NO NONE
 	NORMALIZE NORMALIZED
@@ -844,7 +844,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 %token <keyword>
 	ACCOUNT ACTIVE ALLOWED_VALUES
 
-	CONTAINS COORDINATOR CPUSET CPU_HARD_QUOTA_LIMIT CPU_SOFT_PRIORITY
+	CONTAINS COORDINATOR CPUSET CPU_MAX_PERCENT CPU_WEIGHT
 
 	CREATEEXTTABLE
 
@@ -860,7 +860,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 
 	HASH HOST
 
-	IGNORE_P INCLUSIVE INITPLAN
+	IGNORE_P INCLUSIVE INITPLAN IO_LIMIT
 
 	LIST LOG_P
 
@@ -1013,8 +1013,8 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 			%nonassoc COPY
 			%nonassoc COST
 			%nonassoc CPUSET
-			%nonassoc CPU_HARD_QUOTA_LIMIT
-			%nonassoc CPU_SOFT_PRIORITY
+			%nonassoc CPU_MAX_PERCENT
+			%nonassoc CPU_WEIGHT
 			%nonassoc CREATEEXTTABLE
 			%nonassoc CSV
 			%nonassoc CURRENT_P
@@ -1098,6 +1098,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 			%nonassoc MATCH
 			%nonassoc MAXVALUE
 			%nonassoc MEMORY_LIMIT
+			%nonassoc MIN_COST
 			%nonassoc MINUTE_P
 			%nonassoc MINVALUE
 			%nonassoc MISSING
@@ -1737,13 +1738,13 @@ OptResourceGroupElem:
 					/* was "concurrency" */
 					$$ = makeDefElem("concurrency", (Node *) makeInteger($2), @1);
 				}
-			| CPU_HARD_QUOTA_LIMIT SignedIconst
+			| CPU_MAX_PERCENT SignedIconst
 				{
-					$$ = makeDefElem("cpu_hard_quota_limit", (Node *) makeInteger($2), @1);
+					$$ = makeDefElem("cpu_max_percent", (Node *) makeInteger($2), @1);
 				}
-			| CPU_SOFT_PRIORITY SignedIconst
+			| CPU_WEIGHT SignedIconst
 				{
-					$$ = makeDefElem("cpu_soft_priority", (Node *) makeInteger($2), @1);
+					$$ = makeDefElem("cpu_weight", (Node *) makeInteger($2), @1);
 				}
 			| CPUSET Sconst
 				{
@@ -1752,6 +1753,14 @@ OptResourceGroupElem:
 			| MEMORY_LIMIT SignedIconst
 				{
 					$$ = makeDefElem("memory_limit", (Node *) makeInteger($2), @1);
+				}
+			| MIN_COST SignedIconst
+				{
+					$$ = makeDefElem("min_cost", (Node *) makeInteger($2), @1);
+				}
+			| IO_LIMIT Sconst
+				{
+					$$ = makeDefElem("io_limit", (Node *) makeString($2), @1);
 				}
 		;
 
@@ -19335,8 +19344,8 @@ unreserved_keyword:
 			| COPY
 			| COST
 			| CPUSET
-			| CPU_HARD_QUOTA_LIMIT
-			| CPU_SOFT_PRIORITY
+			| CPU_MAX_PERCENT
+			| CPU_WEIGHT
 			| CREATEEXTTABLE
 			| CSV
 			| CUBE
@@ -19431,6 +19440,7 @@ unreserved_keyword:
 			| INSERT
 			| INSTEAD
 			| INVOKER
+			| IO_LIMIT
 			| ISOLATION
 			| KEY
 			| LABEL
@@ -19457,6 +19467,7 @@ unreserved_keyword:
 			| METHOD
 			| MINUTE_P
 			| MINVALUE
+			| MIN_COST
 			| MISSING
 			| MODE
 			| MODIFIES
@@ -19711,8 +19722,8 @@ PartitionIdentKeyword: ABORT_P
 			| COPY
 			| COST
 			| CPUSET
-			| CPU_HARD_QUOTA_LIMIT
-			| CPU_SOFT_PRIORITY
+			| CPU_MAX_PERCENT
+			| CPU_WEIGHT
 			| CREATEEXTTABLE
 			| CSV
 			| CUBE
@@ -19784,6 +19795,7 @@ PartitionIdentKeyword: ABORT_P
 			| INSERT
 			| INSTEAD
 			| INVOKER
+			| IO_LIMIT
 			| ISOLATION
 			| KEY
 			| LANGUAGE
@@ -19957,6 +19969,7 @@ PartitionIdentKeyword: ABORT_P
 			| LOG_P
 			| OUTER_P
 			| VERBOSE
+			| MIN_COST
 			;
 
 /* Column identifier --- keywords that can be column, table, etc names.
@@ -20247,8 +20260,8 @@ bare_label_keyword:
 			| COPY
 			| COST
 			| CPUSET
-			| CPU_HARD_QUOTA_LIMIT
-			| CPU_SOFT_PRIORITY
+			| CPU_MAX_PERCENT
+			| CPU_WEIGHT
 			| CREATEEXTTABLE
 			| CROSS
 			| CSV
@@ -20379,6 +20392,7 @@ bare_label_keyword:
 			| INTEGER
 			| INTERVAL
 			| INVOKER
+			| IO_LIMIT
 			| IS
 			| ISOLATION
 			| JOIN
@@ -20415,6 +20429,7 @@ bare_label_keyword:
 			| MEMORY_LIMIT
 			| METHOD
 			| MINVALUE
+			| MIN_COST
 			| MISSING
 			| MODE
 			| MODIFIES

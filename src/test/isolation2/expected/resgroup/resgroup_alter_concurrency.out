@@ -5,7 +5,7 @@ DROP
 DROP RESOURCE GROUP rg_concurrency_test;
 ERROR:  resource group "rg_concurrency_test" does not exist
 -- end_ignore
-CREATE RESOURCE GROUP rg_concurrency_test WITH(concurrency=1, cpu_hard_quota_limit=20);
+CREATE RESOURCE GROUP rg_concurrency_test WITH(concurrency=1, cpu_max_percent=20);
 CREATE
 CREATE ROLE role_concurrency_test RESOURCE GROUP rg_concurrency_test;
 CREATE
@@ -38,14 +38,6 @@ SET
 
 ALTER RESOURCE GROUP rg_concurrency_test SET CONCURRENCY 2;
 ALTER
-
-SELECT * FROM rg_activity_status;
- rsgname             | wait_event_type | state               | query  
----------------------+-----------------+---------------------+--------
- rg_concurrency_test | Client          | idle in transaction | BEGIN; 
- rg_concurrency_test | Client          | idle in transaction | BEGIN; 
- rg_concurrency_test | ResourceGroup   | active              | BEGIN; 
-(3 rows)
 
 11:END;
 END
@@ -185,7 +177,7 @@ DROP ROLE role_concurrency_test;
 DROP
 DROP RESOURCE GROUP rg_concurrency_test;
 DROP
-CREATE RESOURCE GROUP rg_concurrency_test WITH(concurrency=0, cpu_hard_quota_limit=20);
+CREATE RESOURCE GROUP rg_concurrency_test WITH(concurrency=0, cpu_max_percent=20);
 CREATE
 CREATE ROLE role_concurrency_test RESOURCE GROUP rg_concurrency_test;
 CREATE
@@ -335,7 +327,7 @@ DROP RESOURCE GROUP rg_concurrency_test;
 DROP
 -- end_ignore
 
-CREATE RESOURCE GROUP rg_concurrency_test WITH (concurrency=0, cpu_hard_quota_limit=20);
+CREATE RESOURCE GROUP rg_concurrency_test WITH (concurrency=0, cpu_max_percent=20);
 CREATE
 CREATE ROLE role_concurrency_test RESOURCE GROUP rg_concurrency_test;
 CREATE
@@ -362,7 +354,7 @@ DROP RESOURCE GROUP rg_concurrency_test;
 ERROR:  resource group "rg_concurrency_test" does not exist
 -- end_ignore
 
-CREATE RESOURCE GROUP rg_concurrency_test WITH (concurrency=0, cpu_hard_quota_limit=20);
+CREATE RESOURCE GROUP rg_concurrency_test WITH (concurrency=0, cpu_max_percent=20);
 CREATE
 CREATE ROLE role_concurrency_test RESOURCE GROUP rg_concurrency_test;
 CREATE

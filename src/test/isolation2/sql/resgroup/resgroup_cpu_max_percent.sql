@@ -22,10 +22,10 @@ CREATE OR REPLACE FUNCTION fetch_sample() RETURNS text AS $$
     import json
 
     group_cpus = plpy.execute('''
-        SELECT rsgname, cpu_usage FROM gp_toolkit.gp_resgroup_status
+        SELECT groupname, cpu_usage FROM gp_toolkit.gp_resgroup_status_per_host
     ''')
-    json_text = json.dumps(dict([(row['rsgname'], json.loads(row['cpu_usage']))
-                                 for row in group_cpus]))
+    plpy.notice(group_cpus)
+    json_text = json.dumps(dict([(row['groupname'], float(row['cpu_usage'])) for row in group_cpus]))
     plpy.execute('''
         INSERT INTO cpu_usage_samples VALUES ('{value}')
     '''.format(value=json_text))
@@ -37,27 +37,14 @@ $$ LANGUAGE plpython3u;
 -- return true if the practical value is close to the expected value.
 CREATE OR REPLACE FUNCTION verify_cpu_usage(groupname TEXT, expect_cpu_usage INT, err_rate INT)
 RETURNS BOOL AS $$
-    import json
-    import functools
+    all_info = plpy.execute('''
+        SELECT sample::json->'{name}' AS cpu FROM cpu_usage_samples
+    '''.format(name=groupname))
 
-    def add_vector(vec1, vec2):
-        r = dict()
-        for seg_id1, value1 in vec1.items():
-            r[seg_id1] = value1 + vec2[seg_id1]
-        return r
+    results = [float(_['cpu']) for _ in all_info]
+    usage = sum(results) / len(results)
 
-    def verify_cpu_usage():
-        all_info = plpy.execute('''
-            SELECT sample::json->'{name}' AS cpu FROM cpu_usage_samples
-        '''.format(name=groupname))
-        usage_sum = functools.reduce(add_vector,
-                           [json.loads(row['cpu']) for row in all_info])
-        usage = [(float(v) / all_info.nrows())
-                 for k, v in usage_sum.items() if k != "-1"]
-        avg = sum(usage) / len(usage)
-        return abs(avg - expect_cpu_usage) <= err_rate
-
-    return verify_cpu_usage()
+    return abs(usage - expect_cpu_usage) <= err_rate
 $$ LANGUAGE plpython3u;
 
 CREATE OR REPLACE FUNCTION busy() RETURNS void AS $$
@@ -84,76 +71,22 @@ CREATE VIEW cancel_all AS
     FROM pg_stat_activity
     WHERE query LIKE 'SELECT * FROM % WHERE busy%';
 
+-- The test cases for the value of gp_resource_group_cpu_limit equals 0.9, 
+-- do not change it during the test.
+show gp_resource_group_cpu_limit;
+
 -- create two resource groups
-CREATE RESOURCE GROUP rg1_cpu_test WITH (concurrency=5, cpu_hard_quota_limit=-1, cpu_soft_priority=100);
-CREATE RESOURCE GROUP rg2_cpu_test WITH (concurrency=5, cpu_hard_quota_limit=-1, cpu_soft_priority=200);
+CREATE RESOURCE GROUP rg1_cpu_test WITH (concurrency=5, cpu_max_percent=-1, cpu_weight=100);
+CREATE RESOURCE GROUP rg2_cpu_test WITH (concurrency=5, cpu_max_percent=-1, cpu_weight=200);
 
 --
 -- check gpdb cgroup configuration
+-- The implementation of check_cgroup_configuration() is in resgroup_auxiliary_tools_*.sql
 --
-DO LANGUAGE PLPYTHON3U $$
-    import subprocess
-    import os
+select check_cgroup_configuration();
 
-    cgroot = '@cgroup_mnt_point@'
-
-    def get_cgroup_prop(prop):
-        fullpath = cgroot + '/' + prop
-        return int(open(fullpath).readline())
-
-    def run_command(cmd):
-        return subprocess.check_output(cmd.split()).decode()
-
-    def show_guc(guc):
-        return plpy.execute('SHOW {}'.format(guc))[0][guc]
-
-    #
-    # check gpdb top-level cgroup configuration
-    #
-
-    # get top-level cgroup props
-    cfs_quota_us = get_cgroup_prop('/cpu/gpdb/cpu.cfs_quota_us')
-    cfs_period_us = get_cgroup_prop('/cpu/gpdb/cpu.cfs_period_us')
-    shares = get_cgroup_prop('/cpu/gpdb/cpu.shares')
-
-    # get system props
-    ncores = os.cpu_count()
-
-    # get global gucs
-    gp_resource_group_cpu_limit = float(show_guc('gp_resource_group_cpu_limit'))
-    gp_resource_group_cpu_priority = int(show_guc('gp_resource_group_cpu_priority'))
-
-    # cfs_quota_us := cfs_period_us * ncores * gp_resource_group_cpu_limit
-    assert cfs_quota_us == cfs_period_us * ncores * gp_resource_group_cpu_limit
-
-    # shares := 1024 * gp_resource_group_cpu_priority
-    assert shares == 1024 * gp_resource_group_cpu_priority
-
-    def check_group_shares(name):
-        cpu_soft_priority = int(plpy.execute('''
-            SELECT value
-              FROM pg_resgroupcapability c, pg_resgroup g
-             WHERE c.resgroupid=g.oid
-               AND reslimittype=3
-               AND g.rsgname='{}'
-        '''.format(name))[0]['value'])
-        oid = int(plpy.execute('''
-            SELECT oid FROM pg_resgroup WHERE rsgname='{}'
-        '''.format(name))[0]['oid'])
-        sub_shares = get_cgroup_prop('/cpu/gpdb/{}/cpu.shares'.format(oid))
-        assert sub_shares == int(cpu_soft_priority * 1024 / 100)
-
-    # check default groups
-    check_group_shares('default_group')
-    check_group_shares('admin_group')
-
-    # check user groups
-    check_group_shares('rg1_cpu_test')
-    check_group_shares('rg2_cpu_test')
-$$;
-
--- lower admin_group's cpu_hard_quota_limit to minimize its side effect
-ALTER RESOURCE GROUP admin_group SET cpu_hard_quota_limit 1;
+-- lower admin_group's cpu_max_percent to minimize its side effect
+ALTER RESOURCE GROUP admin_group SET cpu_max_percent 1;
 
 -- create two roles and assign them to above groups
 CREATE ROLE role1_cpu_test RESOURCE GROUP rg1_cpu_test;
@@ -238,7 +171,7 @@ SELECT * FROM cancel_all;
 
 --
 -- when there are multiple groups with parallel queries,
--- they should share the cpu usage by their cpu_soft_priority settings,
+-- they should share the cpu usage by their cpu_weight settings,
 --
 -- rg1_cpu_test:rg2_cpu_test is 100:200 => 1:2, so:
 --
@@ -317,9 +250,9 @@ SELECT * FROM cancel_all;
 
 
 
--- Test hard quota limit
-ALTER RESOURCE GROUP rg1_cpu_test set cpu_hard_quota_limit 10;
-ALTER RESOURCE GROUP rg2_cpu_test set cpu_hard_quota_limit 20;
+-- Test cpu max percent
+ALTER RESOURCE GROUP rg1_cpu_test set cpu_max_percent 10;
+ALTER RESOURCE GROUP rg2_cpu_test set cpu_max_percent 20;
 
 -- prepare parallel queries in the two groups
 10: SET ROLE TO role1_cpu_test;
@@ -343,7 +276,7 @@ ALTER RESOURCE GROUP rg2_cpu_test set cpu_hard_quota_limit 20;
 -- a group should not burst to use all the cpu usage
 -- when it's the only one with running queries.
 --
--- so the cpu usage shall be 10%
+-- so the cpu usage shall be 0.9 * 10%
 --
 
 10&: SELECT * FROM gp_dist_random('gp_id') WHERE busy() IS NULL;
@@ -378,7 +311,7 @@ ALTER RESOURCE GROUP rg2_cpu_test set cpu_hard_quota_limit 20;
 -- end_ignore
 
 -- verify it
-1:SELECT verify_cpu_usage('rg1_cpu_test', 10, 2);
+1:SELECT verify_cpu_usage('rg1_cpu_test', 9, 2);
 
 -- start_ignore
 1:SELECT * FROM cancel_all;
@@ -408,8 +341,8 @@ ALTER RESOURCE GROUP rg2_cpu_test set cpu_hard_quota_limit 20;
 --
 -- rg1_cpu_test:rg2_cpu_test is 10:20, so:
 --
--- - rg1_cpu_test gets 10%;
--- - rg2_cpu_test gets 20%;
+-- - rg1_cpu_test gets 0.9 * 10%;
+-- - rg2_cpu_test gets 0.9 * 20%;
 --
 
 10&: SELECT * FROM gp_dist_random('gp_id') WHERE busy() IS NULL;
@@ -449,8 +382,8 @@ ALTER RESOURCE GROUP rg2_cpu_test set cpu_hard_quota_limit 20;
 1:SELECT pg_sleep(1.7);
 -- end_ignore
 
-1:SELECT verify_cpu_usage('rg1_cpu_test', 10, 2);
-1:SELECT verify_cpu_usage('rg2_cpu_test', 20, 2);
+1:SELECT verify_cpu_usage('rg1_cpu_test', 9, 2);
+1:SELECT verify_cpu_usage('rg2_cpu_test', 18, 2);
 
 -- start_ignore
 1:SELECT * FROM cancel_all;
@@ -483,8 +416,8 @@ ALTER RESOURCE GROUP rg2_cpu_test set cpu_hard_quota_limit 20;
 1q:
 -- end_ignore
 
--- restore admin_group's cpu_hard_quota_limit
-2:ALTER RESOURCE GROUP admin_group SET cpu_hard_quota_limit 10;
+-- restore admin_group's cpu_max_percent
+2:ALTER RESOURCE GROUP admin_group SET cpu_max_percent 10;
 
 -- cleanup
 2:REVOKE ALL ON FUNCTION busy() FROM role1_cpu_test;
@@ -493,6 +426,3 @@ ALTER RESOURCE GROUP rg2_cpu_test set cpu_hard_quota_limit 20;
 2:DROP ROLE role2_cpu_test;
 2:DROP RESOURCE GROUP rg1_cpu_test;
 2:DROP RESOURCE GROUP rg2_cpu_test;
--- start_ignore
-2:DROP LANGUAGE plpython3u CASCADE;
--- end_ignore
