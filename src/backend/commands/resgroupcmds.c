@@ -692,7 +692,7 @@ GetResGroupIdForRole(Oid roleid)
 		 */
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
-				errmsg("role with Oid %d was dropped", roleid),
+				errmsg("role with Oid %u was dropped", roleid),
 				errdetail("Cannot execute commands anymore, please terminate this session.")));
 	}
 

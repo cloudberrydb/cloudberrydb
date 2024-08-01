@@ -1,7 +1,7 @@
 create resource group rg_wait_time_test with (concurrency=2, cpu_max_percent=20);
-CREATE RESOURCE GROUP
+CREATE
 create role role_wait_time_test resource group rg_wait_time_test;
-CREATE ROLE
+CREATE
 
 1: set role role_wait_time_test;
 SET
@@ -27,9 +27,9 @@ select pg_sleep(2);
 -- commit the 1st transaction to unblock 3
 -- so 3 will record its wait time
 1: end;
-COMMIT
+END
 2: end;
-COMMIT
+END
 3<:  <... completed>
 BEGIN
 
@@ -40,20 +40,20 @@ select total_queue_duration > '00:00:00' waited from gp_toolkit.gp_resgroup_stat
 (1 row)
 
 3:end;
-COMMIT
+END
 1q: ... <quitting>
 2q: ... <quitting>
 3q: ... <quitting>
 
 drop role role_wait_time_test;
-DROP ROLE
+DROP
 drop resource group rg_wait_time_test;
-DROP RESOURCE GROUP
+DROP
 
 create resource group rg_wait_time_test with (concurrency=2, cpu_max_percent=20);
-CREATE RESOURCE GROUP
+CREATE
 create role role_wait_time_test resource group rg_wait_time_test;
-CREATE ROLE
+CREATE
 
 1: set role role_wait_time_test;
 SET
@@ -99,6 +99,6 @@ select total_queue_duration > '00:00:00' waited from gp_toolkit.gp_resgroup_stat
 
 -- clean up
 drop role role_wait_time_test;
-DROP ROLE
+DROP
 drop resource group rg_wait_time_test;
-DROP RESOURCE GROUP
+DROP
