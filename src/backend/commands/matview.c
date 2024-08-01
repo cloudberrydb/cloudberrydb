@@ -3301,19 +3301,6 @@ clean_up_IVM_hash_entry(MV_TriggerHashEntry *entry, bool is_abort)
 			list_free(table->new_tuplestores);
 			table->new_tuplestores = NIL;
 		}
-		if (!is_abort)
-		{
-			if (table->slot)
-			{
-				ExecDropSingleTupleTableSlot(table->slot);
-				table->slot = NULL;
-			}
-			if (table->rel)
-			{
-				table_close(table->rel, NoLock);
-				table->rel = NULL;
-			}
-		}
 	}
 
 	if (entry->tables)
