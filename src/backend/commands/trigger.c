@@ -55,6 +55,7 @@
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/bytea.h"
+#include "utils/faultinjector.h"
 #include "utils/fmgroids.h"
 #include "utils/inval.h"
 #include "utils/lsyscache.h"
@@ -4939,6 +4940,7 @@ AfterTriggerFireDeferred(void)
 	/* Must not be inside a query */
 	Assert(afterTriggers.query_depth == -1);
 
+	SIMPLE_FAULT_INJECTOR("after_trigger_fire_deferred");
 	/*
 	 * If there are any triggers to fire, make sure we have set a snapshot for
 	 * them to use.  (Since PortalRunUtility doesn't set a snap for COMMIT, we
