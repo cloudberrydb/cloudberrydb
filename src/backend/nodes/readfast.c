@@ -119,8 +119,25 @@
 		} \
 		var = nn;  }
 
+#define READ_STRING_VAR_NULL(var) \
+	{ int slen; char * nn = NULL; \
+		memcpy(&slen, read_str_ptr, sizeof(int)); \
+		read_str_ptr+=sizeof(int); \
+		if (slen>0) { \
+		    nn = palloc(slen+1); \
+		    memcpy(nn,read_str_ptr,slen); \
+		    read_str_ptr+=(slen); nn[slen]='\0'; \
+		} \
+		if (slen==0) { \
+			nn = palloc(1); \
+			nn[0] = '\0'; \
+		} \
+		var = nn;  }
+
 /* Read a character-string field */
 #define READ_STRING_FIELD(fldname)  READ_STRING_VAR(local_node->fldname)
+
+#define READ_STRING_FIELD_NULL(fldname)  READ_STRING_VAR_NULL(local_node->fldname)
 
 /* Read a parse location field (and throw away the value, per notes above) */
 #define READ_LOCATION_FIELD(fldname) READ_INT_FIELD(fldname)
@@ -892,7 +909,7 @@ _readOidAssignment(void)
 	READ_LOCALS(OidAssignment);
 
 	READ_OID_FIELD(catalog);
-	READ_STRING_FIELD(objname);
+	READ_STRING_FIELD_NULL(objname);
 	READ_OID_FIELD(namespaceOid);
 	READ_OID_FIELD(keyOid1);
 	READ_OID_FIELD(keyOid2);
