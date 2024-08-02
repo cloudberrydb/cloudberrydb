@@ -52,6 +52,9 @@ jobs:
           path: /opt/
       - name: Run icw-test script
         run: |
+          yum remove -y python39 python3.11
+          pip3 install lxml
+          yum install -y krb5-server krb5-workstation
           cp -a gpdb_src/ /code
           cd /code
           echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
@@ -185,6 +188,9 @@ jobs:
           path: /opt/
       - name: Run icw-orca-test script
         run: |
+          yum remove -y python39 python3.11
+          pip3 install lxml
+          yum install -y krb5-server krb5-workstation
           cp -a gpdb_src/ /code
           cd /code
           echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
