@@ -23,6 +23,10 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run build script
         run: |
+          yum remove -y python3.9 python3.11 python3
+          yum install -y python3 python3-devel
+          pip3 install lxml
+          yum install -y krb5-server krb5-workstation
           echo $GITHUB_RUN_ID > BUILD_NUMBER
           hd-ci/compile_cbdb.bash ${GEN_DOCKER_TAG}
       - uses: actions/upload-artifact@v3
@@ -54,7 +58,8 @@ jobs:
           path: /opt/
       - name: Run icw-test script
         run: |
-
+          yum remove -y python3.9 python3.11 python3
+          yum install -y python3 python3-devel
           pip3 install lxml
           yum install -y krb5-server krb5-workstation
           cp -a gpdb_src/ /code
