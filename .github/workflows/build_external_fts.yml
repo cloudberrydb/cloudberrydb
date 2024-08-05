@@ -25,7 +25,7 @@ jobs:
         run: |
           yum remove -y python3.9 python3.11 python3
           yum install -y python3 python3-devel
-          pip3 install lxml
+          pip3 install lxml psutil==5.7.0 pygresql==5.2 pyyaml==5.3.1
           yum install -y krb5-server krb5-workstation
           echo $GITHUB_RUN_ID > BUILD_NUMBER
           hd-ci/compile_cbdb.bash ${GEN_DOCKER_TAG}
@@ -60,7 +60,7 @@ jobs:
         run: |
           yum remove -y python3.9 python3.11 python3
           yum install -y python3 python3-devel
-          pip3 install lxml
+          pip3 install lxml psutil==5.7.0 pygresql==5.2 pyyaml==5.3.1
           yum install -y krb5-server krb5-workstation
           cp -a gpdb_src/ /code
           cd /code
