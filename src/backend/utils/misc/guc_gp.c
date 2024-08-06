@@ -783,6 +783,17 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
+		{"gp_enable_explain_motion_detail", PGC_USERSET, CLIENT_CONN_OTHER,
+			gettext_noop("Show motion sender stats in EXPLAIN ANALYZE."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_enable_explain_motion_detail,
+		false,
+		NULL, NULL, NULL
+	},
+
+	{
 		{"gp_enable_sort_limit", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Enable LIMIT operation to be performed while sorting."),
 			gettext_noop("Sort more efficiently when plan requires the first <n> rows at most.")
@@ -4977,6 +4988,7 @@ struct config_enum ConfigureNamesEnum_gp[] =
 		JOIN_ORDER_EXHAUSTIVE2_SEARCH, optimizer_join_order_options,
 		NULL, NULL, NULL
 	},
+
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, 0, NULL, NULL, NULL
