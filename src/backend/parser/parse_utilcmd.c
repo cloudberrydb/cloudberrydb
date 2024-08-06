@@ -396,6 +396,11 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString)
 													 likeDistributedBy, bQuiet);
 	}
 
+	/*
+	 * CBDB: for a foreign table, do not inherit source table's distribution policy.
+	 * It should be decided by OPTIONS, ex: mpp_execute all segments.
+	 */
+#if 0
 	if (IsA(stmt, CreateForeignTableStmt))
 	{
 		DistributedBy *ft_distributedBy = ((CreateForeignTableStmt *)stmt)->distributedBy;
@@ -403,6 +408,7 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString)
 			stmt->distributedBy = transformDistributedBy(pstate, &cxt, ft_distributedBy,
 														 likeDistributedBy, bQuiet);
 	}
+#endif
 
 	/*
 	 * Postprocess check constraints.
@@ -1071,11 +1077,16 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("LIKE INCLUDING may not be used with this kind of relation")));
 
+	/*
+	 * CBDB: Support CREATE FOREIGN TABLE LIKE.
+	 */
+#if 0
 	/* we could support LIKE in many cases, but worry about it another day */
 	if (cxt->isforeign)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("LIKE is not supported for creating foreign tables")));
+#endif
 
 	/* Open the relation referenced by the LIKE clause */
 	relation = relation_openrv(table_like_clause->relation, AccessShareLock);

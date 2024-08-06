@@ -28,6 +28,21 @@ CREATE FOREIGN TABLE ft5 (
 ) SERVER s1 OPTIONS (delimiter ',', mpp_execute 'all segments', num_segments '5');
 \d+ ft5
 
+-- CREATE FOREIGN TABLE LIKE
+CREATE TABLE ft_source_table(a INT, b INT, c INT) DISTRIBUTED BY (b);
+CREATE FOREIGN TABLE ft_like (LIKE ft_source_table) SERVER s0; 
+\d+ ft_like
+-- shoule be null
+SELECT * FROM gp_distribution_policy WHERE localoid = 'ft_like'::regclass::oid;
+CREATE FOREIGN TABLE ft_like1 (LIKE ft_source_table) SERVER s0
+OPTIONS (delimiter ',', mpp_execute 'all segments', num_segments '3');
+\d+ ft_like1
+SELECT * FROM gp_distribution_policy WHERE localoid = 'ft_like1'::regclass::oid;
+
+DROP TABLE ft_source_table;
+DROP FOREIGN TABLE ft_like;
+DROP FOREIGN TABLE ft_like1;
+
 --start_ignore
 DROP FOREIGN DATA WRAPPER dummy CASCADE;
 --end_ignore
