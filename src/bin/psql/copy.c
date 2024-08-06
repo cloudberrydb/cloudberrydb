@@ -152,7 +152,7 @@ parse_slash_copy(const char *args)
 
 		xstrcat(&result->before_tofrom, " ");
 		xstrcat(&result->before_tofrom, token);
-		token = strtokx(NULL, whitespace, ".,()", "\"",
+		token = strtokx(NULL, whitespace, NULL, "\"",
 				  		0, false, false, pset.encoding);
 
 		if (!token)
