@@ -11,9 +11,10 @@ select rsgname, parent from pg_resgroup
 ---------------+--------
  default_group |      0
  admin_group   |      0
- rg1           |      0
+ system_group  |      0
  rg2           |      0
-(4 rows)
+ rg1           |      0
+(5 rows)
 
 select avg(reslimittype)
   from pg_resgroupcapability
@@ -30,9 +31,10 @@ select groupname from gp_toolkit.gp_resgroup_config
 ---------------
  default_group
  admin_group
- rg1
+ system_group
  rg2
-(4 rows)
+ rg1
+(5 rows)
 
 select rsgname from gp_toolkit.gp_resgroup_status
   where rsgname not like 'rg_dump_test%'
