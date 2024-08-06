@@ -2734,24 +2734,6 @@ fi
 AC_SUBST(PG_CRC32C_OBJS)
 
 
-if test $ac_cv_func_fseeko = yes; then
-AC_SYS_LARGEFILE
-enable_largefile=yes
-else
-enable_largefile=no
-fi
-AC_SUBST(enable_largefile)
-
-# Check for largefile support (must be after AC_SYS_LARGEFILE)
-AC_CHECK_SIZEOF([off_t])
-
-if test "$PORTNAME" != "win32"; then
-# If we don't have largefile support, can't handle segsize >= 2GB.
-if test "$ac_cv_sizeof_off_t" -lt 8 -a "$segsize" != "1"; then
-   AC_MSG_ERROR([Large file support is not enabled. Segment size cannot be larger than 1GB.])
-fi
-fi
-
 # Select semaphore implementation type.
 if test "$PORTNAME" != "win32"; then
   if test x"$PREFERRED_SEMAPHORES" = x"NAMED_POSIX" ; then
