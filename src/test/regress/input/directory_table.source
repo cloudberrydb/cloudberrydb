@@ -206,6 +206,7 @@ CREATE DIRECTORY TABLE IF NOT EXISTS dir_table4 TABLESPACE directory_tblspc;
 CREATE DIRECTORY TABLE IF NOT EXISTS dir_table2 TABLESPACE directory_tblspc;    -- fail
 CREATE DIRECTORY TABLE dir_table5 TABLESPACE directory_tblspc;
 CREATE DIRECTORY TABLE dir_table6 TABLESPACE pg_default;
+CREATE DIRECTORY TABLE "abs.dir_table";
 
 SELECT count(*) FROM pg_directory_table;
 SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname like '%dir_table%' ORDER BY 1;
@@ -322,6 +323,11 @@ COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation5'
 SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
 SELECT relative_path, content FROM directory_table('dir_table2') ORDER BY 1;
 
+\COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation.txt';   -- OK
+COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation2.txt';   -- OK
+\COPY BINARY "abs.dir_table" FROM '@abs_srcdir@/data/nation.csv' 'aa.bb';    -- OK
+COPY BINARY "abs.dir_table" FROM '@abs_srcdir@/data/nation.csv' 'cc.dd';    -- OK
+
 -- Test copy binary from directory table
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation_failed' (format CSV);
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation_failed' (freeze off);
@@ -397,9 +403,13 @@ COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdout; -- OK
 \COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO PROGRAM 'gzip -c -1 > @abs_srcdir@/data/nation2.gz';   -- OK
 COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO PROGRAM 'gzip -c -1 > @abs_srcdir@/data/nation2.gz';   -- OK
 
-\COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation.txt';   -- OK
+\COPY BINARY DIRECTORY TABLE "abs.dir_table" 'aa.bb' TO '@abs_srcdir@/data/aa.bb';   -- OK
+COPY BINARY DIRECTORY TABLE "abs.dir_table" 'cc.dd' TO '@abs_srcdir@/data/cc.dd';    -- OK
 \COPY BINARY DIRECTORY TABLE dir_table1 'nation.txt' TO '@abs_srcdir@/data/nation.txt'; -- OK
-COPY BINARY DIRECTORY TABLE dir_table1 'nation.txt' TO '@abs_srcdir@/data/nation2.txt'; -- OK
+COPY BINARY DIRECTORY TABLE dir_table1 'nation2.txt' TO '@abs_srcdir@/data/nation2.txt'; -- OK
+\COPY BINARY DIRECTORY TABLE public.dir_table1 'nation.txt' TO '@abs_srcdir@/data/nation3.txt'; -- OK
+COPY BINARY DIRECTORY TABLE public.dir_table1 'nation2.txt' TO '@abs_srcdir@/data/nation4.txt'; -- OK
+
 
 SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
 SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
@@ -621,6 +631,7 @@ DROP DIRECTORY TABLE IF EXISTS dir_table3;
 DROP DIRECTORY TABLE IF EXISTS dir_table4;
 DROP DIRECTORY TABLE IF EXISTS dir_table5;
 DROP DIRECTORY TABLE IF EXISTS dir_table6;
+DROP DIRECTORY TABLE IF EXISTS "abs.dir_table";
 
 DROP FUNCTION IF EXISTS triggertest;
 
