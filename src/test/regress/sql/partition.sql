@@ -3793,3 +3793,20 @@ RESET ROLE;
 DROP TABLE public.t_part_acl;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE SELECT ON TABLES FROM user_prt_acl;
 DROP ROLE user_prt_acl;
+
+--
+-- Github issue: https://github.com/cloudberrydb/cloudberrydb/issues/547
+-- Test COPY FROM on partitions tables.
+--
+create table t_issue_547_aoco(a int, b int) partition by range(b) (start(1) end(34) every(1)) using ao_column distributed by (a);
+\copy t_issue_547_aoco from 'data/partition_copy.csv' (format csv);
+analyze t_issue_547_aoco;
+select count(*) from t_issue_547_aoco;
+
+create table t_issue_547_ao(a int, b int) partition by range(b) (start(1) end(34) every(1)) using ao_row distributed by (a);
+\copy t_issue_547_ao from 'data/partition_copy.csv' (format csv);
+analyze t_issue_547_ao;
+select count(*) from t_issue_547_ao;
+
+drop table t_issue_547_aoco;
+drop table t_issue_547_ao;
