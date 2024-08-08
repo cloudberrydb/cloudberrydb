@@ -1,11 +1,5 @@
 -- start_ignore
 CREATE LANGUAGE plpython3u;
-! rmdir @cgroup_mnt_point@/cpu/gpdb;
-! rmdir @cgroup_mnt_point@/cpuacct/gpdb;
-! rmdir @cgroup_mnt_point@/cpuset/gpdb;
-! mkdir @cgroup_mnt_point@/cpu/gpdb;
-! mkdir @cgroup_mnt_point@/cpuacct/gpdb;
-! mkdir @cgroup_mnt_point@/cpuset/gpdb;
 -- end_ignore
 
 -- enable resource group and restart cluster.

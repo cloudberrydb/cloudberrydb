@@ -65,12 +65,23 @@ prepare_release() {
 	popd
 	cp -f "${ROOT_PATH}/bin_gpdb_rpm/bin_gpdb.tar.gz" "${ROOT_PATH}/bin_gpdb/"
 }
+
+prepare_resgroup() {
+	# download the cgroup tools and setup the test dir
+	yum -y install libcgroup libcgroup-tools
+	cgcreate -a gpadmin:gpadmin -g cpu:gpdb
+	cgcreate -a gpadmin:gpadmin -g cpuacct:gpdb
+	cgcreate -a gpadmin:gpadmin -g cpuset:gpdb
+}
+
+
 main() {
 	fts_mode=$1
 	download_cbdb_tar_package ${fts_mode}
 	if [ "$BUILD_TYPE" == "release" ]; then
 		prepare_release $1
 	fi
+	prepare_resgroup
 	compile_jansson
 	download_etcd
 	icw_cbdb ${fts_mode}
