@@ -565,6 +565,19 @@ CopyMultiInsertBufferCleanup(CopyMultiInsertInfo *miinfo,
 	for (i = 0; i < MAX_BUFFERED_TUPLES && buffer->slots[i] != NULL; i++)
 		ExecDropSingleTupleTableSlot(buffer->slots[i]);
 
+	if (RelationIsNonblockRelation(buffer->resultRelInfo->ri_RelationDesc))
+	{
+		/*
+		 * CBDB: do not call table_finish_bulk_insert for AO/AOCO or PAX tables.
+		 * https://github.com/cloudberrydb/cloudberrydb/issues/547
+		 * Do not clean up context or resource here, table_finish_bulk_insert
+		 * routine will be called more than once during COPY FROM if
+		 * the partition buffer is flushed but COPY is not finished.
+		 */
+		pfree(buffer);
+		return;
+	}
+
 	table_finish_bulk_insert(buffer->resultRelInfo->ri_RelationDesc,
 							 miinfo->ti_options);
 
@@ -2530,9 +2543,6 @@ CopyFrom(CopyFromState cstate)
 	FreeDistributionData(distData);
 
 	FreeExecutorState(estate);
-
-	/* GPDB_14_MERGE_FIXME: Do we need to call table_finish_bulk_insert here? */
-	table_finish_bulk_insert(cstate->rel, ti_options);
 
 	return processed;
 }
