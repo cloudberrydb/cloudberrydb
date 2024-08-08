@@ -152,8 +152,16 @@ parse_slash_copy(const char *args)
 
 		xstrcat(&result->before_tofrom, " ");
 		xstrcat(&result->before_tofrom, token);
-		token = strtokx(NULL, whitespace, ".,()", "\"",
+		token = strtokx(NULL, whitespace, NULL, "\"",
 				  		0, false, false, pset.encoding);
+
+		if (!token)
+			goto error;
+
+		xstrcat(&result->before_tofrom, " ");
+		xstrcat(&result->before_tofrom, token);
+		token = strtokx(NULL, whitespace, NULL, "\"",
+						0, false, false, pset.encoding);
 
 		if (!token)
 			goto error;
@@ -202,16 +210,6 @@ parse_slash_copy(const char *args)
 		xstrcat(&result->before_tofrom, " ");
 		xstrcat(&result->before_tofrom, token);
 		token = strtokx(NULL, whitespace, ".,()", "\"",
-						0, false, false, pset.encoding);
-		if (!token)
-			goto error;
-	}
-
-	if (token[0] == '\'')
-	{
-		xstrcat(&result->before_tofrom, " ");
-		xstrcat(&result->before_tofrom, token);
-		token = strtokx(NULL, whitespace, "()", "\"",
 						0, false, false, pset.encoding);
 		if (!token)
 			goto error;

@@ -172,7 +172,7 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 						 errhint("Anyone can COPY to stdout or from stdin. "
 								 "psql's \\copy command also works for anyone.")));
 
-			if (!is_from && !is_member_of_role(GetUserId(), ROLE_PG_WRITE_SERVER_FILES))
+			if (!is_from && !is_member_of_role(GetUserId(), ROLE_PG_WRITE_SERVER_FILES) && rel->rd_rel->relkind != RELKIND_DIRECTORY_TABLE)
 				ereport(ERROR,
 						(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 						 errmsg("must be superuser or a member of the pg_write_server_files role to COPY to a file"),

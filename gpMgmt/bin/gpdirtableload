@@ -80,7 +80,7 @@ def parseargs():
                         help='Host to connect to')
     parser.add_argument('--input-file', help='In upload mode, this means input files or '
                                              'directory, while in download mode, means '
-                                             'which directory table to download')
+                                             'which directory table file to download')
 
     parser.add_argument('--logfile', help='Log output to logfile')
 
@@ -406,7 +406,7 @@ class gpdirtableload:
         try:
             for file in self.allFiles:
                 cmdstr = cmdstrbase
-                cmdstr += '-c \"copy binary %s from \'%s\' ' % (self.options.table, file)
+                cmdstr += '-c \"\\copy binary %s from \'%s\' ' % (self.options.table, file)
                 if self.isDirectoryMode():
                     cmdstr += '\'%s/%s\' ' % (self.options.dest_path, os.path.relpath(file))
                 else:
@@ -485,7 +485,7 @@ class gpdirtableload:
                     os.makedirs(filedir, exist_ok=True)
 
                 cmdstr = cmdstrbase
-                cmdstr += '-c \"copy binary directory table %s \'%s\' to \'%s\' \"' % (self.options.table, file, fullpath)
+                cmdstr += '-c \"\\copy binary directory table %s \'%s\' to \'%s\' \"' % (self.options.table, file, fullpath)
 
                 cmd = Command(name='download directory table', ctxt=LOCAL, cmdStr=cmdstr)
                 self.pool.addCommand(cmd)
