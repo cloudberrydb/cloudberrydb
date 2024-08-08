@@ -187,6 +187,11 @@ SELECT * FROM mvtest_mv_v_3;
 SELECT * FROM mvtest_mv_v_4;
 DROP TABLE mvtest_v CASCADE;
 
+-- Check that CREATE IF NOT EXISTS accept DISTRIBUTED BY
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_ine_distr (a, b) AS
+  SELECT generate_series(1, 10) a, generate_series(1, 10) b  DISTRIBUTED BY (b);
+DROP MATERIALIZED VIEW mv_ine_distr;
+
 -- Check that unknown literals are converted to "text" in CREATE MATVIEW,
 -- so that we don't end up with unknown-type columns.
 CREATE MATERIALIZED VIEW mv_unspecified_types AS
