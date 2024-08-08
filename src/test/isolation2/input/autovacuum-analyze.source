@@ -78,6 +78,7 @@ SELECT gp_inject_fault('auto_vac_worker_after_report_activity', 'reset', 1);
 -- Wait until autovacuum worker updates pg_database
 SELECT gp_wait_until_triggered_fault('analyze_finished_one_relation', 1, 1);
 SELECT gp_inject_fault('analyze_finished_one_relation', 'reset', 1);
+SELECT pg_sleep(5);
 
 -- Should have statistic updated.
 SELECT count(*) FROM pg_statistic where starelid = 'rankpart_1_prt_extra'::regclass;

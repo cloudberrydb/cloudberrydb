@@ -15,4 +15,7 @@ s/(seg\d+ slice\d+ \d+.\d+.\d+.\d+:\d+ pid=\d+)/(SEG SLICE ADDR:PORT pid=PID)/
 
 m/^ERROR:  role with Oid \d+ was dropped$/
 s/Oid \d+ was/Oid OID was/
+
+m/^ERROR:  role with Oid -\d+ was dropped$/
+s/Oid -\d+ was/Oid OID was/
 -- end_matchsubs

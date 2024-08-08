@@ -61,11 +61,13 @@
 #include "rewrite/rewriteManip.h"
 #include "storage/smgr.h"
 #include "tcop/tcopprot.h"
+#include "tcop/utility.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
 #include "utils/regproc.h"
 #include "utils/fmgroids.h"
 #include "utils/rel.h"
+#include "utils/resgroup.h"
 #include "utils/rls.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
@@ -469,6 +471,7 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 	}
 	else
 	{
+		check_and_unassign_from_resgroup(queryDesc->plannedstmt);
 		queryDesc->plannedstmt->query_mem = ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 
 		/* call ExecutorStart to prepare the plan for execution */
@@ -503,7 +506,10 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 
 		/* MPP-14001: Running auto_stats */
 		if (Gp_role == GP_ROLE_DISPATCH)
-			auto_stats(cmdType, relationOid, queryDesc->es_processed, false /* inFunction */);
+		{
+			bool inFunction = already_under_executor_run() || utility_nested();
+			auto_stats(cmdType, relationOid, queryDesc->es_processed, inFunction);
+		}
 	}
 
 	if (is_matview)

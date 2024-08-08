@@ -2498,7 +2498,8 @@ set_subquery_pathlist(PlannerInfo *root, RelOptInfo *rel,
 	 */
 	safetyInfo.unsafeLeaky = rte->security_barrier;
 
-	forceDistRand = rte->forceDistRandom && !IS_SINGLENODE();
+	/* if IS_SINGLENODE then role must be GP_ROLE_UTILITY */
+	forceDistRand = rte->forceDistRandom && Gp_role != GP_ROLE_UTILITY;
 	/* CDB: Could be a preplanned subquery from window_planner. */
 	if (rte->subquery_root == NULL)
 	{
