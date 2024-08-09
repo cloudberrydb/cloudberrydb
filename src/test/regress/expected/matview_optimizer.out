@@ -534,6 +534,17 @@ drop cascades to materialized view mvtest_mv_v_4
 -- Check that CREATE IF NOT EXISTS accept DISTRIBUTED BY
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_ine_distr (a, b) AS
   SELECT generate_series(1, 10) a, generate_series(1, 10) b  DISTRIBUTED BY (b);
+\d+ mv_ine_distr
+                         Materialized view "public.mv_ine_distr"
+ Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
+--------+---------+-----------+----------+---------+---------+--------------+-------------
+ a      | integer |           |          |         | plain   |              | 
+ b      | integer |           |          |         | plain   |              | 
+View definition:
+ SELECT generate_series(1, 10) AS a,
+    generate_series(1, 10) AS b;
+Distributed by: (b)
+
 DROP MATERIALIZED VIEW mv_ine_distr;
 -- Check that unknown literals are converted to "text" in CREATE MATVIEW,
 -- so that we don't end up with unknown-type columns.
