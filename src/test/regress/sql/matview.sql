@@ -190,6 +190,7 @@ DROP TABLE mvtest_v CASCADE;
 -- Check that CREATE IF NOT EXISTS accept DISTRIBUTED BY
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_ine_distr (a, b) AS
   SELECT generate_series(1, 10) a, generate_series(1, 10) b  DISTRIBUTED BY (b);
+\d+ mv_ine_distr
 DROP MATERIALIZED VIEW mv_ine_distr;
 
 -- Check that unknown literals are converted to "text" in CREATE MATVIEW,
