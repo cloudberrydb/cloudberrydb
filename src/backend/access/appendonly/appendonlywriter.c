@@ -400,7 +400,7 @@ choose_segno_internal(Relation rel, List *avoid_segnos, choose_segno_mode mode)
 	{
 		Assert(avoid_segnos == NIL);
 		if (Debug_appendonly_print_segfile_choice)
-			elog(LOG, "choose_segno_internal: chose RESERVED_SEGNO for wrie");
+			elog(LOG, "choose_segno_internal: chose RESERVED_SEGNO for write");
 
 		LockSegnoForWrite(rel, RESERVED_SEGNO);
 		return RESERVED_SEGNO;
