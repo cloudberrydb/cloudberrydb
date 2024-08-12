@@ -1,12 +1,12 @@
 -- Mixed test for local directory table
 -- setup for temp tablespace
-! rm -rf '@testtablespace@';
+! rm -rf '@testtablespace@/local_directory_table_mixed/';
 
-! mkdir -p '@testtablespace@';
+! mkdir -p '@testtablespace@/local_directory_table_mixed/';
 
 DROP TABLESPACE IF EXISTS directory_tblspc;
 DROP
-CREATE TABLESPACE directory_tblspc LOCATION '@testtablespace@';
+CREATE TABLESPACE directory_tblspc LOCATION '@testtablespace@/local_directory_table_mixed/';
 CREATE
 
 CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
@@ -369,8 +369,6 @@ CREATE
 COMMIT
 2: COMMIT;
 COMMIT
-
-! rm -rf '@testtablespace@';
 
 DROP TABLESPACE directory_tblspc;
 ERROR:  tablespace "directory_tblspc" cannot be dropped because some objects depend on it
