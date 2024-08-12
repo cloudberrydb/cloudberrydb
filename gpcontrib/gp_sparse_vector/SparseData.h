@@ -284,6 +284,8 @@ static inline int64 compword_to_int8(const char *entry)
 			numptr8[6] = entry[7];
 			numptr8[7] = entry[8];
 			break;
+		default:
+			abort();
 	}
 
 	return num;
