@@ -1723,8 +1723,7 @@ ivm_immediate_maintenance(PG_FUNCTION_ARGS)
 		if (!(query->hasAggs && query->groupClause == NIL))
 			ExecuteTruncateGuts(list_make1(matviewRel), list_make1_oid(matviewOid),
 							NIL, DROP_RESTRICT, false, NULL);
-		else
-		 if (Gp_role == GP_ROLE_DISPATCH)
+		else if (Gp_role == GP_ROLE_DISPATCH)
 			ExecuteTruncateGuts_IVM(matviewRel, matviewOid, query);
 
 		/* Clean up hash entry and delete tuplestores */
