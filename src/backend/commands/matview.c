@@ -3291,12 +3291,13 @@ clean_up_IVM_hash_entry(MV_TriggerHashEntry *entry, bool is_abort)
 	{
 		MV_TriggerTable *table = (MV_TriggerTable *) lfirst(lc);
 
-		if (table->old_tuplestores) {
+		if (table->old_tuplestores)
+		{
 			list_free(table->old_tuplestores);
 			table->old_tuplestores = NIL;
 		}
-
-		if (table->new_tuplestores) {
+		if (table->new_tuplestores)
+		{
 			list_free(table->new_tuplestores);
 			table->new_tuplestores = NIL;
 		}
@@ -3309,7 +3310,8 @@ clean_up_IVM_hash_entry(MV_TriggerHashEntry *entry, bool is_abort)
 		}
 	}
 
-	if (entry->tables) {
+	if (entry->tables)
+	{
 		list_free(entry->tables);
 		entry->tables = NIL;
 	}
