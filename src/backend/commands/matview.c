@@ -3303,9 +3303,18 @@ clean_up_IVM_hash_entry(MV_TriggerHashEntry *entry, bool is_abort)
 		}
 		if (!is_abort)
 		{
-			if (CurrentResourceOwner == entry->resowner) {
-				ExecDropSingleTupleTableSlot(table->slot);
-				table_close(table->rel, NoLock);
+			if (CurrentResourceOwner == entry->resowner)
+			{
+				if (table->slot) 
+				{
+					ExecDropSingleTupleTableSlot(table->slot);
+					table->slot = NULL;
+				}
+				if (table->rel)
+				{
+					table_close(table->rel, NoLock);
+					table->rel = NULL;
+				}
 			}
 		}
 	}
