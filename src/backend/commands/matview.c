@@ -1723,7 +1723,8 @@ ivm_immediate_maintenance(PG_FUNCTION_ARGS)
 		if (!(query->hasAggs && query->groupClause == NIL))
 			ExecuteTruncateGuts(list_make1(matviewRel), list_make1_oid(matviewOid),
 							NIL, DROP_RESTRICT, false, NULL);
-		else if (Gp_role == GP_ROLE_DISPATCH)
+		else
+		 if (Gp_role == GP_ROLE_DISPATCH)
 			ExecuteTruncateGuts_IVM(matviewRel, matviewOid, query);
 
 		/* Clean up hash entry and delete tuplestores */
@@ -3291,23 +3292,16 @@ clean_up_IVM_hash_entry(MV_TriggerHashEntry *entry, bool is_abort)
 	{
 		MV_TriggerTable *table = (MV_TriggerTable *) lfirst(lc);
 
-		if (table->old_tuplestores)
+		list_free(table->old_tuplestores);
+		list_free(table->new_tuplestores);
+		if (!is_abort)
 		{
-			list_free(table->old_tuplestores);
-			table->old_tuplestores = NIL;
-		}
-		if (table->new_tuplestores)
-		{
-			list_free(table->new_tuplestores);
-			table->new_tuplestores = NIL;
+			ExecDropSingleTupleTableSlot(table->slot);
+			table_close(table->rel, NoLock);
 		}
 	}
+	list_free(entry->tables);
 
-	if (entry->tables)
-	{
-		list_free(entry->tables);
-		entry->tables = NIL;
-	}
 	clean_up_ivm_dsm_entry(entry);
 
 	hash_search(mv_trigger_info, (void *) &entry->matview_id, HASH_REMOVE, NULL);
