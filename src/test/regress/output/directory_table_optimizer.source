@@ -662,6 +662,15 @@ SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname
 (0 rows)
 
 \c regression
+--Test Lock directory table
+BEGIN;
+LOCK TABLE dir_table1 IN ACCESS SHARE MODE;
+LOCK TABLE dir_table1 IN ACCESS EXCLUSIVE MODE;
+COMMIT;
+BEGIN;
+LOCK TABLE dir_table1 IN ACCESS SHARE MODE;
+LOCK TABLE dir_table1 IN ACCESS EXCLUSIVE MODE;
+ROLLBACK;
 -- Test CREATE/DROP/REINDEX on DIRECTORY SCHEMA TABLE
 -- Test CREATE INDEX on DIRECTORY SCHEMA TABLE
 CREATE INDEX dirtable1_relative_path_idx on dir_table1(relative_path);
