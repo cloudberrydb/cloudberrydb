@@ -160,8 +160,6 @@ WHERE b = 42
 $query$ AS qry \gset
 EXPLAIN (COSTS OFF, VERBOSE)
 :qry ;
-INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  Feature not supported: hash partitioning
                   QUERY PLAN                  
 ----------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
@@ -173,8 +171,6 @@ DETAIL:  Feature not supported: hash partitioning
 (6 rows)
 
 :qry ;
-INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  Feature not supported: hash partitioning
  a | b  
 ---+----
  0 | 42
@@ -244,22 +240,22 @@ SET enable_hashjoin TO off;
 SET enable_mergejoin TO off;
 SET enable_nestloop TO on;
 EXPLAIN (COSTS OFF, VERBOSE) SELECT * FROM foo JOIN bar on foo.a = bar.a AND foo.b = 11;
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Output: foo_part2.a, foo_part2.b, bar.a
+   Output: foo.a, foo.b, bar.a
    ->  Nested Loop
-         Output: foo_part2.a, foo_part2.b, bar.a
-         Join Filter: true
+         Output: foo.a, foo.b, bar.a
+         Join Filter: (foo.a = bar.a)
          ->  Seq Scan on orca_static_pruning.bar
                Output: bar.a
-         ->  Append
-               ->  Index Scan using foo_part2_a_idx on orca_static_pruning.foo_part2
-                     Output: foo_part2.a, foo_part2.b
-                     Index Cond: (foo_part2.a = bar.a)
-                     Filter: ((foo_part2.a = bar.a) AND (foo_part2.b = 11))
- Optimizer: Pivotal Optimizer (GPORCA)
- Settings: enable_hashjoin=off, enable_mergejoin=off, enable_nestloop=on, optimizer=on
+         ->  Materialize
+               Output: foo.a, foo.b
+               ->  Seq Scan on orca_static_pruning.foo_part2 foo
+                     Output: foo.a, foo.b
+                     Filter: (foo.b = 11)
+ Settings: enable_hashjoin = 'off', enable_mergejoin = 'off', enable_nestloop = 'on'
+ Optimizer: Postgres query optimizer
 (14 rows)
 
 SELECT * FROM foo JOIN bar on foo.a = bar.a AND foo.b = 11;

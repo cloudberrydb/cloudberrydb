@@ -17,6 +17,7 @@
 #include "gpopt/base/CDistributionSpecHashed.h"
 #include "gpopt/base/CDistributionSpecNonSingleton.h"
 #include "gpopt/base/CDistributionSpecReplicated.h"
+#include "gpopt/exception.h"
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CPredicateUtils.h"
 
@@ -117,6 +118,13 @@ CPhysicalInnerIndexNLJoin::Ped(CMemoryPool *mp, CExpressionHandle &exprhdl,
 
 	CEnfdDistribution::EDistributionMatching dmatch =
 		Edm(prppInput, child_index, pdrgpdpCtxt, ulDistrReq);
+
+	// FIXME: nestloop with inner index scan may produce wrong plan, see
+	// issue https://github.com/cloudberrydb/cloudberrydb/issues/567
+	// Fallback to postgres optimizer to avoid wrong plan. We should
+	// fix this issue and remove the following exception.
+	GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
+			   GPOS_WSZ_LIT("Fallback: InnerIndexNestLoopJoin may have wrong plan"));
 
 	if (1 == child_index)
 	{

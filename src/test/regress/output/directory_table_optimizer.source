@@ -1209,12 +1209,12 @@ WHERE dir_table1.relative_path = dir_table2.relative_path ORDER BY 1;
    Merge Key: dir_table1.relative_path
    ->  Sort
          Sort Key: dir_table1.relative_path
-         ->  Nested Loop
-               Join Filter: true
-               ->  Seq Scan on dir_table2
-               ->  Index Scan using dir_table1_pkey on dir_table1
-                     Index Cond: (relative_path = dir_table2.relative_path)
- Optimizer: Pivotal Optimizer (GPORCA)
+         ->  Hash Join
+               Hash Cond: (dir_table1.relative_path = dir_table2.relative_path)
+               ->  Seq Scan on dir_table1
+               ->  Hash
+                     ->  Seq Scan on dir_table2
+ Optimizer: Postgres query optimizer
 (10 rows)
 
 SELECT dir_table1.relative_path FROM dir_table1, dir_table2

@@ -1346,31 +1346,39 @@ explain (costs off) select a,c from t1 group by a,c,d;
 explain (costs off) select *
 from t1 inner join t2 on t1.a = t2.x and t1.b = t2.y
 group by t1.a,t1.b,t1.c,t1.d,t2.x,t2.y,t2.z;
-                      QUERY PLAN                       
--------------------------------------------------------
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Operator Fallback: InnerIndexNestLoopJoin may have wrong plan not supported
+                         QUERY PLAN                         
+------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Nested Loop
-         Join Filter: true
-         ->  Seq Scan on t1
-         ->  Index Scan using t2_pkey on t2
-               Index Cond: ((x = t1.a) AND (y = t1.b))
- Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+   ->  HashAggregate
+         Group Key: t1.a, t1.b, t2.x, t2.y
+         ->  Hash Join
+               Hash Cond: ((t2.x = t1.a) AND (t2.y = t1.b))
+               ->  Seq Scan on t2
+               ->  Hash
+                     ->  Seq Scan on t1
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 -- Test case where t1 can be optimized but not t2
 explain (costs off) select t1.*,t2.x,t2.z
 from t1 inner join t2 on t1.a = t2.x and t1.b = t2.y
 group by t1.a,t1.b,t1.c,t1.d,t2.x,t2.z;
-                      QUERY PLAN                       
--------------------------------------------------------
+INFO:  GPORCA failed to produce a plan, falling back to planner
+DETAIL:  Operator Fallback: InnerIndexNestLoopJoin may have wrong plan not supported
+                         QUERY PLAN                         
+------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Nested Loop
-         Join Filter: true
-         ->  Seq Scan on t1
-         ->  Index Scan using t2_pkey on t2
-               Index Cond: ((x = t1.a) AND (y = t1.b))
- Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+   ->  HashAggregate
+         Group Key: t1.a, t1.b, t2.x, t2.z
+         ->  Hash Join
+               Hash Cond: ((t2.x = t1.a) AND (t2.y = t1.b))
+               ->  Seq Scan on t2
+               ->  Hash
+                     ->  Seq Scan on t1
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 -- Cannot optimize when PK is deferrable
 explain (costs off) select * from t3 group by a,b,c;
