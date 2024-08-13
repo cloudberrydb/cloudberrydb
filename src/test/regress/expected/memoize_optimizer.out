@@ -39,21 +39,25 @@ SELECT explain_memoize('
 SELECT COUNT(*),AVG(t1.unique1) FROM tenk1 t1
 INNER JOIN tenk1 t2 ON t1.unique1 = t2.twenty
 WHERE t2.unique1 < 1000;', false);
-                                           explain_memoize                                            
-------------------------------------------------------------------------------------------------------
+                                            explain_memoize                                            
+-------------------------------------------------------------------------------------------------------
  Finalize Aggregate (actual rows=1 loops=N)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=3 loops=N)
          ->  Partial Aggregate (actual rows=1 loops=N)
                ->  Nested Loop (actual rows=400 loops=N)
-                     Join Filter: true
-                     ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=1000 loops=N)
-                           ->  Index Scan using tenk1_unique1 on tenk1 (actual rows=340 loops=N)
-                                 Index Cond: (unique1 < 1000)
-                     ->  Index Only Scan using tenk1_unique1 on tenk1 tenk1_1 (actual rows=0 loops=N)
-                           Index Cond: (unique1 = tenk1.twenty)
-                           Heap Fetches: N
- Optimizer: Pivotal Optimizer (GPORCA)
-(12 rows)
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3) (actual rows=400 loops=N)
+                           Hash Key: t2.twenty
+                           ->  Seq Scan on tenk1 t2 (actual rows=340 loops=N)
+                                 Filter: (unique1 < 1000)
+                                 Rows Removed by Filter: 2906
+                     ->  Memoize (actual rows=1 loops=N)
+                           Cache Key: t2.twenty
+                           Cache Mode: logical
+                           ->  Index Only Scan using tenk1_unique1 on tenk1 t1 (actual rows=1 loops=N)
+                                 Index Cond: (unique1 = t2.twenty)
+                                 Heap Fetches: N
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 -- And check we get the expected results.
 SELECT COUNT(*),AVG(t1.unique1) FROM tenk1 t1
@@ -109,21 +113,25 @@ SELECT explain_memoize('
 SELECT COUNT(*),AVG(t1.unique1) FROM tenk1 t1
 INNER JOIN tenk1 t2 ON t1.unique1 = t2.thousand
 WHERE t2.unique1 < 1200;', true);
-                                           explain_memoize                                            
-------------------------------------------------------------------------------------------------------
+                                            explain_memoize                                             
+--------------------------------------------------------------------------------------------------------
  Finalize Aggregate (actual rows=1 loops=N)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=3 loops=N)
          ->  Partial Aggregate (actual rows=1 loops=N)
-               ->  Nested Loop (actual rows=407 loops=N)
-                     Join Filter: true
-                     ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=1200 loops=N)
-                           ->  Index Scan using tenk1_unique1 on tenk1 (actual rows=407 loops=N)
-                                 Index Cond: (unique1 < 1200)
-                     ->  Index Only Scan using tenk1_unique1 on tenk1 tenk1_1 (actual rows=0 loops=N)
-                           Index Cond: (unique1 = tenk1.thousand)
+               ->  Merge Join (actual rows=407 loops=N)
+                     Merge Cond: (t1.unique1 = t2.thousand)
+                     ->  Index Only Scan using tenk1_unique1 on tenk1 t1 (actual rows=341 loops=N)
                            Heap Fetches: N
- Optimizer: Pivotal Optimizer (GPORCA)
-(12 rows)
+                     ->  Sort (actual rows=407 loops=N)
+                           Sort Key: t2.thousand
+                           Sort Method:  quicksort  Memory: NkB
+                           ->  Redistribute Motion 3:3  (slice2; segments: 3) (actual rows=407 loops=N)
+                                 Hash Key: t2.thousand
+                                 ->  Seq Scan on tenk1 t2 (actual rows=407 loops=N)
+                                       Filter: (unique1 < 1200)
+                                       Rows Removed by Filter: 2961
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 CREATE TABLE flt (f float);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f' as the Cloudberry Database data distribution key for this table.
@@ -135,31 +143,33 @@ SET enable_seqscan TO off;
 -- Ensure memoize operates in logical mode
 SELECT explain_memoize('
 SELECT * FROM flt f1 INNER JOIN flt f2 ON f1.f = f2.f;', false);
-                               explain_memoize                               
------------------------------------------------------------------------------
+                                explain_memoize                                
+-------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=4 loops=N)
    ->  Nested Loop (actual rows=4 loops=N)
-         Join Filter: true
-         ->  Seq Scan on flt (actual rows=2 loops=N)
-         ->  Index Scan using flt_f_idx on flt flt_1 (actual rows=2 loops=N)
-               Index Cond: (f = flt.f)
- Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+         ->  Index Only Scan using flt_f_idx on flt f1 (actual rows=2 loops=N)
+               Heap Fetches: N
+         ->  Index Only Scan using flt_f_idx on flt f2 (actual rows=2 loops=N)
+               Index Cond: (f = f1.f)
+               Heap Fetches: N
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- Ensure memoize operates in binary mode
 SELECT explain_memoize('
 SELECT * FROM flt f1 INNER JOIN flt f2 ON f1.f >= f2.f;', false);
-                                 explain_memoize                                 
----------------------------------------------------------------------------------
+                                   explain_memoize                                   
+-------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=4 loops=N)
    ->  Nested Loop (actual rows=4 loops=N)
-         Join Filter: true
          ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=2 loops=N)
-               ->  Seq Scan on flt (actual rows=2 loops=N)
-         ->  Index Scan using flt_f_idx on flt flt_1 (actual rows=2 loops=N)
-               Index Cond: (f <= flt.f)
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Index Only Scan using flt_f_idx on flt f1 (actual rows=2 loops=N)
+                     Heap Fetches: N
+         ->  Index Only Scan using flt_f_idx on flt f2 (actual rows=2 loops=N)
+               Index Cond: (f <= f1.f)
+               Heap Fetches: N
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 DROP TABLE flt;
 -- Exercise Memoize in binary mode with a large fixed width type and a
@@ -190,17 +200,16 @@ SELECT * FROM strtest s1 INNER JOIN strtest s2 ON s1.n >= s2.n;', false);
 -- Ensure we get 3 hits and 3 misses
 SELECT explain_memoize('
 SELECT * FROM strtest s1 INNER JOIN strtest s2 ON s1.t >= s2.t;', false);
-                                     explain_memoize                                     
------------------------------------------------------------------------------------------
+                                 explain_memoize                                  
+----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=24 loops=N)
    ->  Nested Loop (actual rows=16 loops=N)
-         Join Filter: true
          ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=6 loops=N)
-               ->  Seq Scan on strtest (actual rows=4 loops=N)
-         ->  Index Scan using strtest_t_idx on strtest strtest_1 (actual rows=3 loops=N)
-               Index Cond: (t <= strtest.t)
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Seq Scan on strtest s1 (actual rows=4 loops=N)
+         ->  Index Scan using strtest_t_idx on strtest s2 (actual rows=3 loops=N)
+               Index Cond: (t <= s1.t)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 DROP TABLE strtest;
 -- Exercise Memoize code that flushes the cache when a parameter changes which
