@@ -3435,6 +3435,84 @@ DROP TABLE IF EXISTS dist_tab_a;
 DROP TABLE IF EXISTS dist_tab_b;
 DROP TABLE IF EXISTS result_tab;
 
+--- Test if orca can produce correct plan for inner index nl join
+CREATE TABLE t_clientinstrumentind2 (
+  tradingday text,
+  client_id INT,
+  instrumentid text,
+  PRIMARY KEY (tradingday, client_id, instrumentid)
+)
+DISTRIBUTED BY (tradingday, client_id, instrumentid)
+PARTITION BY RANGE (tradingday)
+(
+  PARTITION p2019 START ('20190101'::character varying(8)) END ('20200101'::character varying(8)) WITH (tablename='t_clientinstrumentind_2_prt_p2019', appendonly=false),
+  PARTITION p2020 START ('20200101'::character varying(8)) END ('20210101'::character varying(8)) WITH (tablename='t_clientinstrumentind_2_prt_p2020', appendonly=false)
+);
+
+CREATE TABLE t_clientproductind2 (
+  tradingday character varying(8),
+  productid TEXT,
+  clientid INT,
+  exchangegroup TEXT,
+  customertype INT ,
+  PRIMARY KEY (tradingday, productid, clientid, exchangegroup, customertype)
+)
+DISTRIBUTED BY (tradingday, productid, clientid, exchangegroup, customertype)
+PARTITION BY RANGE (tradingday)
+(
+  PARTITION p2019 START ('20190101'::character varying(8)) END ('20200101'::character varying(8)) WITH (tablename='t_clientproductind_2_prt_p2019', appendonly=false),
+  PARTITION p2020 START ('20200101'::character varying(8)) END ('20210101'::character varying(8)) WITH (tablename='t_clientproductind_2_prt_p2020', appendonly=false)
+);
+INSERT INTO t_clientinstrumentind2 (tradingday, client_id, instrumentid) VALUES
+('20190715', 54982370, 'al1908'),
+('20190715', 54982370, 'rb2001'),
+('20190715', 54982370, 'cu1909'),
+('20190715', 54982370, 'cu1908'),
+('20190715', 54982370, 'zn1908'),
+('20190715', 54982370, 'pb1908');
+
+
+INSERT INTO t_clientproductind2 (tradingday, productid, clientid, exchangegroup, customertype) VALUES
+('20190715', 'cu_f', 54982370, 'SHFE', 1),
+('20190715', 'rb_f', 54982370, 'SHFE', 1),
+('20190715', 'al_f', 54982370, 'SHFE', 1),
+('20190715', 'zn_f', 54982370, 'SHFE', 1),
+('20190715', 'pb_f', 54982370, 'SHFE', 1);
+
+SET optimizer_enable_hashjoin = OFF;
+-- FIXME: orca can't produce correct plan, we fallback this query to
+-- postgres optimizer for workaround. See issue 567
+EXPLAIN (COSTS OFF)
+SELECT * FROM(
+  SELECT tradingday, 1 AS ins_SpanInsArbitrageRatio
+  FROM t_clientinstrumentind2 t
+  WHERE t.tradingday BETWEEN '20190715'AND'20190715'
+  GROUP BY t.tradingday
+)t1
+INNER JOIN (
+  SELECT t.tradingday, 0.9233716475 AS prod_SpanInsArbitrageRatio
+  FROM t_clientproductind2 t
+  WHERE t.tradingday BETWEEN'20190715'AND '20190715'
+  GROUP BY t.tradingday)t2
+ON t1.tradingday = t2.tradingday;
+RESET optimizer_enable_hashjoin;
+
+SELECT * FROM(
+  SELECT tradingday, 1 AS ins_SpanInsArbitrageRatio
+  FROM t_clientinstrumentind2 t
+  WHERE t.tradingday BETWEEN '20190715'AND'20190715'
+  GROUP BY t.tradingday
+)t1
+INNER JOIN (
+  SELECT t.tradingday, 0.9233716475 AS prod_SpanInsArbitrageRatio
+  FROM t_clientproductind2 t
+  WHERE t.tradingday BETWEEN'20190715'AND '20190715'
+  GROUP BY t.tradingday)t2
+ON t1.tradingday = t2.tradingday;
+
+DROP TABLE t_clientinstrumentind2, t_clientproductind2;
+
+
 -- start_ignore
 DROP SCHEMA orca CASCADE;
 -- end_ignore
