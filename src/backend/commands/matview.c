@@ -3291,16 +3291,28 @@ clean_up_IVM_hash_entry(MV_TriggerHashEntry *entry, bool is_abort)
 	{
 		MV_TriggerTable *table = (MV_TriggerTable *) lfirst(lc);
 
-		list_free(table->old_tuplestores);
-		list_free(table->new_tuplestores);
+		if (table->old_tuplestores) {
+			list_free(table->old_tuplestores);
+			table->old_tuplestores = NIL;
+		}
+
+		if (table->new_tuplestores) {
+			list_free(table->new_tuplestores);
+			table->new_tuplestores = NIL;
+		}
 		if (!is_abort)
 		{
-			ExecDropSingleTupleTableSlot(table->slot);
-			table_close(table->rel, NoLock);
+			if (CurrentResourceOwner == entry->resowner) {
+				ExecDropSingleTupleTableSlot(table->slot);
+				table_close(table->rel, NoLock);
+			}
 		}
 	}
-	list_free(entry->tables);
 
+	if (entry->tables) {
+		list_free(entry->tables);
+		entry->tables = NIL;
+	}
 	clean_up_ivm_dsm_entry(entry);
 
 	hash_search(mv_trigger_info, (void *) &entry->matview_id, HASH_REMOVE, NULL);

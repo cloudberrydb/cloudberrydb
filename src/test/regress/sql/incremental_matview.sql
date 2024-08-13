@@ -141,6 +141,12 @@ SELECT sum, count, avg FROM mv_ivm_group;
 SELECT SUM(j), COUNT(j), AVG(j) FROM mv_base_a;
 ROLLBACK;
 
+-- TRUNCATE a base table without transaction block.
+CREATE TABLE mv_base_simple(i int);
+CREATE INCREMENTAL MATERIALIZED VIEW mv_ivm_simple AS SELECT * FROM mv_base_simple;
+TRUNCATE mv_base_simple;
+DROP TABLE mv_base_simple CASCADE;
+
 -- resolved issue: When use AVG() function and values is indivisible, result of AVG() is incorrect.
 BEGIN;
 CREATE INCREMENTAL MATERIALIZED VIEW mv_ivm_avg_bug AS SELECT i, SUM(j), COUNT(j), AVG(j) FROM mv_base_A GROUP BY i;
