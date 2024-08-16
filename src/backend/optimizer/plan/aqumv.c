@@ -694,10 +694,10 @@ void aqumv_adjust_simple_query(Query *viewQuery)
 	 * AQUMV
 	 * We have to rewrite now before we do the real Equivalent
 	 * Transformation 'rewrite'.
-	 * Because actions sotored in rule is not a normal query tree,
-	 * it can't be used directly, ex: new/old realtions used to
+	 * Because actions stored in rule is not a normal query tree,
+	 * it can't be used directly, with exception to new/old relations used to
 	 * refresh mv.
-	 * Earse unused relatoins, keep the right one.
+	 * Erase unused relations, keep the right one.
 	 */
 	foreach (lc, viewQuery->rtable)
 	{
