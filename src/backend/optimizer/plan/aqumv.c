@@ -175,7 +175,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * AQUMV
 		 * Currently the data of IVM is always up-to-date if there were.
 		 * However, we place this future-proof condition to take
-		 * care of IVM deferred maintenance/incremental refresh feature.
+		 * care of IVM deferred maintenance/incremental refresh feature (in SERVERLESS mode).
 		 * 
 		 * Normal materialized views could also be used if its data is up to date.
 		 */
