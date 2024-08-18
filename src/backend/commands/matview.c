@@ -2175,7 +2175,7 @@ get_prestate_rte(RangeTblEntry *rte, MV_TriggerTable *table,
 	initStringInfo(&str);
 	appendStringInfo(&str,
 			"SELECT t.* FROM %s t"
-			" WHERE pg_catalog.ivm_visible_in_prestate(t.tableoid, t.ctid,%d::pg_catalog.oid, t.gp_segment_id)",
+			" WHERE pg_catalog.ivm_visible_in_prestate(t.tableoid, t.ctid, %d::pg_catalog.oid)",
 				relname, matviewid);
 
 	/*
