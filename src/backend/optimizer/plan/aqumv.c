@@ -253,6 +253,13 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		if (mvrte->relid != origin_rel_oid)
 			continue;
 
+		/*
+		 * Check if it actually has children here to match before planning.
+		 */
+		mvrte->inh = has_subclass(mvrte->relid);
+		if (mvrte->inh)
+			continue;
+
 		subroot = (PlannerInfo *) palloc(sizeof(PlannerInfo));
 		memcpy(subroot, root, sizeof(PlannerInfo));
 		subroot->parent_root = root;
@@ -370,11 +377,6 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		/* Rewrite with mv's query tree*/
 		mvrte->relkind = RELKIND_MATVIEW;
 		mvrte->relid = matviewRel->rd_rel->oid;
-		/*
-		 * AQUMV_FIXME_MVP
-		 * Not sure where it's true from actions even it's not inherit tables.
-		 */
-		mvrte->inh = false;
 		viewQuery->rtable = list_make1(mvrte); /* rewrite to SELECT FROM mv itself. */
 		viewQuery->jointree->quals = (Node *)post_quals; /* Could be NULL, but doesn'y matter for now. */
 
