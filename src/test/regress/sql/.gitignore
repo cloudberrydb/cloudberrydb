@@ -59,3 +59,4 @@
 /external_table_persistent_error_log.sql
 /external_table_union_all.sql
 /directory_table.sql
+/tag.sql

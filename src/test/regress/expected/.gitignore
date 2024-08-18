@@ -62,3 +62,4 @@
 /external_table_union_all_optimizer.out
 /directory_table.out
 /directory_table_optimizer.out
+/tag.out
