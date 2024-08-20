@@ -2093,6 +2093,11 @@ ivm_visible_in_prestate(PG_FUNCTION_ARGS)
 	Oid			tableoid = PG_GETARG_OID(0);
 	ItemPointer itemPtr = PG_GETARG_ITEMPOINTER(1);
 	Oid			matviewOid = PG_GETARG_OID(2);
+	/*
+	CBDB_PG_15_FIXME: Here, we do not use the 4th argument of this function. 
+	Either justify its existence by using it, or remove the 4th argument from
+	the function definition (catalog change).
+	*/
 	ListCell   *lc;
 	bool	result = true;
 	bool	found = false;
@@ -2175,7 +2180,7 @@ get_prestate_rte(RangeTblEntry *rte, MV_TriggerTable *table,
 	initStringInfo(&str);
 	appendStringInfo(&str,
 			"SELECT t.* FROM %s t"
-			" WHERE pg_catalog.ivm_visible_in_prestate(t.tableoid, t.ctid,%d::pg_catalog.oid, t.gp_segment_id)",
+			" WHERE pg_catalog.ivm_visible_in_prestate(t.tableoid, t.ctid, %d::pg_catalog.oid, t.gp_segment_id)",
 				relname, matviewid);
 
 	/*
@@ -2188,6 +2193,8 @@ get_prestate_rte(RangeTblEntry *rte, MV_TriggerTable *table,
 		appendStringInfo(&str," SELECT * FROM %s",
 			tuplestore_get_sharedname(tuplestore));
 	}
+
+	elogif(Debug_print_ivm, INFO, "IVM execute prestate visibilty chek new %s", str.data);
 
 	/* Get a subquery representing pre-state of the table */
 	raw = (RawStmt*)linitial(raw_parser(str.data, RAW_PARSE_DEFAULT));
