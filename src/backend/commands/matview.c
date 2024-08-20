@@ -2911,6 +2911,7 @@ apply_old_delta_with_count(const char *matviewname, Oid matviewRelid, const char
 					(aggs_set != NULL ? aggs_set->data : ""),
 					matviewname);
 #else
+	/* CBDB_IVM_FIXME: use tuplestore to replace temp table. */
 	tempTableName = make_delta_enr_name("temp_old_delta", matviewRelid, gp_command_count);
 
 	initStringInfo(&tselect);
