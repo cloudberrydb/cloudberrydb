@@ -303,6 +303,29 @@ select datastatus from gp_matview_aux where mvname = 'mv2';
  i
 (1 row)
 
+--
+-- test issue https://github.com/cloudberrydb/cloudberrydb/issues/582
+-- test inherits
+--
+begin;
+create table tp_issue_582(i int, j int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+create table tc_issue_582(i int) inherits (tp_issue_582);
+NOTICE:  table has parent, setting distribution columns to match parent table
+NOTICE:  merging column "i" with inherited definition
+insert into tp_issue_582 values(1, 1), (2, 2);
+insert into tc_issue_582 values(1, 1);
+create materialized view mv_tp_issue_582 as select * from tp_issue_582;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'i' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+-- should be null.
+select mvname, datastatus from gp_matview_aux where mvname = 'mv_tp_issue_582';
+ mvname | datastatus 
+--------+------------
+(0 rows)
+
+abort;
 -- test drop table
 select mvname, datastatus from gp_matview_aux where mvname in ('mv0','mv1', 'mv2', 'mv3');
  mvname | datastatus 
