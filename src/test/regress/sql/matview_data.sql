@@ -108,6 +108,20 @@ COPY t2 from stdin;
 \.
 select datastatus from gp_matview_aux where mvname = 'mv2';
 
+--
+-- test issue https://github.com/cloudberrydb/cloudberrydb/issues/582
+-- test inherits
+--
+begin;
+create table tp_issue_582(i int, j int);
+create table tc_issue_582(i int) inherits (tp_issue_582);
+insert into tp_issue_582 values(1, 1), (2, 2);
+insert into tc_issue_582 values(1, 1);
+create materialized view mv_tp_issue_582 as select * from tp_issue_582;
+-- should be null.
+select mvname, datastatus from gp_matview_aux where mvname = 'mv_tp_issue_582';
+abort;
+
 -- test drop table
 select mvname, datastatus from gp_matview_aux where mvname in ('mv0','mv1', 'mv2', 'mv3');
 drop materialized view mv2;
