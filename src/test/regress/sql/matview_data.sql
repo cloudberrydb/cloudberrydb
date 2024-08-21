@@ -128,6 +128,24 @@ drop materialized view mv2;
 drop table t1 cascade;
 select mvname, datastatus from gp_matview_aux where mvname in ('mv0','mv1', 'mv2', 'mv3');
 
+--
+-- test issue https://github.com/cloudberrydb/cloudberrydb/issues/582
+-- test rules
+begin;
+create table t1_issue_582(i int, j int);
+create table t2_issue_582(i int, j int);
+create table t3_issue_582(i int, j int);
+create materialized view mv_t2_issue_582 as select j from t2_issue_582 where i = 1;
+create rule r1 as on insert TO t1_issue_582 do also insert into t2_issue_582 values(1,1);
+select count(*) from t1_issue_582;
+select count(*) from t2_issue_582;
+select mvname, datastatus from gp_matview_aux where mvname = 'mv_t2_issue_582';
+insert into t1_issue_582 values(1,1);
+select count(*) from t1_issue_582;
+select count(*) from t2_issue_582;
+select mvname, datastatus from gp_matview_aux where mvname = 'mv_t2_issue_582';
+abort;
+
 drop schema matview_data_schema cascade;
 reset enable_answer_query_using_materialized_views;
 reset optimizer;

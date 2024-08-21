@@ -1044,8 +1044,9 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 		 * NB: This can't handle well in utility mode, should REFRESH by user
 		 * after that.
 		 */
-		if ((GP_ROLE_DISPATCH == Gp_role && es_processed > 0) ||
-			(IS_SINGLENODE() && (operation != CMD_SELECT) && estate->es_processed > 0))
+		if (IS_QD_OR_SINGLENODE() &&
+			((es_processed > 0 || estate->es_processed > 0) ||
+			!queryDesc->plannedstmt->canSetTag))
 		{
 			if (operation == CMD_INSERT ||
 				operation == CMD_UPDATE ||
