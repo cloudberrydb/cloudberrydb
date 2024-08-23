@@ -214,7 +214,7 @@ static char *get_null_condition_string(IvmOp op, const char *arg1, const char *a
 						  const char* count_col);
 static void apply_old_delta(const char *matviewname, const char *deltaname_old,
 				List *keys);
-static void apply_old_delta_with_count(const char *matviewname, const char *deltaname_old,
+static void apply_old_delta_with_count(const char *matviewname, Oid matviewRelid, const char *deltaname_old,
 				List *keys, StringInfo aggs_list, StringInfo aggs_set,
 				const char *count_colname);
 static void apply_new_delta(const char *matviewname, const char *deltaname_new,
@@ -2565,7 +2565,7 @@ apply_delta(char *old_enr, char *new_enr, MV_TriggerTable *table, Oid matviewOid
 		elogif(Debug_print_ivm, INFO, "IVM apply old enr %s, command_count: %d", enr->md.name, gp_command_count);
 		if (use_count)
 			/* apply old delta and get rows to be recalculated */
-			apply_old_delta_with_count(matviewname, enr->md.name,
+			apply_old_delta_with_count(matviewname, RelationGetRelid(matviewRel), enr->md.name,
 										keys, aggs_list_buf, aggs_set_old,
 										count_colname);
 		else
@@ -2867,10 +2867,12 @@ get_null_condition_string(IvmOp op, const char *arg1, const char *arg2,
  * updating aggregate values.
  */
 static void
-apply_old_delta_with_count(const char *matviewname, const char *deltaname_old,
+apply_old_delta_with_count(const char *matviewname, Oid matviewRelid, const char *deltaname_old,
 				List *keys, StringInfo aggs_list, StringInfo aggs_set,
 				const char *count_colname)
 {
+	const char * tempTableName;
+
 	StringInfoData	querybuf;
 	StringInfoData	tselect;
 	char   *match_cond;
@@ -2879,6 +2881,9 @@ apply_old_delta_with_count(const char *matviewname, const char *deltaname_old,
 	/* build WHERE condition for searching tuples to be deleted */
 	match_cond = get_matching_condition_string(keys);
 
+/* CBDB_IVM_FIXME CBDB does not support multiple-write CTE. Revert to original
+ * query when it will be supported.
+ */
 #if 0
 	initStringInfo(&querybuf);
 	appendStringInfo(&querybuf,
@@ -2907,15 +2912,18 @@ apply_old_delta_with_count(const char *matviewname, const char *deltaname_old,
 					matviewname);
 #else
 	/* CBDB_IVM_FIXME: use tuplestore to replace temp table. */
+	tempTableName = make_delta_enr_name("temp_old_delta", matviewRelid, gp_command_count);
+
 	initStringInfo(&tselect);
 	initStringInfo(&querybuf);
 	appendStringInfo(&tselect,
-					"CREATE TEMP TABLE t AS SELECT diff.%s, "			/* count column */
+					"CREATE TEMP TABLE %s AS SELECT diff.%s, "			/* count column */
 								"(diff.%s OPERATOR(pg_catalog.=) mv.%s AND %s) AS for_dlt, "
 								"mv.ctid AS tid, mv.gp_segment_id AS gid"
 								"%s "				/* aggregate columns */
 						"FROM %s AS mv, %s AS diff "
 						"WHERE %s DISTRIBUTED RANDOMLY",	/* tuple matching condition */
+					tempTableName,
 					count_colname,
 					count_colname, count_colname, (agg_without_groupby ? "false" : "true"),
 					(aggs_list != NULL ? aggs_list->data : ""),
@@ -2925,27 +2933,28 @@ apply_old_delta_with_count(const char *matviewname, const char *deltaname_old,
 	/* Create the temporary table. */
 	if (SPI_exec(tselect.data, 0) != SPI_OK_UTILITY)
 		elog(ERROR, "SPI_exec failed: %s", tselect.data);
+	elogif(Debug_print_ivm, INFO, "IVM apply_old_delta_with_count select: %s", tselect.data);
 
 	/* Search for matching tuples from the view and update or delete if found. */
 	appendStringInfo(&querybuf,
 					"UPDATE %s AS mv SET %s = mv.%s OPERATOR(pg_catalog.-) t.%s "
 											"%s"	/* SET clauses for aggregates */
-						"FROM t WHERE mv.ctid OPERATOR(pg_catalog.=) t.tid"
+						"FROM %s t WHERE mv.ctid OPERATOR(pg_catalog.=) t.tid"
 						" AND mv.gp_segment_id OPERATOR(pg_catalog.=) t.gid"
 						" AND NOT for_dlt ",
 					matviewname, count_colname, count_colname, count_colname,
-					(aggs_set != NULL ? aggs_set->data : ""));
+					(aggs_set != NULL ? aggs_set->data : ""), tempTableName);
 	if (SPI_exec(querybuf.data, 0) != SPI_OK_UPDATE)
 		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
 	elogif(Debug_print_ivm, INFO, "IVM apply_old_delta_with_count update: %s", querybuf.data);
 
 	resetStringInfo(&querybuf);
 	appendStringInfo(&querybuf,
-					"DELETE FROM %s AS mv USING t "
+					"DELETE FROM %s AS mv USING %s t "
 					"WHERE mv.ctid OPERATOR(pg_catalog.=) t.tid"
 					" AND mv.gp_segment_id OPERATOR(pg_catalog.=) t.gid"
 					" AND for_dlt",
-					matviewname);
+					matviewname, tempTableName);
 #endif
 	if (SPI_exec(querybuf.data, 0) != SPI_OK_DELETE)
 		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
@@ -2953,7 +2962,7 @@ apply_old_delta_with_count(const char *matviewname, const char *deltaname_old,
 
 	/* Clean up temp tables. */
 	resetStringInfo(&querybuf);
-	appendStringInfo(&querybuf, "DROP TABLE t");
+	appendStringInfo(&querybuf, "DROP TABLE %s", tempTableName);
 	if (SPI_exec(querybuf.data, 0) != SPI_OK_UTILITY)
 		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
 }
