@@ -111,7 +111,7 @@ check_and_dump_old_cluster(bool live_check, char **sequence_script_file_name)
 	check_for_isn_and_int8_passing_mismatch(&old_cluster);
 
 	/*
-	 * Check for various Cloudberry failure cases
+	 * Check for various Greenplum failure cases
 	 */
 	check_greenplum();
 
@@ -217,7 +217,7 @@ check_and_dump_old_cluster(bool live_check, char **sequence_script_file_name)
 	}
 
 	/*
-	 * Upgrading from Cloudberry 4.3.x which is based on PostgreSQL 8.2.
+	 * Upgrading from Greenplum 4.3.x which is based on PostgreSQL 8.2.
 	 * Upgrading from one version of 4.3.x to another 4.3.x version is not
 	 * supported.
 	 */
@@ -396,7 +396,7 @@ check_cluster_versions(void)
 		GET_MAJOR_VERSION(new_cluster.major_version) == 802)
 	{
 		pg_log(PG_FATAL,
-			   "old and new cluster cannot both be Cloudberry 4.3.x installations\n");
+			   "old and new cluster cannot both be Greenplum 4.3.x installations\n");
 	}
 
 	/*
@@ -405,17 +405,17 @@ check_cluster_versions(void)
 	 */
 
 	/*
-	 * Upgrading from anything older than an 8.2 based Cloudberry is not
+	 * Upgrading from anything older than an 8.2 based Greenplum is not
 	 * supported. TODO: This needs to be amended to check for the actual
 	 * 4.3.x version we target and not a blanket 8.2 check, but for now
 	 * this will cover most cases.
 	 */
 	if (GET_MAJOR_VERSION(old_cluster.major_version) < 802)
-		pg_fatal("This utility can only upgrade from Cloudberry version 4.3.x and later.\n");
+		pg_fatal("This utility can only upgrade from Greenplum version 4.3.x and later.\n");
 
 	/* Only current PG version is supported as a target */
 	if (GET_MAJOR_VERSION(new_cluster.major_version) != GET_MAJOR_VERSION(PG_VERSION_NUM))
-		pg_fatal("This utility can only upgrade to Cloudberry version %s.\n",
+		pg_fatal("This utility can only upgrade to Greenplum version %s.\n",
 				 PG_MAJORVERSION);
 
 	/*
@@ -424,7 +424,7 @@ check_cluster_versions(void)
 	 * older versions.
 	 */
 	if (old_cluster.major_version > new_cluster.major_version)
-		pg_fatal("This utility cannot be used to downgrade to older major Cloudberry versions.\n");
+		pg_fatal("This utility cannot be used to downgrade to older major Greenplum versions.\n");
 
 	/* Ensure binaries match the designated data directories */
 	if (GET_MAJOR_VERSION(old_cluster.major_version) !=
