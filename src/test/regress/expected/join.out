@@ -3481,7 +3481,6 @@ where t1.unique2 < 42 and t1.stringu1 > t2.stringu2;
  Optimizer: Postgres query optimizer
 (17 rows)
 
-
 select t1.unique2, t1.stringu1, t2.unique1, t2.stringu2 from
   tenk1 t1
   inner join int4_tbl i1

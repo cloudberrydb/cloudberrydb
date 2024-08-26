@@ -551,16 +551,36 @@ analyze analyze_table;
 SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
 
 -- test6: randomly table
+-- we use weighted mean algorithm to calculate correlations.
+-- the formula for calculating the weighted mean is:
+-- sum(correlationOnSeg[i] * (totalRowsOnSeg[i] / totalRows))
+-- i is from 0 to N. N is the number of segments.
+-- however, for randomly table the data in each segment may diff each time.
+-- it will affect the value of correlation.
+-- So ignore the results
 drop table analyze_table;
 create table analyze_table(tc1 int,tc2 int) distributed randomly;
 insert into analyze_table select i,i from generate_series(1,100) i;
 analyze analyze_table;
+-- start_ignore
 SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
+-- end_ignore
 alter table analyze_table drop column tc1;
+analyze analyze_table;
+-- start_ignore
+SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
+-- end_ignore
+
+-- test7: replicated table
+drop table analyze_table;
+create table analyze_table(tc1 int,tc2 int) distributed replicated;
+insert into analyze_table select i,i from generate_series(1,100) i;
+analyze analyze_table;
+SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
 analyze analyze_table;
 SELECT correlation FROM pg_stats WHERE tablename ='analyze_table';
 
--- test7: inherit table
+-- test8: inherit table
 drop table analyze_parent cascade;
 create table analyze_parent (tc1 int,tc2 int);
 create table analyze_child(tc3 int,tc4 int)inherits (analyze_parent);
@@ -571,7 +591,7 @@ analyze analyze_parent;
 SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='analyze_parent';
 SELECT correlation,attname,inherited FROM pg_stats WHERE tablename ='analyze_child';
 
--- test8: partition table test
+-- test9: partition table test
 CREATE TABLE partition_table (
     tc1 int,
     tc2 int

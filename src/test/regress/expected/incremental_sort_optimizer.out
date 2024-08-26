@@ -1551,8 +1551,8 @@ from tenk1 t1
 join tenk1 t2 on t1.unique1 = t2.unique2
 join tenk1 t3 on t2.unique1 = t3.unique1
 order by count(*);
-                                           QUERY PLAN
-------------------------------------------------------------------------------------------------
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
  Sort
    Sort Key: (count(*))
    ->  Finalize Aggregate
@@ -1563,6 +1563,7 @@ order by count(*);
                            ->  Redistribute Motion 3:3  (slice2; segments: 3)
                                  Hash Key: t2.unique2
                                  ->  Hash Join
+<<<<<<< HEAD
                                        Hash Cond: (t3.unique1 = t2.unique1)
                                        ->  Index Only Scan using tenk1_unique1 on tenk1 t3
                                        ->  Hash
@@ -1572,6 +1573,16 @@ order by count(*);
                                  ->  Index Only Scan using tenk1_unique1 on tenk1 t1
  Optimizer: Postgres query optimizer
 (18 rows)
+=======
+                                       Hash Cond: (t2.unique1 = t3.unique1)
+                                       ->  Index Scan using tenk1_unique2 on tenk1 t2
+                                       ->  Hash
+                                             ->  Index Only Scan using tenk1_unique1 on tenk1 t3
+                           ->  Hash
+                                 ->  Index Only Scan using tenk1_unique1 on tenk1 t1
+ Optimizer: Pivotal Optimizer (GPORCA)
+(17 rows)
+>>>>>>> Send rows in binary mode for ANALYZE (#15159)
 
 -- Parallel sort but with expression (correlated subquery) that
 -- is prohibited in parallel plans.
