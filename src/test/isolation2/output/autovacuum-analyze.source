@@ -178,6 +178,11 @@ SELECT gp_inject_fault('analyze_finished_one_relation', 'reset', 1);
 -----------------
  Success:        
 (1 row)
+SELECT pg_sleep(5);
+ pg_sleep 
+----------
+          
+(1 row)
 
 -- Should have statistic updated.
 SELECT count(*) FROM pg_statistic where starelid = 'rankpart_1_prt_extra'::regclass;

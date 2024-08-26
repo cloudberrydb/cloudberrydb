@@ -336,6 +336,16 @@ SELECT SUM(j), COUNT(j), AVG(j) FROM mv_base_a;
 (1 row)
 
 ROLLBACK;
+-- TRUNCATE a base table without transaction block.
+CREATE TABLE mv_base_simple(i int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+CREATE INCREMENTAL MATERIALIZED VIEW mv_ivm_simple AS SELECT * FROM mv_base_simple;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'i' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+TRUNCATE mv_base_simple;
+DROP TABLE mv_base_simple CASCADE;
+NOTICE:  drop cascades to materialized view mv_ivm_simple
 -- resolved issue: When use AVG() function and values is indivisible, result of AVG() is incorrect.
 BEGIN;
 CREATE INCREMENTAL MATERIALIZED VIEW mv_ivm_avg_bug AS SELECT i, SUM(j), COUNT(j), AVG(j) FROM mv_base_A GROUP BY i;

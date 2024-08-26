@@ -227,7 +227,8 @@ bool		gp_debug_resqueue_priority = false;
 int			gp_resource_group_cpu_priority;
 double		gp_resource_group_cpu_limit;
 bool		gp_resource_group_bypass;
-bool		gp_resource_group_enable_cgroup_version_two;
+bool		gp_resource_group_bypass_catalog_query;
+bool		gp_resource_group_bypass_direct_dispatch;
 
 /* Metrics collector debug GUC */
 bool		vmem_process_interrupt = false;
@@ -2839,12 +2840,21 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"gp_resource_group_enable_cgroup_version_two", PGC_POSTMASTER, RESOURCES,
-			gettext_noop("Enable linux cgroup version 2"),
+		{"gp_resource_group_bypass_catalog_query", PGC_USERSET, RESOURCES,
+			gettext_noop("Bypass all catalog only queries."),
 			NULL
 		},
-		&gp_resource_group_enable_cgroup_version_two,
-		false, NULL, NULL
+		&gp_resource_group_bypass_catalog_query,
+		true, NULL, NULL
+	},
+
+	{
+		{"gp_resource_group_bypass_direct_dispatch", PGC_USERSET, RESOURCES,
+			gettext_noop("Bypass direct dispatch plan."),
+			NULL
+		},
+		&gp_resource_group_bypass_direct_dispatch,
+		true, NULL, NULL
 	},
 
 	{
@@ -4001,6 +4011,16 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&gp_resource_group_queuing_timeout,
 		0, 0, INT_MAX,
+		NULL, NULL, NULL
+	},
+	{
+		{"gp_resource_group_move_timeout", PGC_USERSET, RESOURCES_MGM,
+			gettext_noop("Wait up to the specified time (in ms) while moving process to another resource group (after queuing on it) before give up."),
+			NULL,
+			GUC_UNIT_MS
+		},
+		&gp_resource_group_move_timeout,
+		30000, 10, INT_MAX,
 		NULL, NULL, NULL
 	},
 	{

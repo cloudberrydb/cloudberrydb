@@ -24,12 +24,7 @@ test: gp_dispatch_keepalives
 # copy form a file with different EOL
 test: copy_eol
 
-# gp_toolkit performs a vacuum and checks that it truncated the relation. That
-# might not happen if other backends are holding transactions open, preventing
-# vacuum from removing dead tuples. And run gp_toolkit early to make some log
-# file related tests (like gp_log_system, etc) faster.
 test: disable_autovacuum
-test: gp_toolkit
 test: python_processed64bit
 test: enable_autovacuum
 
@@ -165,7 +160,7 @@ test: resource_group_gucs
 test: wrkloadadmin
 
 # expand_table tests may affect the result of 'gp_explain', keep them below that
-test: gp_toolkit_ao_funcs trig auth_constraint role portals_updatable plpgsql_cache timeseries pg_stat_last_operation pg_stat_last_shoperation gp_numeric_agg partindex_test partition_pruning runtime_stats expand_table expand_table_ao expand_table_aoco expand_table_regression shrink_table
+test: trig auth_constraint role portals_updatable plpgsql_cache timeseries pg_stat_last_operation pg_stat_last_shoperation gp_numeric_agg partindex_test partition_pruning runtime_stats expand_table expand_table_ao expand_table_aoco expand_table_regression shrink_table
 
 # direct dispatch tests
 test: direct_dispatch bfv_dd bfv_dd_multicolumn bfv_dd_types
@@ -334,5 +329,12 @@ test: bfv_meta_track
 
 # tests of ao/aoco seg file count for parallel plan
 test: ao_segfile
+
+# test CREATE UNIQUE INDEX on AO/CO tables.
+test: uao_dml/ao_unique_index_build_row uao_dml/ao_unique_index_build_column
+
+# run this at the end of the schedule for more chance to catch abnormalities
+# different CI env with GPDB
+# test: gp_check_files
 
 # end of tests

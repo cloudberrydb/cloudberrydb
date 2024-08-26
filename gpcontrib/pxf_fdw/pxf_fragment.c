@@ -5,7 +5,7 @@
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"
 #include "commands/copy.h"
-#if (PG_VERSION_NUM <= 140000)
+#if (PG_VERSION_NUM >= 140000)
 #include "commands/copyfrom_internal.h"
 #endif
 #include "common/jsonapi.h"

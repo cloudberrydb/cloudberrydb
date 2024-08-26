@@ -28,6 +28,7 @@
 /external_table.sql
 /filespace.sql
 /gpcopy.sql
+/gp_check_files.sql
 /gp_dispatch_keepalives.sql
 /gp_tablespace_path_too_long.sql
 /gp_tablespace.sql
@@ -58,3 +59,4 @@
 /external_table_persistent_error_log.sql
 /external_table_union_all.sql
 /directory_table.sql
+/tag.sql

@@ -108,10 +108,10 @@ RangeVarCallbackForLockTable(const RangeVar *rv, Oid relid, Oid oldrelid,
 
 	/* Currently, we only allow plain tables or views to be locked */
 	if (relkind != RELKIND_RELATION && relkind != RELKIND_PARTITIONED_TABLE &&
-		relkind != RELKIND_VIEW)
+		relkind != RELKIND_VIEW && relkind != RELKIND_DIRECTORY_TABLE)
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-				 errmsg("\"%s\" is not a table or view",
+				 errmsg("\"%s\" is not a table, directory table or view",
 						rv->relname)));
 
 #if 0 /* Upstream code not applicable to GPDB */

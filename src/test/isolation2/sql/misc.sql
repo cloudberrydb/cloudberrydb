@@ -44,3 +44,29 @@
       JOIN pg_namespace n2
         ON n2.nspname = 'pg_toast_temp_0' || substring(n1.nspname FROM 10)
      WHERE c.relname = 'utilitymode_tmp_tab';
+
+--
+-- gp_dist_random('<view>') should not crash in utility mode
+-- 
+create or replace view misc_v as select 1;
+0U: select 1 from gp_dist_random('misc_v') union select 1 from misc_v;
+0U: select count(*) from gp_dist_random('misc_v');
+-- But views created in utility mode should not throw away gp_dist_random
+0U: create or replace view misc_v2 as select 1 from gp_dist_random('pg_class');
+0U: select definition from pg_views where viewname = 'misc_v2';
+0U: select count(*) > 0 from gp_dist_random('misc_v2');
+0U: drop view misc_v2;
+drop view misc_v;
+
+--
+-- gp_toolkit.gp_check_orphaned_files should not be running with concurrent transaction (even idle)
+--
+-- use a different database to do the test, otherwise we might be reporting tons 
+-- of orphaned files produced by the many intential PANICs/restarts in the isolation2 tests.
+create database check_orphaned_db;
+1:@db_name check_orphaned_db: begin;
+2:@db_name check_orphaned_db: select * from gp_toolkit.gp_check_orphaned_files;
+1q:
+2q:
+
+drop database check_orphaned_db;

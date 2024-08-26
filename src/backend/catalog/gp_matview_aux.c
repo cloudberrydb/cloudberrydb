@@ -20,6 +20,7 @@
 #include "catalog/dependency.h"
 #include "catalog/gp_matview_aux.h"
 #include "catalog/gp_matview_tables.h"
+#include "catalog/pg_inherits.h"
 #include "catalog/pg_type.h"
 #include "catalog/indexing.h"
 #include "cdb/cdbvars.h"
@@ -89,6 +90,17 @@ GetViewBaseRelids(const Query *viewQuery)
 
 	/* Only support normal relation now. */
 	if (get_rel_relkind(rte->relid) != RELKIND_RELATION)
+		return NIL;
+
+	/*
+	 * inherit tables are not supported.
+	 * FIXME: left a door for partition table which will be supported soon.
+	 */
+	bool can_be_partition = (get_rel_relkind(rte->relid) == RELKIND_PARTITIONED_TABLE) ||
+								get_rel_relispartition(rte->relid);
+
+	if (!can_be_partition &&
+		(has_superclass(rte->relid) || has_subclass(rte->relid)))
 		return NIL;
 
 	relids = list_make1_oid(rte->relid);

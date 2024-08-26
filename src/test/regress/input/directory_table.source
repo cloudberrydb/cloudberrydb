@@ -206,6 +206,7 @@ CREATE DIRECTORY TABLE IF NOT EXISTS dir_table4 TABLESPACE directory_tblspc;
 CREATE DIRECTORY TABLE IF NOT EXISTS dir_table2 TABLESPACE directory_tblspc;    -- fail
 CREATE DIRECTORY TABLE dir_table5 TABLESPACE directory_tblspc;
 CREATE DIRECTORY TABLE dir_table6 TABLESPACE pg_default;
+CREATE DIRECTORY TABLE "abs.dir_table";
 
 SELECT count(*) FROM pg_directory_table;
 SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname like '%dir_table%' ORDER BY 1;
@@ -235,6 +236,17 @@ SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname
 SELECT count(*) FROM pg_directory_table;
 SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname like '%dir_table%' ORDER BY 1;
 \c regression
+
+--Test Lock directory table
+BEGIN;
+LOCK TABLE dir_table1 IN ACCESS SHARE MODE;
+LOCK TABLE dir_table1 IN ACCESS EXCLUSIVE MODE;
+COMMIT;
+
+BEGIN;
+LOCK TABLE dir_table1 IN ACCESS SHARE MODE;
+LOCK TABLE dir_table1 IN ACCESS EXCLUSIVE MODE;
+ROLLBACK;
 
 -- Test CREATE/DROP/REINDEX on DIRECTORY SCHEMA TABLE
 -- Test CREATE INDEX on DIRECTORY SCHEMA TABLE
@@ -291,12 +303,6 @@ create trigger trigtest_a_stmt_tg_dirtable_1 after insert or update or delete on
 for each statement execute procedure triggertest();
 
 -- Test COPY DIRECTORY TABLE syntax
-CREATE TEMP TABLE temp_dir(a int, b varchar) DISTRIBUTED BY (a);
-INSERT INTO temp_dir select i, repeat('fwqfasdfqjeofqhewoufhqewfphpdsadjfhqewufhqw0efpqwefuhaeufpqepfiuhqefqewpfqehwoufqpwefhqwpuefhqwpi
-ufdsahfpqefiqefqehfuqwhfoqhwoefuhqwouefhqwouefsakjfnqne34289340128rhqepefn10u1fu910fu14h01hhr104hrhewoqeur10qiwuehrp1j30rp1jrojpruhuqoeh
-1-r-r4ajrgn52-g248uf24u3ifq', 9) from generate_series(1, 4999999) i;
-COPY temp_dir TO '@abs_srcdir@/data/temp.csv';
-
 SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
 SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
 
@@ -312,8 +318,8 @@ SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation2';    -- fail
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation4' WITH TAG 'nation';
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation5' WITH TAG 'nation' WITH TAG 'nation2';    -- fail
-\COPY BINARY dir_table1 FROM '@abs_srcdir@/data/temp.csv' 'temp' WITH TAG 'TEMP';   -- OK
 SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
+SELECT relative_path, content FROM directory_table('dir_table1') ORDER BY 1;
 
 COPY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv';     -- fail
 COPY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation';  -- fail
@@ -325,8 +331,13 @@ COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation3'
 COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation2';    -- fail
 COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation4' WITH TAG 'nation';
 COPY BINARY dir_table2 FROM PROGRAM 'cat @abs_srcdir@/data/nation.csv' 'nation5' WITH TAG 'nation' WITH TAG 'nation2';    -- fail
-COPY BINARY dir_table2 FROM '@abs_srcdir@/data/temp.csv' 'temp';   -- OK
 SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
+SELECT relative_path, content FROM directory_table('dir_table2') ORDER BY 1;
+
+\COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation.txt';   -- OK
+COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation2.txt';   -- OK
+\COPY BINARY "abs.dir_table" FROM '@abs_srcdir@/data/nation.csv' 'aa.bb';    -- OK
+COPY BINARY "abs.dir_table" FROM '@abs_srcdir@/data/nation.csv' 'cc.dd';    -- OK
 
 -- Test copy binary from directory table
 \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation_failed' (format CSV);
@@ -360,9 +371,6 @@ COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation_failed' (forc
 COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation_failed' (force_null (a));
 COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation_failed' (convert_selectively (a));
 COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation_failed' (encoding 'sql_ascii');
-
-SELECT remove_file('dir_table1', 'temp');
-SELECT remove_file('dir_table2', 'temp');
 
 -- Test copy file content md5
 CREATE OR REPLACE FUNCTION file_content(text, text) RETURNS BYTEA LANGUAGE SQL AS
@@ -406,28 +414,41 @@ COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO stdout; -- OK
 \COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO PROGRAM 'gzip -c -1 > @abs_srcdir@/data/nation2.gz';   -- OK
 COPY BINARY DIRECTORY TABLE dir_table1 'nation2' TO PROGRAM 'gzip -c -1 > @abs_srcdir@/data/nation2.gz';   -- OK
 
+\COPY BINARY DIRECTORY TABLE "abs.dir_table" 'aa.bb' TO '@abs_srcdir@/data/aa.bb';   -- OK
+COPY BINARY DIRECTORY TABLE "abs.dir_table" 'cc.dd' TO '@abs_srcdir@/data/cc.dd';    -- OK
+\COPY BINARY DIRECTORY TABLE dir_table1 'nation.txt' TO '@abs_srcdir@/data/nation.txt'; -- OK
+COPY BINARY DIRECTORY TABLE dir_table1 'nation2.txt' TO '@abs_srcdir@/data/nation2.txt'; -- OK
+\COPY BINARY DIRECTORY TABLE public.dir_table1 'nation.txt' TO '@abs_srcdir@/data/nation3.txt'; -- OK
+COPY BINARY DIRECTORY TABLE public.dir_table1 'nation2.txt' TO '@abs_srcdir@/data/nation4.txt'; -- OK
+
+
 SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
 SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
 
 -- Test join between two directory schema tables
 ANALYZE dir_table1;
 ANALYZE dir_table2;
-
 EXPLAIN (COSTS OFF) SELECT dir_table1.relative_path FROM dir_table1, dir_table2
 WHERE dir_table1.relative_path = dir_table2.relative_path ORDER BY 1;
 SELECT dir_table1.relative_path FROM dir_table1, dir_table2
 WHERE dir_table1.relative_path = dir_table2.relative_path ORDER BY 1;
 
+ANALYZE dir_table1;
+ANALYZE dir_table2;
 EXPLAIN (COSTS OFF) SELECT dir_table1.relative_path FROM dir_table1, dir_table2
 WHERE dir_table1.size = dir_table2.size ORDER BY 1 LIMIT 1;
 SELECT dir_table1.relative_path FROM dir_table1, dir_table2
 WHERE dir_table1.size = dir_table2.size ORDER BY 1 LIMIT 1;
 
+ANALYZE dir_table1;
+ANALYZE dir_table2;
 EXPLAIN (COSTS OFF) SELECT dir_table1.relative_path FROM dir_table1, dir_table2
 WHERE dir_table1.md5 = dir_table2.md5 ORDER BY 1 LIMIT 1;
 SELECT dir_table1.relative_path FROM dir_table1, dir_table2
 WHERE dir_table1.md5 = dir_table2.md5 ORDER BY 1 LIMIT 1;
 
+ANALYZE dir_table1;
+ANALYZE dir_table2;
 EXPLAIN (COSTS OFF) SELECT dir_table1.relative_path FROM dir_table1, dir_table2
 WHERE dir_table1.tag = dir_table2.tag ORDER BY 1;
 SELECT dir_table1.relative_path FROM dir_table1, dir_table2
@@ -621,6 +642,7 @@ DROP DIRECTORY TABLE IF EXISTS dir_table3;
 DROP DIRECTORY TABLE IF EXISTS dir_table4;
 DROP DIRECTORY TABLE IF EXISTS dir_table5;
 DROP DIRECTORY TABLE IF EXISTS dir_table6;
+DROP DIRECTORY TABLE IF EXISTS "abs.dir_table";
 
 DROP FUNCTION IF EXISTS triggertest;
 
@@ -667,6 +689,5 @@ DROP TRIGGER IF EXISTS trigtest_b_stmt_tg_dirtable_1 ON dir_table1;
 DROP TRIGGER IF EXISTS trigtest_a_stmt_tg_dirtable_1 ON dir_table1;
 
 \!rm -rf @testtablespace@;
-\!rm -rf @abs_srcdir@/data/temp.csv
 
 DROP TABLESPACE directory_tblspc;

@@ -1,9 +1,9 @@
 -- Mixed test for local directory table
 -- setup for temp tablespace
-! rm -rf '@testtablespace@';
-! mkdir -p '@testtablespace@';
+! rm -rf '@testtablespace@/local_directory_table_mixed/';
+! mkdir -p '@testtablespace@/local_directory_table_mixed/';
 DROP TABLESPACE IF EXISTS directory_tblspc;
-CREATE TABLESPACE directory_tblspc LOCATION '@testtablespace@';
+CREATE TABLESPACE directory_tblspc LOCATION '@testtablespace@/local_directory_table_mixed/';
 
 CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 
@@ -128,7 +128,6 @@ CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 1: COMMIT;
 2: COMMIT;
 
-! rm -rf '@testtablespace@';
 DROP TABLESPACE directory_tblspc;
 DROP DIRECTORY TABLE dir_table1;
 DROP DIRECTORY TABLE dir_table2;

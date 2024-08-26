@@ -27,16 +27,14 @@ create index foo_id_idx on co_nestloop_idxscan.foo(id);
 explain select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..499.13 rows=1 width=8)
-   ->  Nested Loop  (cost=0.00..499.13 rows=1 width=8)
-         Join Filter: true
-         ->  Seq Scan on bar  (cost=0.00..431.00 rows=1 width=8)
-         ->  Bitmap Heap Scan on foo  (cost=0.00..68.13 rows=1 width=8)
-               Recheck Cond: (id = bar.id)
-               ->  Bitmap Index Scan on foo_id_idx  (cost=0.00..0.00 rows=0 width=0)
-                     Index Cond: (id = bar.id)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.72.0
-(9 rows)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=1.02..510.33 rows=6 width=8)
+   ->  Hash Join  (cost=1.02..510.25 rows=2 width=8)
+         Hash Cond: (f.id = b.id)
+         ->  Seq Scan on foo f  (cost=0.00..509.17 rows=17 width=8)
+         ->  Hash  (cost=1.01..1.01 rows=1 width=8)
+               ->  Seq Scan on bar b  (cost=0.00..1.01 rows=1 width=8)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
  id 
@@ -51,16 +49,15 @@ set enable_nestloop=on;
 explain select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..499.13 rows=1 width=8)
-   ->  Nested Loop  (cost=0.00..499.13 rows=1 width=8)
-         Join Filter: true
-         ->  Seq Scan on bar  (cost=0.00..431.00 rows=1 width=8)
-         ->  Bitmap Heap Scan on foo  (cost=0.00..68.13 rows=1 width=8)
-               Recheck Cond: (id = bar.id)
-               ->  Bitmap Index Scan on foo_id_idx  (cost=0.00..0.00 rows=0 width=0)
-                     Index Cond: (id = bar.id)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.72.0
-(9 rows)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=8.15..13.26 rows=6 width=8)
+   ->  Nested Loop  (cost=8.15..13.18 rows=2 width=8)
+         ->  Seq Scan on bar b  (cost=0.00..1.01 rows=1 width=8)
+         ->  Bitmap Heap Scan on foo f  (cost=8.15..12.16 rows=1 width=8)
+               Recheck Cond: (id = b.id)
+               ->  Bitmap Index Scan on foo_id_idx  (cost=0.00..8.15 rows=1 width=0)
+                     Index Cond: (id = b.id)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
  id 
@@ -76,16 +73,15 @@ set enable_seqscan = off;
 explain select f.id from co_nestloop_idxscan.bar b, co_nestloop_idxscan.foo f where f.id = b.id;
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..499.13 rows=1 width=8)
-   ->  Nested Loop  (cost=0.00..499.13 rows=1 width=8)
-         Join Filter: true
-         ->  Seq Scan on bar  (cost=0.00..431.00 rows=1 width=8)
-         ->  Bitmap Heap Scan on foo  (cost=0.00..68.13 rows=1 width=8)
-               Recheck Cond: (id = bar.id)
-               ->  Bitmap Index Scan on foo_id_idx  (cost=0.00..0.00 rows=0 width=0)
-                     Index Cond: (id = bar.id)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.72.0
-(9 rows)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=10000000008.15..10000000013.26 rows=6 width=8)
+   ->  Nested Loop  (cost=10000000008.15..10000000013.18 rows=2 width=8)
+         ->  Seq Scan on bar b  (cost=10000000000.00..10000000001.01 rows=1 width=8)
+         ->  Bitmap Heap Scan on foo f  (cost=8.15..12.16 rows=1 width=8)
+               Recheck Cond: (id = b.id)
+               ->  Bitmap Index Scan on foo_id_idx  (cost=0.00..8.15 rows=1 width=0)
+                     Index Cond: (id = b.id)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
  id 

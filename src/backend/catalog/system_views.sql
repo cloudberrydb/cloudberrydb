@@ -1049,6 +1049,15 @@ CREATE VIEW pg_stat_replication AS
         JOIN pg_stat_get_wal_senders() AS W ON (S.pid = W.pid)
         LEFT JOIN pg_authid AS U ON (S.usesysid = U.oid);
 
+-- FIXME: remove it after 0d0fdc75ae5b72d42be549e234a29546efe07ca2
+CREATE VIEW gp_stat_activity AS 
+    SELECT gp_execution_segment() as gp_segment_id, * FROM gp_dist_random('pg_stat_activity') 
+    UNION ALL SELECT -1 as gp_segment_id, * from pg_stat_activity;
+
+CREATE VIEW gp_settings AS 
+    SELECT gp_execution_segment() as gp_segment_id, * FROM gp_dist_random('pg_settings') 
+    UNION ALL SELECT -1 as gp_segment_id, * from pg_settings;
+
 CREATE FUNCTION gp_stat_get_master_replication() RETURNS SETOF RECORD AS
 $$
     SELECT pg_catalog.gp_execution_segment() AS gp_segment_id, *

@@ -147,6 +147,14 @@ s/.//gs
 m/HINT:  For non-partitioned tables, run analyze .+\. For partitioned tables, run analyze rootpartition .+\. See log for columns missing statistics\./
 s/.//gs
 
+m/INFO:  GPORCA failed to produce a plan, falling back to planner/
+s/.//gs
+m/DETAIL:  Operator Fallback: InnerIndexNestLoopJoin may have wrong plan not supported/
+s/.//gs
+m/DETAIL:  Feature not supported: hash partitioning/
+s/.//gs
+
+
 m/connection to server at "localhost" (.*), port .* failed: /
 s/.//gs
 

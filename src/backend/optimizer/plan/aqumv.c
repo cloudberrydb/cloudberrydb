@@ -174,7 +174,8 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		/*
 		 * AQUMV
 		 * Currently the data of IVM is always up-to-date if there were.
-		 * Take care of this when IVM defered-fefresh is supported(in SERVERLESS mode).
+		 * However, we place this future-proof condition to take
+		 * care of IVM deferred maintenance/incremental refresh feature (in SERVERLESS mode).
 		 * 
 		 * Normal materialized views could also be used if its data is up to date.
 		 */
@@ -251,6 +252,13 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * Must be same relation, recursiviely embeded mv is not supported now.
 		 */
 		if (mvrte->relid != origin_rel_oid)
+			continue;
+
+		/*
+		 * Check if it actually has children here to match before planning.
+		 */
+		mvrte->inh = has_subclass(mvrte->relid);
+		if (mvrte->inh)
 			continue;
 
 		subroot = (PlannerInfo *) palloc(sizeof(PlannerInfo));
@@ -370,11 +378,6 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		/* Rewrite with mv's query tree*/
 		mvrte->relkind = RELKIND_MATVIEW;
 		mvrte->relid = matviewRel->rd_rel->oid;
-		/*
-		 * AQUMV_FIXME_MVP
-		 * Not sure where it's true from actions even it's not inherit tables.
-		 */
-		mvrte->inh = false;
 		viewQuery->rtable = list_make1(mvrte); /* rewrite to SELECT FROM mv itself. */
 		viewQuery->jointree->quals = (Node *)post_quals; /* Could be NULL, but doesn'y matter for now. */
 
@@ -693,10 +696,10 @@ void aqumv_adjust_simple_query(Query *viewQuery)
 	 * AQUMV
 	 * We have to rewrite now before we do the real Equivalent
 	 * Transformation 'rewrite'.
-	 * Because actions sotored in rule is not a normal query tree,
-	 * it can't be used directly, ex: new/old realtions used to
+	 * Because actions stored in rule is not a normal query tree,
+	 * it can't be used directly, with exception to new/old relations used to
 	 * refresh mv.
-	 * Earse unused relatoins, keep the right one.
+	 * Erase unused relations, keep the right one.
 	 */
 	foreach (lc, viewQuery->rtable)
 	{

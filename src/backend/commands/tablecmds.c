@@ -120,6 +120,7 @@
 #include "utils/metrics_utils.h"
 #include "utils/partcache.h"
 #include "utils/relcache.h"
+#include "utils/resgroup.h"
 #include "utils/ruleutils.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
@@ -18292,6 +18293,7 @@ ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd, 
 		queryDesc->ddesc = makeNode(QueryDispatchDesc);
 		queryDesc->ddesc->useChangedAOOpts = false;
 
+		check_and_unassign_from_resgroup(queryDesc->plannedstmt);
 		queryDesc->plannedstmt->query_mem =
 				ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 
@@ -18304,7 +18306,9 @@ ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd, 
 		ExecutorFinish(queryDesc);
 		ExecutorEnd(queryDesc);
 
-		auto_stats(cmdType, relationOid, queryDesc->es_processed, false);
+		
+		auto_stats(cmdType, relationOid, queryDesc->es_processed,
+				   already_under_executor_run() || utility_nested());
 
 		FreeQueryDesc(queryDesc);
 
@@ -18822,6 +18826,7 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 			if (query_info_collect_hook)
 				(*query_info_collect_hook)(METRICS_QUERY_SUBMIT, queryDesc);
 
+			check_and_unassign_from_resgroup(queryDesc->plannedstmt);
 			queryDesc->plannedstmt->query_mem =
 				ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 
@@ -18836,8 +18841,10 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 			ExecutorEnd(queryDesc);
 
 			if (Gp_role == GP_ROLE_DISPATCH)
-				auto_stats(cmdType, relationOid, queryDesc->es_processed,
-								false);
+			{
+				bool inFunction = already_under_executor_run() || utility_nested();
+				auto_stats(cmdType, relationOid, queryDesc->es_processed, inFunction);
+			}
 
 			FreeQueryDesc(queryDesc);
 

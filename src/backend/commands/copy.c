@@ -46,6 +46,7 @@
 #include "storage/execute_pipe.h"
 #include "tcop/tcopprot.h"
 #include "utils/acl.h"
+#include "tcop/utility.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
@@ -172,7 +173,7 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 						 errhint("Anyone can COPY to stdout or from stdin. "
 								 "psql's \\copy command also works for anyone.")));
 
-			if (!is_from && !is_member_of_role(GetUserId(), ROLE_PG_WRITE_SERVER_FILES))
+			if (!is_from && !is_member_of_role(GetUserId(), ROLE_PG_WRITE_SERVER_FILES) && rel->rd_rel->relkind != RELKIND_DIRECTORY_TABLE)
 				ereport(ERROR,
 						(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 						 errmsg("must be superuser or a member of the pg_write_server_files role to COPY to a file"),
@@ -537,7 +538,10 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 
 	/* Issue automatic ANALYZE if conditions are satisfied (MPP-4082). */
 	if (Gp_role == GP_ROLE_DISPATCH && is_from)
-		auto_stats(AUTOSTATS_CMDTYPE_COPY, relid, *processed, false /* inFunction */);
+	{
+		bool inFunction = already_under_executor_run() || utility_nested();
+		auto_stats(AUTOSTATS_CMDTYPE_COPY, relid, *processed, inFunction);
+	}
 }
 
 /*
