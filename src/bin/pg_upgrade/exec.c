@@ -33,7 +33,9 @@ static void
 get_bin_version(ClusterInfo *cluster)
 {
 	char		cmd[MAXPGPATH],
-				cmd_output[MAX_STRING];
+				cmd_output[MAX_STRING],
+				dbstring[MAX_STRING];
+
 	FILE	   *output;
 	int			v1 = 0,
 				v2 = 0;
@@ -47,8 +49,11 @@ get_bin_version(ClusterInfo *cluster)
 
 	pclose(output);
 
-	if (sscanf(cmd_output, "%*s (Cloudberry Database) %d.%d", &v1, &v2) < 1)
+	if (sscanf(cmd_output, "%*s (%s Database) %d.%d", dbstring, &v1, &v2) < 1)
 		pg_fatal("could not get pg_ctl version output from %s\n", cmd);
+
+	if (strcmp("Greenplum", dbstring) && strcmp("Cloudberry", dbstring))
+		pg_fatal("could not upgrade from non Greenplum/Cloudberry version: %s\n", dbstring);
 
 	if (v1 < 10)
 	{
