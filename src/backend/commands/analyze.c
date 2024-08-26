@@ -139,7 +139,8 @@
 #include "utils/hyperloglog/gp_hyperloglog.h"
 #include "utils/snapmgr.h"
 #include "utils/typcache.h"
-
+#include "executor/tstoreReceiver.h"
+#include "tcop/utility.h"
 
 /*
  * For Hyperloglog, we define an error margin of 0.3%. If the number of
@@ -169,6 +170,7 @@ static MemoryContext anl_context = NULL;
 static BufferAccessStrategy vac_strategy;
 
 Bitmapset	**acquire_func_colLargeRowIndexes;
+double		 *acquire_func_colLargeRowLength;
 
 
 static void do_analyze_rel(Relation onerel,
@@ -187,6 +189,7 @@ static int acquire_sample_rows_dispatcher(Relation onerel, bool inh, int elevel,
 										  double *totalrows, double *totaldeadrows);
 static BlockNumber acquire_index_number_of_blocks(Relation indexrel, Relation tablerel);
 
+static void gp_acquire_correlations_dispatcher(Oid relOid, bool inh, float4 *correlations, bool *correlationsIsNull);
 static int	compare_rows(const void *a, const void *b);
 static void update_attstats(Oid relid, bool inh,
 							int natts, VacAttrStats **vacattrstats);
@@ -493,6 +496,7 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 	int			save_nestlevel;
 
 	Bitmapset **colLargeRowIndexes;
+	double     *colLargeRowLength;
 	bool		sample_needed;
 
 	int64		AnalyzePageHit = VacuumPageHit;
@@ -719,6 +723,7 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 	 * Maintain information if the row of a column exceeds WIDTH_THRESHOLD
 	 */
 	colLargeRowIndexes = (Bitmapset **) palloc0(sizeof(Bitmapset *) * onerel->rd_att->natts);
+	colLargeRowLength = (double *)palloc0(sizeof(double) * onerel->rd_att->natts);
 
 	if ((params->options & VACOPT_FULLSCAN) != 0)
 	{
@@ -740,10 +745,18 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 		/*
 		 * Acquire the sample rows
 		 *
-		 * colLargeRowindexes is passed out-of-band, in a global variable,
+		 * colLargeRowIndexes is passed out-of-band, in a global variable,
 		 * to avoid changing the function signature from upstream's.
+		 *
+		 * The same as colLargeRowIndexes. colLargeRowLength stores total
+		 * length of too wide rows in the sample for every attribute of
+		 * the target relation. ANALYZE ignores too wide columns during
+		 * analysis(See comments of WIDTH_THRESHOLD), the stawidth can be
+		 * far smaller than the real average width for varlena datums which
+		 * are larger than WIDTH_THRESHOLD but stored uncompressed.
 		 */
 		acquire_func_colLargeRowIndexes = colLargeRowIndexes;
+		acquire_func_colLargeRowLength = colLargeRowLength;
 		pgstat_progress_update_param(PROGRESS_ANALYZE_PHASE,
 									 inh ? PROGRESS_ANALYZE_PHASE_ACQUIRE_SAMPLE_ROWS_INH :
 									 PROGRESS_ANALYZE_PHASE_ACQUIRE_SAMPLE_ROWS);
@@ -756,6 +769,7 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 									  rows, targrows,
 									  &totalrows, &totaldeadrows);
 		acquire_func_colLargeRowIndexes = NULL;
+		acquire_func_colLargeRowLength = NULL;
 		if (ctx)
 			MemoryContextSwitchTo(anl_context);
 	}
@@ -821,6 +835,30 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 											ALLOCSET_DEFAULT_SIZES);
 		old_context = MemoryContextSwitchTo(col_context);
 
+		/*
+		 * Get correlations from segments.
+		 */
+		if (Gp_role == GP_ROLE_DISPATCH && GpPolicyIsPartitioned(onerel->rd_cdbpolicy))
+		{
+			/*
+			 * in gp_acquire_correlations_dispatcher we get correlations and correlationsIsNull
+			 * for all columns even if stats is requested for subset of columns.
+			 * It's more simpler to implement this way.
+			 */
+			float4 *correlations = (float4 *)palloc0(sizeof(float4) * onerel->rd_att->natts);
+			bool *correlationsIsNull = (bool *)palloc0(sizeof(bool) * onerel->rd_att->natts);
+			gp_acquire_correlations_dispatcher(onerel->rd_rel->oid, inh, correlations, correlationsIsNull);
+			for (i = 0; i < attr_cnt; i++)
+			{
+				VacAttrStats *stats = vacattrstats[i];
+				stats->partitiontbl_qd = true;
+				stats->corrnull = correlationsIsNull[stats->attr->attnum - 1];
+				stats->corrval = correlations[stats->attr->attnum - 1];
+			}
+			pfree(correlations);
+			pfree(correlationsIsNull);
+		}
+
 		for (i = 0; i < attr_cnt; i++)
 		{
 			VacAttrStats *stats = vacattrstats[i];
@@ -866,6 +904,12 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 			get_attribute_options(onerel->rd_id, stats->attr->attnum);
 
 			stats->tupDesc = onerel->rd_att;
+			/*
+			 * get total length and number of too wide rows in the sample,
+			 * in case get wrong stawidth.
+			 */
+			stats->totalwidelength = colLargeRowLength[stats->attr->attnum - 1];
+			stats->widerow_num = numrows - validRowsLength;
 
 			if (validRowsLength > 0)
 			{
@@ -918,7 +962,7 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 				// that every item was >= WIDTH_THRESHOLD in width.
 				stats->stats_valid = true;
 				stats->stanullfrac = 0.0;
-				stats->stawidth = WIDTH_THRESHOLD;
+				stats->stawidth = stats->totalwidelength/numrows;
 				stats->stadistinct = 0.0;		/* "unknown" */
 			}
 			stats->rows = rows; // Reset to original rows
@@ -1535,6 +1579,10 @@ examine_attribute(Relation onerel, int attnum, Node *index_expr, int elevel)
 										   PointerGetDatum(stats)));
 	else
 		ok = std_typanalyze(stats);
+
+	stats->corrnull = true;
+	stats->corrval = 0;
+	stats->partitiontbl_qd = false;
 
 	if (!ok || stats->compute_stats == NULL || stats->minrows <= 0)
 	{
@@ -2538,6 +2586,316 @@ parse_record_to_string(char *string, TupleDesc tupdesc, char** values, bool *nul
 }
 
 /*
+ * Build a querydesc for a sql, set "dest" to portal->holdStore
+ */
+static QueryDesc *build_querydesc(Portal portal, char *sql)
+{
+	List	   *raw_parsetree_list;
+	RawStmt	   *parsetree;
+	List	   *querytree_list;
+	List	   *plantree_list;
+	PlannedStmt *plan_stmt;
+	DestReceiver *destReceiver;
+	QueryDesc  *queryDesc = NULL;
+	destReceiver = CreateDestReceiver(DestTuplestore);
+	SetTuplestoreDestReceiverParams(destReceiver,
+									portal->holdStore,
+									portal->holdContext,
+									false, NULL, NULL);
+
+	/*
+	 * Parse the SQL string into a list of raw parse trees.
+	 */
+	raw_parsetree_list = pg_parse_query(sql);
+
+	/*
+	 * Do parse analysis, rule rewrite, planning, and execution for each raw
+	 * parsetree.
+	 */
+
+	/* There is only one element in list due to simple select. */
+	Assert(list_length(raw_parsetree_list) == 1);
+	parsetree = (RawStmt *) linitial(raw_parsetree_list);
+
+	querytree_list = pg_analyze_and_rewrite(parsetree,
+											sql,
+											NULL,
+											0,
+											NULL);
+	plantree_list = pg_plan_queries(querytree_list, sql, 0, NULL);
+
+	/* There is only one statement in list due to simple select. */
+	Assert(list_length(plantree_list) == 1);
+	plan_stmt = (PlannedStmt *) linitial(plantree_list);
+
+	queryDesc = CreateQueryDesc(plan_stmt,
+								sql,
+								GetActiveSnapshot(),
+								InvalidSnapshot,
+								destReceiver,
+								NULL,
+								NULL,
+								INSTRUMENT_NONE);
+
+
+
+	list_free_deep(querytree_list);
+	list_free_deep(raw_parsetree_list);
+
+	return queryDesc;
+}
+
+static int
+process_sample_rows(Portal portal,
+					QueryDesc  *queryDesc,
+					Relation onerel,
+					HeapTuple *rows,
+					int targrows,
+					double *totalrows,
+					double *totaldeadrows)
+{
+	/*
+	 * 'colLargeRowIndexes' is essentially an argument, but it's passed via a
+	 * global variable to avoid changing the AcquireSampleRowsFunc prototype.
+	 */
+	Bitmapset **colLargeRowIndexes = acquire_func_colLargeRowIndexes;
+	double     *colLargeRowLength = acquire_func_colLargeRowLength;
+	TupleDesc	relDesc = RelationGetDescr(onerel);
+	TupleDesc	funcTupleDesc;
+	TupleDesc	sampleTupleDesc;
+	int			sampleTuples;	/* 32 bit - assume that number of tuples will not > 2B */
+	Datum	   *funcRetValues;
+	bool	   *funcRetNulls;
+	int			ncolumns;
+	AttInMetadata *attinmeta;
+	int			numLiveColumns;
+	int			i;
+	int			index = 0;
+	TupleTableSlot *slot;
+	Datum	   *dvalues;
+	bool	   *dnulls;
+
+	/*
+	 * Count the number of columns, excluding dropped columns. We'll need that
+	 * later.
+	 */
+	numLiveColumns = 0;
+	for (i = 0; i < relDesc->natts; i++)
+	{
+		Form_pg_attribute attr = TupleDescAttr(relDesc, i);
+
+		if (attr->attisdropped)
+			continue;
+
+		numLiveColumns++;
+	}
+
+	/*
+	 * Build a modified tuple descriptor for the table.
+	 *
+	 * Some datatypes need special treatment, so we cannot use the relation's
+	 * original tupledesc.
+	 *
+	 * Also create tupledesc of return record of function gp_acquire_sample_rows.
+	 */
+	sampleTupleDesc = CreateTupleDescCopy(relDesc);
+	ncolumns = numLiveColumns + FIX_ATTR_NUM;
+	
+	funcTupleDesc = CreateTemplateTupleDesc(ncolumns);
+	TupleDescInitEntry(funcTupleDesc, (AttrNumber) 1, "", FLOAT8OID, -1, 0);
+	TupleDescInitEntry(funcTupleDesc, (AttrNumber) 2, "", FLOAT8OID, -1, 0);
+	TupleDescInitEntry(funcTupleDesc, (AttrNumber) 3, "", FLOAT8ARRAYOID, -1, 0);
+
+	for (i = 0; i < relDesc->natts; i++)
+	{
+		Form_pg_attribute attr = TupleDescAttr(relDesc, i);
+
+		Oid			typid = gp_acquire_sample_rows_col_type(attr->atttypid);
+
+		TupleDescAttr(sampleTupleDesc, i)->atttypid = typid;
+
+		if (!attr->attisdropped)
+		{
+			TupleDescInitEntry(funcTupleDesc, (AttrNumber) 4 + index, "",
+							   typid, attr->atttypmod, attr->attndims);
+
+			index++;
+		}
+	}
+
+	/* For RECORD results, make sure a typmod has been assigned */
+	Assert(funcTupleDesc->tdtypeid == RECORDOID && funcTupleDesc->tdtypmod < 0);
+	assign_record_type_typmod(funcTupleDesc);
+
+	attinmeta = TupleDescGetAttInMetadata(sampleTupleDesc);
+
+	/*
+	 * Read the result set from each segment. Gather the sample rows *rows,
+	 * and sum up the summary rows for grand 'totalrows' and 'totaldeadrows'.
+	 */
+	funcRetValues = (Datum *) palloc0(funcTupleDesc->natts * sizeof(Datum));
+	funcRetNulls = (bool *) palloc0(funcTupleDesc->natts * sizeof(bool));
+	dvalues = (Datum *) palloc0(relDesc->natts * sizeof(Datum));
+	dnulls = (bool *) palloc0(relDesc->natts * sizeof(bool));
+	sampleTuples = 0;
+	*totalrows = 0;
+	*totaldeadrows = 0;
+
+	slot = MakeSingleTupleTableSlot(queryDesc->tupDesc, &TTSOpsMinimalTuple);
+
+	for (;;)
+	{
+		bool		ok;
+		TupleDesc	typeinfo;
+		int			natts;
+		Datum		attr;
+		bool		isnull;
+		double		this_totalrows = 0;
+		double		this_totaldeadrows = 0;
+
+		CHECK_FOR_INTERRUPTS();
+
+		ok = tuplestore_gettupleslot(portal->holdStore, true, false, slot);
+
+		if (!ok)
+			break;
+
+		typeinfo = slot->tts_tupleDescriptor;
+		natts = typeinfo->natts;
+
+		/* There should be only one attribute with OID RECORDOID. */
+		if (1 != natts)
+		{
+			elog(ERROR,
+				"wrong number of attributes %d when 1 expected",
+				natts);
+		}
+
+		if (RECORDOID != typeinfo->attrs[0].atttypid)
+		{
+			elog(ERROR,
+				"wrong attribute OID %d, RECORDOID %d is expected",
+				typeinfo->attrs[0].atttypid, RECORDOID);
+
+		}
+
+		/* Make sure the tuple is fully deconstructed */
+		slot_getallattrs(slot);
+
+		/* There should be only one attribute with OID RECORDOID */
+		attr = slot_getattr(slot, 1, &isnull);
+		if (isnull)
+		{
+			elog(ERROR,
+				"null value for attribute in tuple");
+		}
+
+		/* Get record from attribute and parse it */
+		{
+			HeapTupleHeader rec = (HeapTupleHeader) PG_DETOAST_DATUM(attr);
+			Oid			tupType;
+			int32		tupTypmod;
+			TupleDesc	tupdesc;
+			HeapTupleData tuple;
+
+			/* Extract type info from the tuple itself */
+			tupType = HeapTupleHeaderGetTypeId(rec);
+			tupTypmod = HeapTupleHeaderGetTypMod(rec);
+			tupdesc = lookup_rowtype_tupdesc(tupType, tupTypmod);
+
+			/* Build a temporary HeapTuple control structure */
+			tuple.t_len = HeapTupleHeaderGetDatumLength(rec);
+			ItemPointerSetInvalid(&(tuple.t_self));
+			tuple.t_data = rec;
+
+			/* Break down the tuple into fields */
+			heap_deform_tuple(&tuple, tupdesc, funcRetValues, funcRetNulls);
+
+			if (!funcRetNulls[0])
+			{
+				/* This is a summary row. */
+				this_totalrows = DatumGetFloat8(funcRetValues[0]);
+				this_totaldeadrows = DatumGetFloat8(funcRetValues[1]);
+				(*totalrows) += this_totalrows;
+				(*totaldeadrows) += this_totaldeadrows;
+			}
+			else
+			{
+				/* This is a sample row. */
+				if (sampleTuples >= targrows)
+					elog(ERROR, "too many sample rows received from gp_acquire_sample_rows");
+
+				/* Read the 'toolarge' bitmap, if any */
+				if (colLargeRowIndexes && !funcRetNulls[2])
+				{
+					ArrayType  *arrayVal;
+					Datum	   *largelength;
+					bool	   *nulls;
+					int	    numelems;
+					arrayVal = DatumGetArrayTypeP(funcRetValues[2]);
+					deconstruct_array(arrayVal, FLOAT8OID, 8, true, 'd',
+								&largelength, &nulls, &numelems);
+
+					for (i = 0; i < relDesc->natts; i++)
+					{
+						Form_pg_attribute attr = TupleDescAttr(relDesc, i);
+
+						if (attr->attisdropped)
+							continue;
+
+						if (largelength[i] != (Datum) 0)
+						{
+							colLargeRowIndexes[i] = bms_add_member(colLargeRowIndexes[i], sampleTuples);
+							colLargeRowLength[i] += DatumGetFloat8(largelength[i]);
+						}
+					}
+				}
+
+				/* Process the columns */
+				index = 0;
+				for (i = 0; i < relDesc->natts; i++)
+				{
+					Form_pg_attribute attr = TupleDescAttr(relDesc, i);
+
+					if (attr->attisdropped)
+					{
+						dnulls[i] = true;
+						continue;
+					}
+
+					dnulls[i] = funcRetNulls[FIX_ATTR_NUM + index];
+					dvalues[i] = funcRetValues[FIX_ATTR_NUM + index];
+					index++;	/* Move index to the next result set attribute */
+				}
+
+				/*
+				* Form a tuple
+				*/
+				rows[sampleTuples] = heap_form_tuple(attinmeta->tupdesc,
+													dvalues,
+													dnulls);
+				sampleTuples++;
+
+				/*
+				 * note: we don't set the OIDs in the sample. ANALYZE doesn't
+				 * collect stats for them
+				 */
+			}
+			ReleaseTupleDesc(tupdesc);
+		}
+
+		ExecClearTuple(slot);
+	}
+	ExecDropSingleTupleTableSlot(slot);
+	pfree(funcRetValues);
+	pfree(funcRetNulls);
+	pfree(dvalues);
+	pfree(dnulls);
+
+	return sampleTuples;
+}
+
+/*
  * Collect a sample from segments.
  *
  * Calls the gp_acquire_sample_rows() helper function on each segment,
@@ -2548,30 +2906,18 @@ acquire_sample_rows_dispatcher(Relation onerel, bool inh, int elevel,
 							   HeapTuple *rows, int targrows,
 							   double *totalrows, double *totaldeadrows)
 {
-	/*
-	 * 'colLargeRowIndexes' is essentially an argument, but it's passed via a
-	 * global variable to avoid changing the AcquireSampleRowsFunc prototype.
-	 */
-	Bitmapset **colLargeRowIndexes = acquire_func_colLargeRowIndexes;
-	TupleDesc	relDesc = RelationGetDescr(onerel);
-	TupleDesc	funcTupleDesc;
-	TupleDesc	sampleTupleDesc;
-	AttInMetadata *attinmeta;
 	StringInfoData str;
-	int			sampleTuples;	/* 32 bit - assume that number of tuples will not > 2B */
-	char	  **funcRetValues;
-	bool	   *funcRetNulls;
-	char	  **values;
-	int			numLiveColumns;
 	int			perseg_targrows;
-	int			ncolumns;
-	CdbPgResults cdb_pgresults = {NULL, 0};
-	int			i;
-	int			index = 0;
+	int			sampleTuples;	/* 32 bit - assume that number of tuples will not > 2B */
+	char	   *sql;
+	Portal		portal;
+	QueryDesc  *queryDesc = NULL;
 
 	Assert(targrows > 0.0);
 
 	/*
+	 * Step1: Construct SQL command to dispatch to segments.
+	 *
 	 * Acquire an evenly-sized sample from each segment.
 	 *
 	 * XXX: If there's a significant bias between the segments, i.e. some
@@ -2591,23 +2937,6 @@ acquire_sample_rows_dispatcher(Relation onerel, bool inh, int elevel,
 		elog(ERROR, "acquire_sample_rows_dispatcher() cannot be used on a non-distributed table");
 
 	/*
-	 * Count the number of columns, excluding dropped columns. We'll need that
-	 * later.
-	 */
-	numLiveColumns = 0;
-	for (i = 0; i < relDesc->natts; i++)
-	{
-		Form_pg_attribute attr = TupleDescAttr(relDesc, i);
-
-		if (attr->attisdropped)
-			continue;
-
-		numLiveColumns++;
-	}
-
-	/*
-	 * Construct SQL command to dispatch to segments.
-	 *
 	 * Did not use 'select * from pg_catalog.gp_acquire_sample_rows(...) as (..);'
 	 * here. Because it requires to specify columns explicitly which leads to
 	 * permission check on each columns. This is not consistent with GPDB5 and
@@ -2620,196 +2949,54 @@ acquire_sample_rows_dispatcher(Relation onerel, bool inh, int elevel,
 					 inh ? "t" : "f");
 
 	/*
-	 * Execute it.
+	 * Step2: Execute the constructed SQL.
+	 *
+	 * Do not use SPI here, because there might be a large number of wide rows
+	 * returned and stored in memory, SPI cannot spill data to disk which may
+	 * lead to OOM easily.
+	 *
+	 * Do not use SPI cusror either, because we should use SPI_cursor_fetch to fetch
+	 * results in batches, which may have bad performance.
+	 *
+	 * Use ExecutorStart|ExecutorRun|ExecutorEnd to execute a plan and store results
+	 * into tuplestore could handle this situation well.
+	 *
+	 * Execute the given query and store the results into portal->holdStore to
+	 * avoid memory error.
 	 */
 	elog(elevel, "Executing SQL: %s", str.data);
-	CdbDispatchCommand(str.data, DF_WITH_SNAPSHOT | DF_CANCEL_ON_ERROR, &cdb_pgresults);
+	sql = str.data;
+	/* Create a new portal to run the query in */
+	portal = CreateNewPortal();
+	/* Don't display the portal in pg_cursors, it is for internal use only */
+	portal->visible = false;
+	/* use a tuplestore to store received tuples to avoid out of memory error */
+	PortalCreateHoldStore(portal);
+	queryDesc = build_querydesc(portal, sql);
 
+	/* Call ExecutorStart to prepare the plan for execution */
+	ExecutorStart(queryDesc, 0);
+
+	/* Run the plan  */
+	ExecutorRun(queryDesc, ForwardScanDirection, 0L, true);
+
+	/* Wait for completion of all qExec processes. */
+	if (queryDesc->estate->dispatcherState
+		&& queryDesc->estate->dispatcherState->primaryResults)
+	{
+		cdbdisp_checkDispatchResult(queryDesc->estate->dispatcherState, DISPATCH_WAIT_NONE);
+	}
+
+	ExecutorFinish(queryDesc);
 	/*
-	 * Build a modified tuple descriptor for the table.
-	 *
-	 * Some datatypes need special treatment, so we cannot use the relation's
-	 * original tupledesc.
-	 *
-	 * Also create tupledesc of return record of function gp_acquire_sample_rows.
+	 * Step3: process results.
 	 */
-	sampleTupleDesc = CreateTupleDescCopy(relDesc);
-	ncolumns = numLiveColumns + FIX_ATTR_NUM;
-	
-	funcTupleDesc = CreateTemplateTupleDesc(ncolumns);
-	TupleDescInitEntry(funcTupleDesc, (AttrNumber) 1, "", FLOAT8OID, -1, 0);
-	TupleDescInitEntry(funcTupleDesc, (AttrNumber) 2, "", FLOAT8OID, -1, 0);
-	TupleDescInitEntry(funcTupleDesc, (AttrNumber) 3, "", TEXTOID, -1, 0);
-	
-	for (i = 0; i < relDesc->natts; i++)
-	{
-		Form_pg_attribute attr = TupleDescAttr(relDesc, i);
-		
-		Oid			typid = gp_acquire_sample_rows_col_type(attr->atttypid);
+	sampleTuples = process_sample_rows(portal, queryDesc, onerel, rows,
+									targrows, totalrows, totaldeadrows);
 
-		TupleDescAttr(sampleTupleDesc, i)->atttypid = typid;
-
-		if (!attr->attisdropped)
-		{
-			TupleDescInitEntry(funcTupleDesc, (AttrNumber) 4 + index, "",
-							   typid, attr->atttypmod, attr->attndims);
-		
-			index++;
-		}
-	}
-
-	/* For RECORD results, make sure a typmod has been assigned */
-	Assert(funcTupleDesc->tdtypeid == RECORDOID && funcTupleDesc->tdtypmod < 0);
-	assign_record_type_typmod(funcTupleDesc);
-
-	attinmeta = TupleDescGetAttInMetadata(sampleTupleDesc);
-
-	/*
-	 * Read the result set from each segment. Gather the sample rows *rows,
-	 * and sum up the summary rows for grand 'totalrows' and 'totaldeadrows'.
-	 */
-	funcRetValues = (char **) palloc0(funcTupleDesc->natts * sizeof(char *));
-	funcRetNulls = (bool *) palloc(funcTupleDesc->natts * sizeof(bool));
-	values = (char **) palloc0(relDesc->natts * sizeof(char *));
-	sampleTuples = 0;
-	*totalrows = 0;
-	*totaldeadrows = 0;
-	for (int resultno = 0; resultno < cdb_pgresults.numResults; resultno++)
-	{
-		struct pg_result *pgresult = cdb_pgresults.pg_results[resultno];
-		bool		got_summary = false;
-		double		this_totalrows = 0;
-		double		this_totaldeadrows = 0;
-
-		if (PQresultStatus(pgresult) != PGRES_TUPLES_OK)
-		{
-			cdbdisp_clearCdbPgResults(&cdb_pgresults);
-			ereport(ERROR,
-					(errmsg("unexpected result from segment: %d",
-							PQresultStatus(pgresult))));
-		}
-
-		if (GpPolicyIsReplicated(onerel->rd_cdbpolicy))
-		{
-			/*
-			 * A replicated table has the same data in all segments. Arbitrarily,
-			 * use the sample from the first segment, and discard the rest.
-			 * (This is rather inefficient, of course. It would be better to
-			 * dispatch to only one segment, but there is no easy API for that
-			 * in the dispatcher.)
-			 */
-			if (resultno > 0)
-				continue;
-		}
-
-		for (int rowno = 0; rowno < PQntuples(pgresult); rowno++)
-		{
-			/*
-			 * We cannot use record_in function to get row record here.
-			 * Since the result row may contain just the totalrows info where the data columns
-			 * are NULLs. Consider domain: 'create domain dnotnull varchar(15) NOT NULL;'
-			 * NULLs are not allowed in data columns.
-			 */
-			char * rowStr = PQgetvalue(pgresult, rowno, 0);
-
-			if (rowStr == NULL)
-				elog(ERROR, "got NULL pointer from return value of gp_acquire_sample_rows");
-
-			parse_record_to_string(rowStr, funcTupleDesc, funcRetValues, funcRetNulls);
-
-			if (!funcRetNulls[0])
-			{
-				/* This is a summary row. */
-				if (got_summary)
-					elog(ERROR, "got duplicate summary row from gp_acquire_sample_rows");
-
-				this_totalrows = DatumGetFloat8(DirectFunctionCall1(float8in,
-																	CStringGetDatum(funcRetValues[0])));
-				this_totaldeadrows = DatumGetFloat8(DirectFunctionCall1(float8in,
-																		CStringGetDatum(funcRetValues[1])));
-				got_summary = true;
-			}
-			else
-			{
-				/* This is a sample row. */
-				if (sampleTuples >= targrows)
-					elog(ERROR, "too many sample rows received from gp_acquire_sample_rows");
-
-				/* Read the 'toolarge' bitmap, if any */
-				if (colLargeRowIndexes && !funcRetNulls[2])
-				{
-					char	   *toolarge;
-					toolarge = funcRetValues[2];
-					if (strlen(toolarge) != numLiveColumns)
-						elog(ERROR, "'toolarge' bitmap has incorrect length");
-
-					index = 0;
-					for (i = 0; i < relDesc->natts; i++)
-					{
-						Form_pg_attribute attr = TupleDescAttr(relDesc, i);
-
-						if (attr->attisdropped)
-							continue;
-
-						if (toolarge[index] == '1')
-							colLargeRowIndexes[i] = bms_add_member(colLargeRowIndexes[i], sampleTuples);
-						index++;
-					}
-				}
-
-				/* Process the columns */
-				index = 0;
-				for (i = 0; i < relDesc->natts; i++)
-				{
-					Form_pg_attribute attr = TupleDescAttr(relDesc, i);
-
-					if (attr->attisdropped)
-						continue;
-
-					if (funcRetNulls[3 + index])
-						values[i] = NULL;
-					else
-						values[i] = funcRetValues[3 + index];
-					index++; /* Move index to the next result set attribute */
-				}
-
-				rows[sampleTuples] = BuildTupleFromCStrings(attinmeta, values);
-				sampleTuples++;
-
-				/*
-				 * note: we don't set the OIDs in the sample. ANALYZE doesn't
-				 * collect stats for them
-				 */
-			}
-		}
-
-		if (!got_summary)
-			elog(ERROR, "did not get summary row from gp_acquire_sample_rows");
-
-		if (resultno >= onerel->rd_cdbpolicy->numsegments)
-		{
-			/*
-			 * This result is for a segment that's not holding any data for this
-			 * table. Should get 0 rows.
-			 */
-			if (this_totalrows != 0)
-				elog(WARNING, "table \"%s\" contains rows in segment %d, which is outside the # of segments for the table's policy (%d segments)",
-					 RelationGetRelationName(onerel), resultno, onerel->rd_cdbpolicy->numsegments);
-		}
-
-		(*totalrows) += this_totalrows;
-		(*totaldeadrows) += this_totaldeadrows;
-	}
-	for (i = 0; i < funcTupleDesc->natts; i++)
-	{
-		if (funcRetValues[i])
-			pfree(funcRetValues[i]);
-	}
-	pfree(funcRetValues);
-	pfree(funcRetNulls);
-	pfree(values);
-
-	cdbdisp_clearCdbPgResults(&cdb_pgresults);
+	ExecutorEnd(queryDesc);
+	FreeQueryDesc(queryDesc);
+	PortalDrop(portal, false);
 
 	return sampleTuples;
 }
@@ -3402,7 +3589,7 @@ compute_distinct_stats(VacAttrStatsP stats,
 		/* Do the simple null-frac and width stats */
 		stats->stanullfrac = (double) null_cnt / (double) samplerows;
 		if (is_varwidth)
-			stats->stawidth = total_width / (double) nonnull_cnt;
+			stats->stawidth = (total_width + stats->totalwidelength) / (double) (nonnull_cnt + stats->widerow_num);
 		else
 			stats->stawidth = stats->attrtype->typlen;
 
@@ -3584,7 +3771,7 @@ compute_distinct_stats(VacAttrStatsP stats,
 			stats->stawidth = 0;	/* "unknown" */
 		else
 			stats->stawidth = stats->attrtype->typlen;
-		stats->stadistinct = 0.0;	/* "unknown" */
+		stats->stadistinct = 0.0;		/* "unknown" */
 	}
 
 	/* We don't need to bother cleaning up any of our temporary palloc's */
@@ -3795,7 +3982,7 @@ compute_scalar_stats(VacAttrStatsP stats,
 		/* Do the simple null-frac and width stats */
 		stats->stanullfrac = (double) null_cnt / (double) samplerows;
 		if (is_varwidth)
-			stats->stawidth = total_width / (double) nonnull_cnt;
+			stats->stawidth = (total_width + stats->totalwidelength) / (double) (nonnull_cnt + stats->widerow_num);
 		else
 			stats->stawidth = stats->attrtype->typlen;
 
@@ -4092,38 +4279,52 @@ compute_scalar_stats(VacAttrStatsP stats,
 		{
 			MemoryContext old_context;
 			float4	   *corrs;
-			double		corr_xsum,
-						corr_x2sum;
-
 			/* Must copy the target values into anl_context */
 			old_context = MemoryContextSwitchTo(stats->anl_context);
 			corrs = (float4 *) palloc(sizeof(float4));
 			MemoryContextSwitchTo(old_context);
+			if (stats->partitiontbl_qd )
+			{
+				if (!stats->corrnull)
+				{
+					corrs[0] = stats->corrval;
+					stats->stakind[slot_idx] = STATISTIC_KIND_CORRELATION;
+					stats->staop[slot_idx] = mystats->ltopr;
+					stats->stacoll[slot_idx] = stats->attrcollid;
+					stats->stanumbers[slot_idx] = corrs;
+					stats->numnumbers[slot_idx] = 1;
+					slot_idx++;
+				}
+			}
+			else /* this is on QE */
+			{
+				double		corr_xsum,
+							corr_x2sum;
 
-			/*----------
-			 * Since we know the x and y value sets are both
-			 *		0, 1, ..., values_cnt-1
-			 * we have sum(x) = sum(y) =
-			 *		(values_cnt-1)*values_cnt / 2
-			 * and sum(x^2) = sum(y^2) =
-			 *		(values_cnt-1)*values_cnt*(2*values_cnt-1) / 6.
-			 *----------
-			 */
-			corr_xsum = ((double) (values_cnt - 1)) *
-				((double) values_cnt) / 2.0;
-			corr_x2sum = ((double) (values_cnt - 1)) *
-				((double) values_cnt) * (double) (2 * values_cnt - 1) / 6.0;
+				/*----------
+				 * Since we know the x and y value sets are both
+				 *		0, 1, ..., values_cnt-1
+				 * we have sum(x) = sum(y) =
+				 *		(values_cnt-1)*values_cnt / 2
+				 * and sum(x^2) = sum(y^2) =
+				 *		(values_cnt-1)*values_cnt*(2*values_cnt-1) / 6.
+				 *----------
+				 */
+				corr_xsum = ((double) (values_cnt - 1)) *
+					((double) values_cnt) / 2.0;
+				corr_x2sum = ((double) (values_cnt - 1)) *
+					((double) values_cnt) * (double) (2 * values_cnt - 1) / 6.0;
+				/* And the correlation coefficient reduces to */
+				corrs[0] = (values_cnt * corr_xysum - corr_xsum * corr_xsum) /
+					(values_cnt * corr_x2sum - corr_xsum * corr_xsum);
 
-			/* And the correlation coefficient reduces to */
-			corrs[0] = (values_cnt * corr_xysum - corr_xsum * corr_xsum) /
-				(values_cnt * corr_x2sum - corr_xsum * corr_xsum);
-
-			stats->stakind[slot_idx] = STATISTIC_KIND_CORRELATION;
-			stats->staop[slot_idx] = mystats->ltopr;
-			stats->stacoll[slot_idx] = stats->attrcollid;
-			stats->stanumbers[slot_idx] = corrs;
-			stats->numnumbers[slot_idx] = 1;
-			slot_idx++;
+				stats->stakind[slot_idx] = STATISTIC_KIND_CORRELATION;
+				stats->staop[slot_idx] = mystats->ltopr;
+				stats->stacoll[slot_idx] = stats->attrcollid;
+				stats->stanumbers[slot_idx] = corrs;
+				stats->numnumbers[slot_idx] = 1;
+				slot_idx++;
+			}
 		}
 	}
 	else if (nonnull_cnt > 0)
@@ -4134,7 +4335,7 @@ compute_scalar_stats(VacAttrStatsP stats,
 		/* Do the simple null-frac and width stats */
 		stats->stanullfrac = (double) null_cnt / (double) samplerows;
 		if (is_varwidth)
-			stats->stawidth = total_width / (double) nonnull_cnt;
+			stats->stawidth = (total_width + stats->totalwidelength) / (double) (nonnull_cnt + stats->widerow_num);
 		else
 			stats->stawidth = stats->attrtype->typlen;
 		/* Assume all too-wide values are distinct, so it's a unique column */
@@ -4841,4 +5042,342 @@ analyze_mcv_list(int *mcv_counts,
 		}
 	}
 	return num_mcv;
+}
+
+/*
+ * calculate correlations use the weighted mean algorithm.
+ *
+ * the formula for calculating the weighted mean is:
+ * sum(correlationOnSeg[i] * (totalRowsOnSeg[i] / totalRows))
+ * i is from 0 to N. N is the number of segments.
+ */
+static void
+calculate_correlation_use_weighted_mean(CdbPgResults *cdb_pgresults,
+												Relation onerel,
+												TupleDesc tupleDesc,
+												float4 *correlations,
+												bool *correlationsIsNull,
+												int live_natts)
+{
+	TupleDesc relDesc = RelationGetDescr(onerel);
+	int		attNum = relDesc->natts;
+	int		segmentNum = cdb_pgresults->numResults;
+
+	/*
+	 * totalRowsOnSeg, correlationOnSeg and correlationIsNullOnSeg are One-Dimensional arrays
+	 * to store infos of the following results.
+	 *
+	 *     |    seg0  |  seg1  |  seg2
+	 * --------------------------------
+	 * att0｜   0*3+0 |  0*3+1 |  0*3+2
+	 * att1｜   1*3+0 |  1*3+1 |  1*3+2
+	 * att2｜   2*3+0 |  2*3+1 |  2*3+2
+	 *
+	 * We can use attno * segmentNum + segno as index to access the
+	 * info of column attno on segment segno.
+	 * index from attno * segmentNum to attno * segmentNum + segmentNum -1 store infos
+	 * of column attno.
+	 */
+	int 	*totalRowsOnSeg = (int *)palloc0(sizeof(int) * segmentNum * attNum);
+	float4  *correlationOnSeg = (float4 *)palloc0(sizeof(float4) * segmentNum * attNum);
+	bool	*correlationIsNullOnSeg = (bool *)palloc0(sizeof(bool) * segmentNum * attNum);
+	int		*totalRows = (int *)palloc0(sizeof(int) * attNum);
+	char **funcRetValues = (char **) palloc0(tupleDesc->natts * sizeof(char *));
+	bool *funcRetNulls = (bool *) palloc(tupleDesc->natts * sizeof(bool));
+
+	for (int segno = 0; segno < segmentNum; segno++)
+	{
+		int			rows;
+		float4		correlationValue;
+		int			attno;
+		struct pg_result *pgresult = cdb_pgresults->pg_results[segno];
+		int			index;
+
+		if (PQresultStatus(pgresult) != PGRES_TUPLES_OK)
+		{
+			cdbdisp_clearCdbPgResults(cdb_pgresults);
+			ereport(ERROR,
+					(errmsg("unexpected result from segment: %d",
+							PQresultStatus(pgresult))));
+		}
+		/*
+		 * gp_acquire_correlations returns a result for each alive columns.
+		 */
+		rows = PQntuples(pgresult);
+		if (rows != live_natts || PQnfields(pgresult) != 1)
+		{
+			cdbdisp_clearCdbPgResults(cdb_pgresults);
+			ereport(ERROR,
+					(errmsg("unexpected shape of result from segment (%d rows, %d cols)",
+							rows, PQnfields(pgresult))));
+		}
+		for (int j = 0; j < rows; j++)
+		{
+			char *rowStr = PQgetvalue(pgresult, j, 0);
+			if (rowStr == NULL)
+				elog(ERROR, "got NULL pointer from return value of gp_acquire_correlations");
+
+			parse_record_to_string(rowStr, tupleDesc, funcRetValues, funcRetNulls);
+
+			/* get the first column: attno, and it is not NULL */
+			attno = DatumGetInt32(DirectFunctionCall1(int4in,
+										CStringGetDatum(funcRetValues[0])));
+			index = attno * segmentNum + segno;
+			correlationIsNullOnSeg[index] = true;
+			/* get the second column: correlation, and it maybe NULl */
+			if (!funcRetNulls[1])
+			{
+				correlationValue = DatumGetFloat4(DirectFunctionCall1(float4in,
+										CStringGetDatum(funcRetValues[1])));
+				correlationsIsNull[attno] = false;
+
+				correlationOnSeg[index] = correlationValue;
+				correlationIsNullOnSeg[index] = false;
+			}
+			/* get the third column: totalrow on segment i, this is not NULL.
+			 * if correlation for this column is NULL, the totalrow is 0.
+			 */
+			totalRowsOnSeg[index] = DatumGetInt32(DirectFunctionCall1(int4in,
+								CStringGetDatum(funcRetValues[2])));
+			totalRows[attno] += totalRowsOnSeg[index];
+		}
+	}
+
+	/*
+	 * Calculate overall correlation from correlation on each segments
+	 * we use weighted average algorithm to calculate correlation to
+	 * better handle skewed data between segments.
+	 */
+	for (int attno = 0; attno < attNum; attno++)
+	{
+		Form_pg_attribute relatt = TupleDescAttr(relDesc, attno);
+
+		if (relatt->attisdropped)
+			continue;
+		float4 weight;
+		for (int segno = 0; segno < segmentNum; segno++)
+		{
+			int index = attno * segmentNum + segno;
+			if (!correlationIsNullOnSeg[index])
+			{
+				weight = (float4)totalRowsOnSeg[index] / totalRows[attno];
+				correlations[attno] += correlationOnSeg[index] * weight;
+			}
+		}
+	}
+
+	pfree(totalRowsOnSeg);
+	pfree(correlationOnSeg);
+	pfree(correlationIsNullOnSeg);
+	pfree(totalRows);
+	for (int i = 0; i < tupleDesc->natts; i++)
+	{
+		if (funcRetValues[i])
+			pfree(funcRetValues[i]);
+	}
+	pfree(funcRetValues);
+	pfree(funcRetNulls);
+}
+
+/*
+ * calculate correlations use the mean algorithm.
+ *
+ * In some situations, we may not be able to obtain reltuples of a table,
+ * such as none-leaf part of partitioned table or the parent table of the
+ * inherited table. So we can not use the weighted mean algorithm.
+ *
+ * the formula for calculating the mean is:
+ * sum(correlationOnSeg) / count(corrNotNullSeg)
+ */
+static void
+calculate_correlation_use_mean(CdbPgResults *cdb_pgresults,
+										Relation onerel,
+										TupleDesc tupleDesc,
+										float4 *correlations,
+										bool *correlationsIsNull,
+										int live_natts)
+{
+	TupleDesc relDesc = RelationGetDescr(onerel);
+	int		attNum = relDesc->natts;
+	int		segmentNum = cdb_pgresults->numResults;
+	/*
+	 * corrNotNullSegNum[attno] stores the number of segments for which
+	 * the correlation of column attno is not null.
+	 */
+	int 	*corrNotNullSegNum = (int *)palloc0(sizeof(int) * attNum);
+	char **funcRetValues = (char **) palloc0(tupleDesc->natts * sizeof(char *));
+	bool *funcRetNulls = (bool *) palloc(tupleDesc->natts * sizeof(bool));
+
+	for (int segno = 0; segno < segmentNum; segno++)
+	{
+		int			ntuples;
+		float4		correlationValue;
+		int			attno;
+		struct pg_result *pgresult = cdb_pgresults->pg_results[segno];
+
+		if (PQresultStatus(pgresult) != PGRES_TUPLES_OK)
+		{
+			cdbdisp_clearCdbPgResults(cdb_pgresults);
+			ereport(ERROR,
+					(errmsg("unexpected result from segment: %d",
+							PQresultStatus(pgresult))));
+		}
+		/*
+		 * gp_acquire_correlations returns a result for each alive columns.
+		 */
+		ntuples = PQntuples(pgresult);
+		if (ntuples != live_natts || PQnfields(pgresult) != 1)
+		{
+			cdbdisp_clearCdbPgResults(cdb_pgresults);
+			ereport(ERROR,
+					(errmsg("unexpected shape of result from segment (%d rows, %d cols)",
+							ntuples, PQnfields(pgresult))));
+		}
+		for (int j = 0; j < ntuples; j++)
+		{
+			char *rowStr = PQgetvalue(pgresult, j, 0);
+			if (rowStr == NULL)
+				elog(ERROR, "got NULL pointer from return value of gp_acquire_correlations");
+
+			parse_record_to_string(rowStr, tupleDesc, funcRetValues, funcRetNulls);
+			/* get the first column: attno, and it is not NULL */
+			attno = DatumGetInt32(DirectFunctionCall1(int4in,
+										CStringGetDatum(funcRetValues[0])));
+			/* get the second column: correlation, and it maybe NULl */
+			if (!funcRetNulls[1])
+			{
+				correlationValue = DatumGetFloat4(DirectFunctionCall1(float4in,
+										CStringGetDatum(funcRetValues[1])));
+				correlationsIsNull[attno] = false;
+				correlations[attno] += correlationValue;
+				corrNotNullSegNum[attno]++;
+			}
+		}
+	}
+
+	/*
+	 * Calculate overall correlation from correlation on each segments
+	 * we use the mean algorithm to calculate correlation.
+	 */
+	for (int attno = 0; attno < attNum; attno++)
+	{
+		Form_pg_attribute relatt = TupleDescAttr(relDesc, attno);
+
+		if (relatt->attisdropped)
+			continue;
+		if (!correlationsIsNull[attno])
+		{
+			correlations[attno] = correlations[attno] / corrNotNullSegNum[attno];
+		}
+	}
+
+	pfree(corrNotNullSegNum);
+	for (int i = 0; i < tupleDesc->natts; i++)
+	{
+		if (funcRetValues[i])
+			pfree(funcRetValues[i]);
+	}
+	pfree(funcRetValues);
+	pfree(funcRetNulls);
+}
+
+/*
+ * We cannot use the same method as PostgreSQL does to calculate the
+ * correlation in QD. When we collect data from segments to QD, this
+ * will change the physical order of the data. such as in segment 1,
+ * the data is 1,3,5,7,9. And in segment 2, the data is 2,4,6,8,10.
+ * In each segment the data is ordered, and correlation is 1 in each segment.
+ * But after we collect the data to QD, it may be 1,3,5,2,4,7,9,6,8,10.
+ * And the correlation is 0.3 or something else and it is not stable.
+ * And this will increase the cost of index scan which is shouldn't be done.
+ *
+ * So get correlations from segments and summarize them.
+ */
+static void
+gp_acquire_correlations_dispatcher(Oid relOid, bool inh, float4 *correlations, bool *correlationsIsNull)
+{
+	CdbPgResults cdb_pgresults = {NULL, 0};
+	char       *sql;
+	Relation onerel;
+	int attNum;
+	int live_natts;
+	TupleDesc relDesc;
+	/*
+	 * For child table of inherited tables and leaf table of partitioned table,
+	 * We use the weighted mean average to calculate the correlation collected
+	 * from the segments.
+	 * the formula for calculating the weighted mean is:
+	 * sum(correlationOnSeg[i] * (totalRowsOnSeg[i] / totalRows))
+	 * i is from 0 to N. N is the number of segments.
+	 *
+	 * However, since reltuples of none-leaf part of partitioned table and the
+	 * parent table of the inherited table is 0, we can only use the average
+	 * to calculate correlation.
+	 */
+	bool useWeightedMean = !inh;
+	sql = psprintf("select pg_catalog.gp_acquire_correlations(%d, '%s');", relOid, inh ? "t" : "f");
+
+	Assert(Gp_role == GP_ROLE_DISPATCH);
+	onerel = table_open(relOid, AccessShareLock);
+	relDesc = RelationGetDescr(onerel);
+	attNum = relDesc->natts;
+
+	/* dispatch sql to segments  */
+	CdbDispatchCommand(sql, DF_WITH_SNAPSHOT, &cdb_pgresults);
+
+	/* Count the number of non-dropped cols */
+	live_natts = 0;
+	for (int attno = 0; attno < attNum; attno++)
+	{
+		Form_pg_attribute relatt = TupleDescAttr(relDesc, attno);
+		correlationsIsNull[attno] = true;
+
+		if (relatt->attisdropped)
+			continue;
+		live_natts++;
+	}
+
+	/* construct tupleDesc for RECORD results of gp_acquire_correlations */
+	TupleDesc tupleDesc = CreateTemplateTupleDesc(3);
+	TupleDescInitEntry(tupleDesc,
+						1,
+						"attnum",
+						INT4OID,
+						-1,
+						0);
+	TupleDescInitEntry(tupleDesc,
+						2,
+						"correlation",
+						FLOAT4OID,
+						-1,
+						0);
+	TupleDescInitEntry(tupleDesc,
+						3,
+						"totalrows",
+						INT4OID,
+						-1,
+						0);
+
+	/* For RECORD results, make sure a typmod has been assigned */
+	Assert(tupleDesc->tdtypeid == RECORDOID && tupleDesc->tdtypmod < 0);
+	assign_record_type_typmod(tupleDesc);
+
+	/* calculate correlations by cdb_pgresults */
+	if (useWeightedMean)
+		calculate_correlation_use_weighted_mean(&cdb_pgresults,
+												onerel,
+												tupleDesc,
+												correlations,
+												correlationsIsNull,
+												live_natts);
+	else
+		calculate_correlation_use_mean(&cdb_pgresults,
+										onerel,
+										tupleDesc,
+										correlations,
+										correlationsIsNull,
+										live_natts);
+
+	cdbdisp_clearCdbPgResults(&cdb_pgresults);
+	table_close(onerel, AccessShareLock);
 }

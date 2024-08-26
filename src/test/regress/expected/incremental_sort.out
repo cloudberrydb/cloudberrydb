@@ -1701,8 +1701,8 @@ from tenk1 t1
 join tenk1 t2 on t1.unique1 = t2.unique2
 join tenk1 t3 on t2.unique1 = t3.unique1
 order by count(*);
-                                        QUERY PLAN                                         
--------------------------------------------------------------------------------------------
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
  Sort
    Sort Key: (count(*))
    ->  Finalize Aggregate
@@ -1713,15 +1713,14 @@ order by count(*);
                            ->  Redistribute Motion 3:3  (slice2; segments: 3)
                                  Hash Key: t2.unique2
                                  ->  Hash Join
-                                       Hash Cond: (t3.unique1 = t2.unique1)
-                                       ->  Index Only Scan using tenk1_unique1 on tenk1 t3
+                                       Hash Cond: (t2.unique1 = t3.unique1)
+                                       ->  Index Scan using tenk1_unique2 on tenk1 t2
                                        ->  Hash
-                                             ->  Bitmap Heap Scan on tenk1 t2
-                                                   ->  Bitmap Index Scan on tenk1_unique2
+                                             ->  Index Only Scan using tenk1_unique1 on tenk1 t3
                            ->  Hash
                                  ->  Index Only Scan using tenk1_unique1 on tenk1 t1
  Optimizer: Postgres query optimizer
-(18 rows)
+(17 rows)
 
 -- Parallel sort but with expression (correlated subquery) that
 -- is prohibited in parallel plans.

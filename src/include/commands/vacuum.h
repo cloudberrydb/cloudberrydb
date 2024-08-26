@@ -139,6 +139,10 @@ typedef struct VacAttrStats
 	int			minrows;		/* Minimum # of rows wanted for stats */
 	void	   *extra_data;		/* for extra type-specific data */
 
+	/* These fields are used to compute stawidth during the compute_stats routine. */
+	double                  totalwidelength;/* total length of toowide row */
+	int                     widerow_num;    /* # of toowide row */
+
 	/*
 	 * These fields are to be filled in by the compute_stats routine. (They
 	 * are initialized to zero when the struct is created.)
@@ -179,6 +183,9 @@ typedef struct VacAttrStats
 	bool	   *exprnulls;
 	int			rowstride;
 	bool		merge_stats;
+	bool		corrnull;	  /* whether correlation value is null */
+	bool		partitiontbl_qd; /* analyze is on QD and the policy of table is partitioned */
+	float4		corrval;	  /* correlation gathered from segments */
 } VacAttrStats;
 
 
@@ -327,6 +334,24 @@ typedef struct
 	bool		summary_sent;
 } gp_acquire_sample_rows_context;
 
+typedef struct
+{
+	/* Table being analyzed */
+	Relation	onerel;
+
+	/* whether acquire inherited table's correlations */
+	bool        inherited;
+
+	/*
+	 * Result tuple descriptor.
+	 */
+	TupleDesc	outDesc;
+
+	/* SRF state, to track which rows have already been returned. */
+	int			index;
+	int			totalAttr;
+} gp_acquire_correlation_context;
+
 /* GUC parameters */
 extern PGDLLIMPORT int default_statistics_target;	/* PGDLLIMPORT for PostGIS */
 extern int	vacuum_freeze_min_age;
@@ -416,6 +441,7 @@ extern int acquire_inherited_sample_rows(Relation onerel, int elevel,
 
 /* in commands/analyzefuncs.c */
 extern Datum gp_acquire_sample_rows(PG_FUNCTION_ARGS);
+extern Datum gp_acquire_correlations(PG_FUNCTION_ARGS);
 extern Oid gp_acquire_sample_rows_col_type(Oid typid);
 
 extern bool gp_vacuum_needs_update_stats(void);

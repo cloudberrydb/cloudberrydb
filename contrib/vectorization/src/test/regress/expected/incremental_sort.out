@@ -6,29 +6,34 @@ select * from (select * from tenk1 order by four) t order by four, ten;
                 QUERY PLAN                
 ------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: four, ten
+   Merge Key: tenk1.four, tenk1.ten
    ->  Sort
-         Sort Key: four, ten
-         ->  Seq Scan on tenk1
- Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+         Sort Key: tenk1.four, tenk1.ten
+         ->  Sort
+               Sort Key: tenk1.four
+               ->  Seq Scan on tenk1
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- When there is a LIMIT clause, incremental sort is beneficial because
 -- it only has to sort some of the groups, and not the entire table.
 explain (costs off)
 select * from (select * from tenk1 order by four) t order by four, ten
 limit 1;
-                   QUERY PLAN                   
-------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: four, ten
+         Merge Key: tenk1.four, tenk1.ten
          ->  Limit
-               ->  Sort
-                     Sort Key: four, ten
-                     ->  Seq Scan on tenk1
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: tenk1.four, tenk1.ten
+                     Presorted Key: tenk1.four
+                     ->  Sort
+                           Sort Key: tenk1.four
+                           ->  Seq Scan on tenk1
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- When planner_work_mem is not enough to sort the entire table, incremental sort
 -- may be faster if individual groups still fit into planner_work_mem.
@@ -38,12 +43,14 @@ select * from (select * from tenk1 order by four) t order by four, ten;
                 QUERY PLAN                
 ------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: four, ten
+   Merge Key: tenk1.four, tenk1.ten
    ->  Sort
-         Sort Key: four, ten
-         ->  Seq Scan on tenk1
- Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+         Sort Key: tenk1.four, tenk1.ten
+         ->  Sort
+               Sort Key: tenk1.four
+               ->  Seq Scan on tenk1
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 reset planner_work_mem;
 create table t(a integer, b integer);
@@ -151,13 +158,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 31;
  a | b  
@@ -200,13 +210,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 32;
  a | b  
@@ -250,13 +263,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 33;
  a | b  
@@ -301,13 +317,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 65;
  a | b  
@@ -384,13 +403,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 66;
  a | b  
@@ -472,13 +494,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 55;
  a | b  
@@ -541,26 +566,57 @@ select * from (select * from t order by a) s order by a, b limit 55;
 (55 rows)
 
 -- Test EXPLAIN ANALYZE with only a fullsort group.
-set max_parallel_workers_per_gather = 0;
 select explain_analyze_without_memory('select * from (select * from t order by a) s order by a, b limit 55');
-                     explain_analyze_without_memory                      
--------------------------------------------------------------------------
+                                              explain_analyze_without_memory                                               
+---------------------------------------------------------------------------------------------------------------------------
  Limit (actual rows=55 loops=1)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=55 loops=1)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit (actual rows=55 loops=1)
-               ->  Sort (actual rows=55 loops=1)
-                     Sort Key: a, b
-                     Sort Method:  top-N heapsort  Memory: NNkB
-                     ->  Seq Scan on t (actual rows=400 loops=1)
- Optimizer: Pivotal Optimizer (GPORCA)
-(9 rows)
+               ->  Incremental Sort (actual rows=55 loops=1)
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     Full-sort Groups: 2  Sort Methods: top-N heapsort, quicksort  Average Memory: NNkB  Peak Memory: NNkB
+                     ->  Sort (actual rows=101 loops=1)
+                           Sort Key: t.a
+                           Sort Method:  quicksort  Memory: NNkB
+                           ->  Seq Scan on t (actual rows=400 loops=1)
+ Optimizer: Postgres query optimizer
+(13 rows)
 
-reset max_parallel_workers_per_gather;
 select jsonb_pretty(explain_analyze_inc_sort_nodes_without_memory('select * from (select * from t order by a) s order by a, b limit 55'));
- jsonb_pretty 
---------------
- [           +
+                  jsonb_pretty                   
+-------------------------------------------------
+ [                                              +
+     {                                          +
+         "Slice": 1,                            +
+         "Segments": 3,                         +
+         "Sort Key": [                          +
+             "t.a",                             +
+             "t.b"                              +
+         ],                                     +
+         "Gang Type": "primary reader",         +
+         "Node Type": "Incremental Sort",       +
+         "Actual Rows": 55,                     +
+         "Actual Loops": 1,                     +
+         "Async Capable": false,                +
+         "Presorted Key": [                     +
+             "t.a"                              +
+         ],                                     +
+         "Parallel Aware": false,               +
+         "Full-sort Groups": {                  +
+             "Group Count": 2,                  +
+             "Sort Methods Used": [             +
+                 "top-N heapsort",              +
+                 "quicksort"                    +
+             ],                                 +
+             "Sort Space Memory": {             +
+                 "Peak Sort Space Used": "NN",  +
+                 "Average Sort Space Used": "NN"+
+             }                                  +
+         },                                     +
+         "Parent Relationship": "Outer"         +
+     }                                          +
  ]
 (1 row)
 
@@ -579,13 +635,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 70;
  a | b  
@@ -667,17 +726,20 @@ select * from (select * from t order by a) s order by a, b limit 70;
 -- transition point) but only retain 5. Thus when we transition modes, all
 -- tuples in the full sort state have different prefix keys.
 explain (costs off) select * from (select * from t order by a) s order by a, b limit 5;
-                   QUERY PLAN
-------------------------------------------------
+           QUERY PLAN            
+---------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 5;
  a | b 
@@ -698,18 +760,22 @@ set local enable_mergejoin = off;
 set local enable_material = off;
 set local enable_sort = off;
 explain (costs off) select * from t left join (select * from (select * from t order by a) v order by a, b) s on s.a = t.a where t.a in (1, 2);
-                         QUERY PLAN                         
-------------------------------------------------------------
+                      QUERY PLAN                      
+------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Hash Left Join
-         Hash Cond: (t.a = t_1.a)
+   ->  Nested Loop Left Join
+         Join Filter: (t_1.a = t.a)
          ->  Seq Scan on t
                Filter: (a = ANY ('{1,2}'::integer[]))
-         ->  Hash
-               ->  Seq Scan on t t_1
-                     Filter: (a = ANY ('{1,2}'::integer[]))
- Optimizer: Pivotal Optimizer (GPORCA)
-(9 rows)
+         ->  Materialize
+               ->  Incremental Sort
+                     Sort Key: t_1.a, t_1.b
+                     Presorted Key: t_1.a
+                     ->  Sort
+                           Sort Key: t_1.a
+                           ->  Seq Scan on t t_1
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 --
 -- order none
@@ -723,27 +789,67 @@ select * from t left join (select * from (select * from t order by a) v order by
 
 rollback;
 -- Test EXPLAIN ANALYZE with both fullsort and presorted groups.
-set max_parallel_workers_per_gather = 0;
 select explain_analyze_without_memory('select * from (select * from t order by a) s order by a, b limit 70');
-                     explain_analyze_without_memory                      
--------------------------------------------------------------------------
+                                         explain_analyze_without_memory                                         
+----------------------------------------------------------------------------------------------------------------
  Limit (actual rows=70 loops=1)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=70 loops=1)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit (actual rows=70 loops=1)
-               ->  Sort (actual rows=70 loops=1)
-                     Sort Key: a, b
-                     Sort Method:  top-N heapsort  Memory: NNkB
-                     Sort Method:  quicksort  Memory: NNkB
-                     ->  Seq Scan on t (actual rows=996 loops=1)
- Optimizer: Pivotal Optimizer (GPORCA)
-(10 rows)
+               ->  Incremental Sort (actual rows=70 loops=1)
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     Full-sort Groups: 1  Sort Method: quicksort  Average Memory: NNkB  Peak Memory: NNkB
+                     Pre-sorted Groups: 1  Sort Method: top-N heapsort  Average Memory: NNkB  Peak Memory: NNkB
+                     ->  Sort (actual rows=996 loops=1)
+                           Sort Key: t.a
+                           Sort Method:  quicksort  Memory: NNkB
+                           ->  Seq Scan on t (actual rows=996 loops=1)
+ Optimizer: Postgres query optimizer
+(14 rows)
 
-reset max_parallel_workers_per_gather;
 select jsonb_pretty(explain_analyze_inc_sort_nodes_without_memory('select * from (select * from t order by a) s order by a, b limit 70'));
- jsonb_pretty 
---------------
- [           +
+                  jsonb_pretty                   
+-------------------------------------------------
+ [                                              +
+     {                                          +
+         "Slice": 1,                            +
+         "Segments": 3,                         +
+         "Sort Key": [                          +
+             "t.a",                             +
+             "t.b"                              +
+         ],                                     +
+         "Gang Type": "primary reader",         +
+         "Node Type": "Incremental Sort",       +
+         "Actual Rows": 70,                     +
+         "Actual Loops": 1,                     +
+         "Async Capable": false,                +
+         "Presorted Key": [                     +
+             "t.a"                              +
+         ],                                     +
+         "Parallel Aware": false,               +
+         "Full-sort Groups": {                  +
+             "Group Count": 1,                  +
+             "Sort Methods Used": [             +
+                 "quicksort"                    +
+             ],                                 +
+             "Sort Space Memory": {             +
+                 "Peak Sort Space Used": "NN",  +
+                 "Average Sort Space Used": "NN"+
+             }                                  +
+         },                                     +
+         "Pre-sorted Groups": {                 +
+             "Group Count": 1,                  +
+             "Sort Methods Used": [             +
+                 "top-N heapsort"               +
+             ],                                 +
+             "Sort Space Memory": {             +
+                 "Peak Sort Space Used": "NN",  +
+                 "Average Sort Space Used": "NN"+
+             }                                  +
+         },                                     +
+         "Parent Relationship": "Outer"         +
+     }                                          +
  ]
 (1 row)
 
@@ -762,13 +868,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 31;
  a | b  
@@ -811,13 +920,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 32;
  a | b  
@@ -861,13 +973,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 33;
  a | b  
@@ -912,13 +1027,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 65;
  a | b  
@@ -995,13 +1113,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 66;
  a | b  
@@ -1083,13 +1204,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 31;
  a  | b  
@@ -1132,13 +1256,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 32;
  a  | b  
@@ -1182,13 +1309,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 33;
  a  | b  
@@ -1233,13 +1363,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 65;
  a  | b  
@@ -1316,13 +1449,16 @@ explain (costs off) select * from (select * from t order by a) s order by a, b l
 ------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: a, b
+         Merge Key: t.a, t.b
          ->  Limit
-               ->  Sort
-                     Sort Key: a, b
-                     ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+               ->  Incremental Sort
+                     Sort Key: t.a, t.b
+                     Presorted Key: t.a
+                     ->  Sort
+                           Sort Key: t.a
+                           ->  Seq Scan on t
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from (select * from t order by a) s order by a, b limit 66;
  a  | b  
@@ -1420,7 +1556,7 @@ explain (costs off) select a,b,sum(c) from t group by 1,2 order by 1,2,3 limit 1
                      ->  HashAggregate
                            Group Key: a, b
                            ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
+ Optimizer: Postgres query optimizer
 (10 rows)
 
 set enable_incremental_sort = on;
@@ -1431,42 +1567,52 @@ explain (costs off) select a,b,sum(c) from t group by 1,2 order by 1,2,3 limit 1
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: a, b, (sum(c))
          ->  Limit
-               ->  Sort
+               ->  Incremental Sort
                      Sort Key: a, b, (sum(c))
-                     ->  HashAggregate
+                     Presorted Key: a, b
+                     ->  GroupAggregate
                            Group Key: a, b
-                           ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(10 rows)
+                           ->  Incremental Sort
+                                 Sort Key: a, b
+                                 Presorted Key: a
+                                 ->  Index Scan using t_a_idx on t
+ Optimizer: Postgres query optimizer
+(14 rows)
 
 -- Incremental sort vs. set operations with varno 0
 set enable_hashagg to off;
 explain (costs off) select * from t union select * from t order by 1,3;
-                QUERY PLAN                 
--------------------------------------------
+                               QUERY PLAN                               
+------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: t.a, t.c
-   ->  GroupAggregate
-         Group Key: t.a, t.b, t.c
-         ->  Sort
-               Sort Key: t.a, t.c, t.b
-               ->  Append
-                     ->  Seq Scan on t
-                     ->  Seq Scan on t t_1
- Optimizer: Pivotal Optimizer (GPORCA)
-(10 rows)
+   ->  Incremental Sort
+         Sort Key: t.a, t.c
+         Presorted Key: t.a
+         ->  Unique
+               Group Key: t.a, t.b, t.c
+               ->  Sort
+                     Sort Key: t.a, t.b, t.c
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                           Hash Key: t.a, t.b, t.c
+                           ->  Append
+                                 ->  Seq Scan on t
+                                 ->  Seq Scan on t t_1
+(15 rows)
 
 -- Full sort, not just incremental sort can be pushed below a gather merge path
 -- by generate_useful_gather_paths.
 explain (costs off) select distinct a,b from t;
-                QUERY PLAN
+                QUERY PLAN                
 ------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  HashAggregate
+   Merge Key: a, b
+   ->  Unique
          Group Key: a, b
-         ->  Seq Scan on t
- Optimizer: Pivotal Optimizer (GPORCA)
-(5 rows)
+         ->  Sort
+               Sort Key: a, b
+               ->  Seq Scan on t
+(7 rows)
 
 drop table t;
 -- Sort pushdown can't go below where expressions are part of the rel target.
@@ -1483,8 +1629,8 @@ set min_parallel_index_scan_size = 0;
 -- Parallel sort below join.
 explain (costs off) select distinct sub.unique1, stringu1
 from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub;
-                           QUERY PLAN
------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: tenk1.unique1, tenk1.stringu1
    ->  Unique
@@ -1515,7 +1661,7 @@ order by 1, 2;
 -- Parallel sort but with expression that can be safely generated at the base rel.
 explain (costs off) select distinct sub.unique1, md5(stringu1)
 from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub;
-                                    QUERY PLAN
+                                    QUERY PLAN                                    
 ----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: tenk1.unique1, (md5((tenk1.stringu1)::text))
@@ -1563,26 +1709,14 @@ order by count(*);
                            ->  Redistribute Motion 3:3  (slice2; segments: 3)
                                  Hash Key: t2.unique2
                                  ->  Hash Join
-<<<<<<< HEAD
-                                       Hash Cond: (t3.unique1 = t2.unique1)
-                                       ->  Index Only Scan using tenk1_unique1 on tenk1 t3
-                                       ->  Hash
-                                             ->  Bitmap Heap Scan on tenk1 t2
-                                                   ->  Bitmap Index Scan on tenk1_unique2
-                           ->  Hash
-                                 ->  Index Only Scan using tenk1_unique1 on tenk1 t1
- Optimizer: Postgres query optimizer
-(18 rows)
-=======
                                        Hash Cond: (t2.unique1 = t3.unique1)
                                        ->  Index Scan using tenk1_unique2 on tenk1 t2
                                        ->  Hash
                                              ->  Index Only Scan using tenk1_unique1 on tenk1 t3
                            ->  Hash
                                  ->  Index Only Scan using tenk1_unique1 on tenk1 t1
- Optimizer: Pivotal Optimizer (GPORCA)
+ Optimizer: Postgres query optimizer
 (17 rows)
->>>>>>> Send rows in binary mode for ANALYZE (#15159)
 
 -- Parallel sort but with expression (correlated subquery) that
 -- is prohibited in parallel plans.
@@ -1590,55 +1724,54 @@ explain (costs off) select distinct
   unique1,
   (select t.unique1 from tenk1 where tenk1.unique1 = t.unique1)
 from tenk1 t, generate_series(1, 1000);
-                                    QUERY PLAN
------------------------------------------------------------------------------------
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  HashAggregate
-         Group Key: tenk1.unique1, (SubPlan 1)
-         ->  Nested Loop
-               Join Filter: true
-               ->  Seq Scan on tenk1
-               ->  Function Scan on generate_series
-               SubPlan 1
-                 ->  Result
+   Merge Key: t.unique1, ((SubPlan 1))
+   ->  Unique
+         Group Key: t.unique1, ((SubPlan 1))
+         ->  Sort
+               Sort Key: t.unique1, ((SubPlan 1))
+               ->  Nested Loop
+                     ->  Index Only Scan using tenk1_unique1 on tenk1 t
+                     ->  Function Scan on generate_series
+                     SubPlan 1
                        ->  Result
-                             Filter: (tenk1_1.unique1 = tenk1.unique1)
+                             Filter: (tenk1.unique1 = t.unique1)
                              ->  Materialize
                                    ->  Broadcast Motion 3:3  (slice2; segments: 3)
-                                         ->  Seq Scan on tenk1 tenk1_1
- Optimizer: Pivotal Optimizer (GPORCA)
-(15 rows)
+                                         ->  Index Only Scan using tenk1_unique1 on tenk1
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 explain (costs off) select
   unique1,
   (select t.unique1 from tenk1 where tenk1.unique1 = t.unique1)
 from tenk1 t, generate_series(1, 1000)
 order by 1, 2;
-                                    QUERY PLAN
------------------------------------------------------------------------------------
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: tenk1.unique1, ((SubPlan 1))
+   Merge Key: t.unique1, ((SubPlan 1))
    ->  Sort
-         Sort Key: tenk1.unique1, ((SubPlan 1))
+         Sort Key: t.unique1, ((SubPlan 1))
          ->  Nested Loop
-               Join Filter: true
-               ->  Seq Scan on tenk1
+               ->  Index Only Scan using tenk1_unique1 on tenk1 t
                ->  Function Scan on generate_series
                SubPlan 1
                  ->  Result
-                       ->  Result
-                             Filter: (tenk1_1.unique1 = tenk1.unique1)
-                             ->  Materialize
-                                   ->  Broadcast Motion 3:3  (slice2; segments: 3)
-                                         ->  Seq Scan on tenk1 tenk1_1
- Optimizer: Pivotal Optimizer (GPORCA)
-(16 rows)
+                       Filter: (tenk1.unique1 = t.unique1)
+                       ->  Materialize
+                             ->  Broadcast Motion 3:3  (slice2; segments: 3)
+                                   ->  Index Only Scan using tenk1_unique1 on tenk1
+ Optimizer: Postgres query optimizer
+(14 rows)
 
 -- Parallel sort but with expression not available until the upper rel.
 explain (costs off) select distinct sub.unique1, stringu1 || random()::text
 from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub;
-                                            QUERY PLAN
----------------------------------------------------------------------------------------------------
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: tenk1.unique1, (((tenk1.stringu1)::text || (random())::text))
    ->  Unique
@@ -1654,8 +1787,8 @@ from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub;
 explain (costs off) select sub.unique1, stringu1 || random()::text
 from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub
 order by 1, 2;
-                                         QUERY PLAN
----------------------------------------------------------------------------------------------
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: tenk1.unique1, (((tenk1.stringu1)::text || (random())::text))
    ->  Sort
@@ -1663,20 +1796,17 @@ order by 1, 2;
          ->  Nested Loop
                ->  Index Scan using tenk1_unique1 on tenk1
                ->  Function Scan on generate_series
- Optimizer: Postgres query optimizer
-(8 rows)
+(7 rows)
 
 -- Disallow pushing down sort when pathkey is an SRF.
 explain (costs off) select unique1 from tenk1 order by unnest('{1,2}'::int[]);
-                     QUERY PLAN
------------------------------------------------------
- Result
-   ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: (unnest('{1,2}'::anyarray))
-         ->  Sort
-               Sort Key: (unnest('{1,2}'::anyarray))
-               ->  ProjectSet
-                     ->  Seq Scan on tenk1
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+                               QUERY PLAN                                
+-------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: (unnest('{1,2}'::anyarray))
+   ->  Sort
+         Sort Key: (unnest('{1,2}'::anyarray))
+         ->  ProjectSet
+               ->  Index Only Scan using tenk1_unique1 on tenk1
+(6 rows)
 
