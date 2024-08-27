@@ -146,6 +146,18 @@ select count(*) from t2_issue_582;
 select mvname, datastatus from gp_matview_aux where mvname = 'mv_t2_issue_582';
 abort;
 
+--
+-- test issue https://github.com/cloudberrydb/cloudberrydb/issues/582
+-- test writable CTE
+--
+begin;
+create table t_cte_issue_582(i int, j int);
+create materialized view mv_t_cte_issue_582 as select j from t_cte_issue_582 where i = 1;
+select mvname, datastatus from gp_matview_aux where mvname = 'mv_t_cte_issue_582';
+with mod1 as (insert into t_cte_issue_582 values(1, 1) returning *) select * from mod1;
+select mvname, datastatus from gp_matview_aux where mvname = 'mv_t_cte_issue_582';
+abort;
+
 drop schema matview_data_schema cascade;
 reset enable_answer_query_using_materialized_views;
 reset optimizer;
