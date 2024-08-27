@@ -1045,39 +1045,40 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 		 * after that.
 		 */
 		if (IS_QD_OR_SINGLENODE() &&
-			((es_processed > 0 || estate->es_processed > 0) ||
-			!queryDesc->plannedstmt->canSetTag))
+			(operation == CMD_INSERT || operation == CMD_UPDATE || operation == CMD_DELETE ||
+				queryDesc->plannedstmt->hasModifyingCTE) &&
+			((es_processed > 0 || estate->es_processed > 0) || !queryDesc->plannedstmt->canSetTag))
 		{
-			if (operation == CMD_INSERT ||
-				operation == CMD_UPDATE ||
-				operation == CMD_DELETE)
+			List		*rtable = queryDesc->plannedstmt->rtable;
+			int			length = list_length(rtable);
+			ListCell	*lc;
+			foreach(lc, queryDesc->plannedstmt->resultRelations)
 			{
-				List		*rtable =queryDesc->plannedstmt->rtable;
-				int			length = list_length(rtable);
-				ListCell	*lc;
-				foreach(lc, queryDesc->plannedstmt->resultRelations)
+				int varno = lfirst_int(lc);
+
+				/* Avoid crash in case we don't find a rte. */
+				if (varno > length + 1)
 				{
-					int varno = lfirst_int(lc);
+					ereport(WARNING, (errmsg("could not find rte of varno: %u ", varno)));
+					continue;
+				}
 
-					/* Avoid crash in case we don't find a rte. */
-					if (varno > length + 1)
+				RangeTblEntry *rte = rt_fetch(varno, rtable);
+				switch (operation)
+				{
+					case CMD_INSERT:
+						SetRelativeMatviewAuxStatus(rte->relid, MV_DATA_STATUS_EXPIRED_INSERT_ONLY);
+						break;
+					case CMD_UPDATE:
+					case CMD_DELETE:
+						SetRelativeMatviewAuxStatus(rte->relid, MV_DATA_STATUS_EXPIRED);
+						break;
+					default:
 					{
-						ereport(WARNING, (errmsg("could not find rte of varno: %u ", varno)));
-						continue;
-					}
-
-					RangeTblEntry *rte = rt_fetch(varno, rtable);
-					switch (operation)
-					{
-						case CMD_INSERT:
-							SetRelativeMatviewAuxStatus(rte->relid, MV_DATA_STATUS_EXPIRED_INSERT_ONLY);
-							break;
-						case CMD_UPDATE:
-						case CMD_DELETE:
+						/* If there were writable CTE, just mark it as expired. */
+						if (queryDesc->plannedstmt->hasModifyingCTE)
 							SetRelativeMatviewAuxStatus(rte->relid, MV_DATA_STATUS_EXPIRED);
-							break;
-						default:
-							break;
+						break;
 					}
 				}
 			}
