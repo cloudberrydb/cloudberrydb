@@ -124,7 +124,9 @@ pullUpExpr_mutator(Node *node, void *context)
 			foreach(cell, ctx->targetlist)
 			{
 				tlistexpr = (Expr *) lfirst(cell);
-
+				/* Ignore RelabelType nodes on top */
+				while (tlistexpr && IsA(tlistexpr, RelabelType))
+					tlistexpr = ((RelabelType *) tlistexpr)->arg;
 				/*
 				 * We don't use equal(), because we want to ignore typmod.
 				 * A projection sometimes loses typmod, and that's OK.

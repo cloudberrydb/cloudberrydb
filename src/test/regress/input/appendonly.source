@@ -879,3 +879,18 @@ insert into fix_ao_truncate_last_sequence select 1, 1 from generate_series(1, 5)
 select count(*) from fix_ao_truncate_last_sequence;
 abort;
 
+create table fix_issue_605
+(
+c1 varchar(8),
+c2 varchar(12) collate "C",
+c3 varchar(10),
+c4 varchar(30)
+)
+with (appendonly=true,compresstype=zstd,compresslevel=5)
+distributed by (c1,c3,c4)
+partition by range(c1)
+(partition p1990 start('19900101') inclusive,
+default partition other
+);
+
+select c3::varchar from fix_issue_605 where c1='20190830' order by c2;
