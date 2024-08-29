@@ -64,10 +64,12 @@
 #include "storage/sinvaladt.h"
 #include "storage/spin.h"
 #include "utils/builtins.h"
+#include "utils/guc.h"
 #include "utils/memutils.h"
 #include "utils/old_snapshot.h"
 #include "utils/rel.h"
 #include "utils/resowner_private.h"
+#include "utils/sharedsnapshot.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
 #include "utils/timestamp.h"
@@ -2321,6 +2323,85 @@ SerializeSnapshot(Snapshot snapshot, char *start_address)
 	}
 }
 
+void
+ReadSharedLocalSnapshot(Snapshot snapshot)
+{
+	char *start_address;
+	dsm_segment *snapshot_sgm;
+	TransactionId *serialized_xids;
+	TransactionId *serialized_subxids;
+	SerializedSnapshotData *serialized_snapshot;
+
+	if (unlikely(SharedLocalSnapshotSlot->snapshot_handle ==
+				 DSM_HANDLE_INVALID))
+		elog(ERROR, "QE reader can not sync shared snapshot.");
+
+	snapshot_sgm = dsm_attach(SharedLocalSnapshotSlot->snapshot_handle);
+	start_address = dsm_segment_address(snapshot_sgm);
+
+	serialized_snapshot = (SerializedSnapshotData *) start_address;
+
+	snapshot->xmin = serialized_snapshot->xmin;
+	snapshot->xmax = serialized_snapshot->xmax;
+	snapshot->xcnt = serialized_snapshot->xcnt;
+	snapshot->subxcnt = serialized_snapshot->subxcnt;
+	snapshot->suboverflowed = serialized_snapshot->suboverflowed;
+	snapshot->curcid = serialized_snapshot->curcid;
+
+	/* We now capture our current view of the xip/combocid arrays */
+	serialized_xids =
+		(TransactionId *) (start_address + sizeof(SerializedSnapshotData));
+	serialized_subxids = serialized_xids + snapshot->xcnt;
+
+	if (snapshot->xcnt > 0)
+		memcpy(snapshot->xip, serialized_xids,
+			   snapshot->xcnt * sizeof(TransactionId));
+
+	if (snapshot->subxcnt > 0)
+		memcpy(snapshot->subxip, serialized_subxids,
+			   snapshot->subxcnt * sizeof(TransactionId));
+
+	dsm_detach(snapshot_sgm);
+
+	if (TransactionIdPrecedes(snapshot->xmin, TransactionXmin))
+		TransactionXmin = snapshot->xmin;
+
+	ereport(
+		(Debug_print_snapshot_dtm ? LOG : DEBUG5),
+		(errmsg(
+			"Reader qExec setting shared local snapshot to: xmin: %d xmax: %d curcid: %d",
+			snapshot->xmin, snapshot->xmax, snapshot->curcid)));
+
+	ereport(
+		(Debug_print_snapshot_dtm ? LOG : DEBUG5),
+		(errmsg(
+			"GetSnapshotData(): READER currentcommandid %d curcid %d segmatesync %d",
+			GetCurrentCommandId(false), snapshot->curcid,
+			SharedLocalSnapshotSlot->segmateSync)));
+}
+
+CommandId
+UpdateSharedLocalSnapshotCommandId(CommandId curcid)
+{
+	char	   *start_address;
+	CommandId	oldcid;
+	dsm_segment *snapshot_sgm;
+	SerializedSnapshotData *serialized_snapshot;
+
+	if (unlikely(SharedLocalSnapshotSlot->snapshot_handle == DSM_HANDLE_INVALID))
+		elog(ERROR, "Shared snapshot dsm handler is invalid");
+
+	snapshot_sgm = dsm_attach(SharedLocalSnapshotSlot->snapshot_handle);
+	start_address = dsm_segment_address(snapshot_sgm);
+
+	serialized_snapshot = (SerializedSnapshotData *) start_address;
+	oldcid = serialized_snapshot->curcid;
+	serialized_snapshot->curcid = curcid;
+
+	dsm_detach(snapshot_sgm);
+
+	return oldcid;
+}
 /*
  * RestoreSnapshot
  *		Restore a serialized snapshot from the specified address.

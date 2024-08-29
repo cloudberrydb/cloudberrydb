@@ -202,8 +202,6 @@ typedef struct SharedSnapshotStruct
 	 * Be very careful when accessing fields inside here.
 	 */
 	SharedSnapshotSlot	   *slots;
-
-	TransactionId	   *xips;		/* VARIABLE LENGTH ARRAY */
 } SharedSnapshotStruct;
 
 static volatile SharedSnapshotStruct *sharedSnapshotArray;
@@ -230,7 +228,6 @@ SharedSnapshotShmemSize(void)
 	xipEntryCount = MaxBackends + max_prepared_xacts;
 
 	slotSize = sizeof(SharedSnapshotSlot);
-	slotSize += mul_size(sizeof(TransactionId), (xipEntryCount));
 	slotSize = MAXALIGN(slotSize);
 
 	/*
@@ -246,7 +243,7 @@ SharedSnapshotShmemSize(void)
 
 	slotCount = NUM_SHARED_SNAPSHOT_SLOTS;
 
-	size = offsetof(SharedSnapshotStruct, xips);
+	size = sizeof(SharedSnapshotStruct);
 	size = add_size(size, mul_size(slotSize, slotCount));
 
 	RequestNamedLWLockTranche("SharedSnapshotLocks", slotCount);
@@ -263,7 +260,6 @@ CreateSharedSnapshotArray(void)
 {
 	bool	found;
 	int		i;
-	TransactionId *xip_base=NULL;
 
 	/* Create or attach to the SharedSnapshot shared structure */
 	sharedSnapshotArray = (SharedSnapshotStruct *)
@@ -290,10 +286,7 @@ CreateSharedSnapshotArray(void)
 		 * SharedSnapshotStruct. xips is the last element in the struct but is
 		 * not included in SharedSnapshotShmemSize allocation.
 		 */
-		sharedSnapshotArray->slots = (SharedSnapshotSlot *)&sharedSnapshotArray->xips;
-
-		/* xips start just after the last slot structure */
-		xip_base = (TransactionId *)&sharedSnapshotArray->slots[sharedSnapshotArray->maxSlots];
+		sharedSnapshotArray->slots = (SharedSnapshotSlot *)(sharedSnapshotArray + 1);
 
 		lock_base = GetNamedLWLockTranche("SharedSnapshotLocks");
 		for (i=0; i < sharedSnapshotArray->maxSlots; i++)
@@ -303,17 +296,11 @@ CreateSharedSnapshotArray(void)
 			tmpSlot->slotid = -1;
 			tmpSlot->slotindex = i;
 			tmpSlot->slotLock = &lock_base[i].lock;
+			tmpSlot->snapshot_handle = DSM_HANDLE_INVALID;
+			tmpSlot->snapshot_sz = 0;
 
 			MemSet(tmpSlot->dump, 0, sizeof(SnapshotDump) * SNAPSHOTDUMPARRAYSZ);
 			tmpSlot->cur_dump_id = 0;
-			/*
-			 * Fixup xip array pointer reference space allocated after slot structs:
-			 *
-			 * Note: xipEntryCount is initialized in SharedSnapshotShmemSize().
-			 * So each slot gets (MaxBackends + max_prepared_xacts) transaction-ids.
-			 */
-			tmpSlot->snapshot.xip = &xip_base[0];
-			xip_base += xipEntryCount;
 		}
 	}
 }
@@ -374,7 +361,7 @@ retry:
 
 	slot = NULL;
 
-	for (i=0; i < arrayP->maxSlots; i++)
+	for (i = 0; i < arrayP->maxSlots; i++)
 	{
 		SharedSnapshotSlot *testSlot = &arrayP->slots[i];
 
@@ -545,6 +532,9 @@ SharedSnapshotRemove(volatile SharedSnapshotSlot *slot, char *creatorDescription
 
 	LWLockAcquire(SharedSnapshotLock, LW_EXCLUSIVE);
 
+	if (slot->snapshot_handle != DSM_HANDLE_INVALID)
+		dsm_unpin_segment(slot->snapshot_handle);
+
 	/* determine if we need to modify the next available slot to use.  we
 	 * only do this is our slotindex is lower then the existing one.
 	 */
@@ -563,6 +553,8 @@ SharedSnapshotRemove(volatile SharedSnapshotSlot *slot, char *creatorDescription
 	slot->startTimestamp = 0;
 	slot->distributedXid = InvalidDistributedTransactionId;
 	slot->segmateSync = 0;
+	slot->snapshot_handle = DSM_HANDLE_INVALID;
+	slot->snapshot_sz = 0;
 
 	sharedSnapshotArray->numSlots -= 1;
 
@@ -613,13 +605,19 @@ lookupSharedSnapshot(char *lookerDescription, char *creatorDescription, int id)
 void
 dumpSharedLocalSnapshot_forCursor(void)
 {
+	int			id;
+	char	   *src_address;
+	char	   *dst_address;
+	dsm_segment *src_segment;
+	dsm_segment *dst_segment;
 	ResourceOwner oldowner;
 	SharedSnapshotSlot *src = NULL;
+	volatile SnapshotDump *pDump;
 
 	Assert(Gp_role == GP_ROLE_DISPATCH || (Gp_role == GP_ROLE_EXECUTE && Gp_is_writer));
 	Assert(SharedLocalSnapshotSlot != NULL);
 
-	if (DumpResOwner== NULL)
+	if (DumpResOwner == NULL)
 		DumpResOwner = ResourceOwnerCreate(NULL, "SharedSnapshotDumpResOwner");
 
 	LWLockAcquire(SharedLocalSnapshotSlot->slotLock, LW_EXCLUSIVE);
@@ -630,27 +628,28 @@ dumpSharedLocalSnapshot_forCursor(void)
 
 	src = (SharedSnapshotSlot *)SharedLocalSnapshotSlot;
 
-	Size sz ;
-	dsm_segment *segment;
-	int id = src->cur_dump_id;
-	volatile SnapshotDump *pDump = &src->dump[id];
+	id = src->cur_dump_id;
+	pDump = &src->dump[id];
 
-	if(pDump->segment)
-		dsm_detach(pDump->segment);
+	Assert(SharedLocalSnapshotSlot->snapshot_handle != DSM_HANDLE_INVALID);
+	src_segment = dsm_attach(SharedLocalSnapshotSlot->snapshot_handle);
+	src_address = dsm_segment_address(src_segment);
 
-	sz = EstimateSnapshotSpace(&src->snapshot);
-	segment = dsm_create(sz, 0);
+	dst_segment = dsm_create(src->snapshot_sz, 0);
+	dst_address = dsm_segment_address(dst_segment);
 
-	char *ptr = dsm_segment_address(segment);
-	SerializeSnapshot(&src->snapshot, ptr);
+	/* Dump shared snapshot to dsm of destination */
+	memcpy(dst_address, src_address, src->snapshot_sz);
 
-	pDump->segment = segment;
-	pDump->handle = dsm_segment_handle(segment);
+	/* FIXME: can we just reuse the src dsm handler? */
+	pDump->handle = dsm_segment_handle(dst_segment);
 	pDump->segmateSync = src->segmateSync;
 	pDump->distributedXid = src->distributedXid;
 	pDump->localXid = src->fullXid;
 
-	elog(LOG, "Dump syncmate : %u snapshot to slot %d", src->segmateSync, id);
+	dsm_detach(src_segment);
+
+	elog(DEBUG1, "Dump syncmate : %u snapshot to slot %d", src->segmateSync, id);
 
 	src->cur_dump_id =
 		(src->cur_dump_id + 1) % SNAPSHOTDUMPARRAYSZ;

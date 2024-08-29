@@ -188,4 +188,7 @@ extern Snapshot RestoreSnapshot(char *start_address);
 extern void RestoreTransactionSnapshot(Snapshot snapshot, void *source_pgproc);
 
 extern Size EstimateSnapshotDataSpace(void);
+
+extern void ReadSharedLocalSnapshot(Snapshot snapshot);
+extern CommandId UpdateSharedLocalSnapshotCommandId(CommandId curcid);
 #endif							/* SNAPMGR_H */

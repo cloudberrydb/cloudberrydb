@@ -44,6 +44,7 @@
 #include "utils/guc.h"
 #include "utils/memutils.h"
 #include "utils/resowner_private.h"
+#include "utils/sharedsnapshot.h"
 
 #define PG_DYNSHMEM_CONTROL_MAGIC		0x9a503d32
 
@@ -164,8 +165,9 @@ dsm_postmaster_startup(PGShmemHeader *shim)
 		dsm_cleanup_for_mmap();
 
 	/* Determine size for new control segment. */
-	maxitems = PG_DYNSHMEM_FIXED_SLOTS
-		+ PG_DYNSHMEM_SLOTS_PER_BACKEND * MaxBackends;
+	maxitems = PG_DYNSHMEM_FIXED_SLOTS +
+			   PG_DYNSHMEM_SLOTS_PER_BACKEND * MaxBackends +
+			   NUM_SHARED_SNAPSHOT_SLOTS * 2;
 	elog(DEBUG2, "dynamic shared memory system will support %u segments",
 		 maxitems);
 	segsize = dsm_control_bytes_needed(maxitems);
