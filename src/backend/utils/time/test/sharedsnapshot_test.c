@@ -59,9 +59,9 @@ test_boundaries_of_CreateSharedSnapshotArray(void **state)
 		 * Assert that every slot xip array falls inside the boundaries of the
 		 * allocated shared snapshot.
 		 */
-		assert_true((uint8_t *)s->snapshot.xip > (uint8_t *)fakeSharedSnapshotArray);
-		assert_true((uint8_t *)s->snapshot.xip < (((uint8_t *)fakeSharedSnapshotArray) +
-												sharedSnapshotShmemSize));
+		assert_true((uint8_t *)s > (uint8_t *)fakeSharedSnapshotArray);
+		assert_true((uint8_t *)s < (((uint8_t *)fakeSharedSnapshotArray) +
+									sharedSnapshotShmemSize));
 	}
 }
 

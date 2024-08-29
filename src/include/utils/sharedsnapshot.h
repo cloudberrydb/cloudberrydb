@@ -13,6 +13,7 @@
 #ifndef SHAREDSNAPSHOT_H
 #define SHAREDSNAPSHOT_H
 
+#include "c.h"
 #include "storage/proc.h"
 #include "utils/combocid.h"
 #include "utils/snapshot.h"
@@ -23,7 +24,6 @@ typedef struct SnapshotDump
 	DistributedTransactionId distributedXid;
 	FullTransactionId localXid;
 	dsm_handle  handle;
-	dsm_segment *segment;
 } SnapshotDump;
 
 #define SNAPSHOTDUMPARRAYSZ 32
@@ -40,14 +40,16 @@ typedef struct SharedSnapshotSlot
 
 	volatile bool			ready;
 	volatile uint32			segmateSync;
-	SnapshotData	snapshot;
-	LWLock		   *slotLock;
 
-	volatile int    cur_dump_id;
-	volatile SnapshotDump    dump[SNAPSHOTDUMPARRAYSZ];
+	volatile dsm_handle		snapshot_handle;
+	uint32					snapshot_sz;
+	LWLock					*slotLock;
+
+	volatile int			cur_dump_id;
+	volatile SnapshotDump	dump[SNAPSHOTDUMPARRAYSZ];
 	/* for debugging only */
-	FullTransactionId	fullXid;
-	TimestampTz		startTimestamp;
+	FullTransactionId		fullXid;
+	TimestampTz				startTimestamp;
 } SharedSnapshotSlot;
 
 extern volatile SharedSnapshotSlot *SharedLocalSnapshotSlot;
