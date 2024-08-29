@@ -26,12 +26,12 @@ BEGIN
 1: SHOW statement_mem;
  statement_mem 
 ---------------
- 125MB         
+ 250MB         
 (1 row)
 1: SELECT func_memory_test('SELECT * FROM t_memory_limit');
  func_memory_test 
 ------------------
- 128000kB         
+ 256000kB         
 (1 row)
 
 -- session2: test alter resource group's memory limit
