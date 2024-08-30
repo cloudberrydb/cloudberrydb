@@ -478,6 +478,7 @@ binary_swap:
     BUILD_ID: $build_id
     RELEASE_TYPE: "dev" 
     TRIGGER_SOURCE: "HashData Lightning"
+    DATABASE_CODE_BRANCH: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
   trigger:
     project: cloudberry/testing/cbdb_binary_swap
     branch: main
@@ -486,9 +487,9 @@ binary_swap:
   needs:
     - job: centos7:x86_64:build
   rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^rc\/v1\.([6-9]|[1-9][0-9])\.([0-9a-z]|[1-9][0-9])$/'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^rc\/v1\.([6-9]|[1-9][0-9])\.([0-9a-z]|[1-9][0-9])$/'
       when: always
-    - if: '$CI_COMMIT_BRANCH =~ /^rc\/v[2-9]\.([0-9]|[1-9][0-9])\.([0-9a-z]|[1-9][0-9])$/'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^rc\/v[2-9]\.([0-9]|[1-9][0-9])\.([0-9a-z]|[1-9][0-9])$/'
       when: always
     - if: '$CI_COMMIT_BRANCH =~ /binary-swap-test.*/'
       when: always
