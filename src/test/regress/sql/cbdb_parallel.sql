@@ -877,6 +877,26 @@ analyze t1;
 explain(costs off, locus) select max(100) from t1;
 abort;
 
+-- test Parallel Anti Join
+begin;
+create table t1_anti(a int, b int) with(parallel_workers=2) distributed by (a);
+insert into t1_anti values(generate_series(1, 10));
+create table t2_anti(a int, b int) with(parallel_workers=2) distributed by (b);
+insert into t2_anti values(generate_series(5, 10));
+explain(costs off, verbose)
+select t1_anti.a, t1_anti.b from t1_anti left join t2_anti on t1_anti.a = t2_anti.a where t2_anti.a is null;
+select t1_anti.a, t1_anti.b from t1_anti left join t2_anti on t1_anti.a = t2_anti.a where t2_anti.a is null;
+set local enable_parallel = on;
+set local min_parallel_table_scan_size = 0;
+explain(costs off, verbose)
+select t1_anti.a, t1_anti.b from t1_anti left join t2_anti on t1_anti.a = t2_anti.a where t2_anti.a is null;
+select t1_anti.a, t1_anti.b from t1_anti left join t2_anti on t1_anti.a = t2_anti.a where t2_anti.a is null;
+set local enable_parallel_hash = off;
+explain(costs off, verbose)
+select t1_anti.a, t1_anti.b from t1_anti left join t2_anti on t1_anti.a = t2_anti.a where t2_anti.a is null;
+select t1_anti.a, t1_anti.b from t1_anti left join t2_anti on t1_anti.a = t2_anti.a where t2_anti.a is null;
+abort;
+
 -- start_ignore
 drop schema test_parallel cascade;
 -- end_ignore
