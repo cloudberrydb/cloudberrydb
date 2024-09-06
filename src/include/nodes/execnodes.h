@@ -718,6 +718,7 @@ typedef struct EState
 	 * vacuum, can avoid running uniqueness checks while inserting tuples.
 	 */
 	bool		gp_bypass_unique_check;
+	bool		force_squelch;
 
 } EState;
 
