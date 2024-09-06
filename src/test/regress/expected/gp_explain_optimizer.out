@@ -595,3 +595,34 @@ DROP TABLE range_parted;
 RESET search_path;
 DROP SCHEMA explain_subplan;
 DROP USER regress_range_parted_user;
+-- Test if explain analyze will hang with materialize node
+CREATE TABLE recursive_table_ic (a INT) DISTRIBUTED BY (a);
+INSERT INTO recursive_table_ic SELECT * FROM generate_series(20, 30000);
+explain (analyze, costs off, timing off, summary off) WITH RECURSIVE
+r(i) AS (
+	SELECT 1
+),
+y(i) AS (
+	SELECT 1
+	UNION ALL
+	SELECT i + 1 FROM y, recursive_table_ic WHERE NOT EXISTS (SELECT * FROM r LIMIT 10)
+)
+SELECT * FROM y LIMIT 10;
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Limit (actual rows=1 loops=1)
+   ->  Recursive Union (actual rows=1 loops=1)
+         ->  Result (actual rows=1 loops=1)
+         ->  Result (actual rows=0 loops=1)
+               One-Time Filter: (NOT $1)
+               InitPlan 1 (returns $1)  (slice2)
+                 ->  Result (actual rows=1 loops=1)
+               ->  Nested Loop (never executed)
+                     ->  WorkTable Scan on y (never executed)
+                     ->  Materialize (never executed)
+                           ->  Gather Motion 3:1  (slice1; segments: 3) (never executed)
+                                 ->  Seq Scan on recursive_table_ic (actual rows=4061 loops=1)
+ Optimizer: Postgres query optimizer
+(13 rows)
+
+DROP TABLE recursive_table_ic;

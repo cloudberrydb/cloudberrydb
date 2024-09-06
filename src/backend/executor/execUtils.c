@@ -210,6 +210,7 @@ CreateExecutorState(void)
 	estate->eliminateAliens = false;
 
 	estate->gp_bypass_unique_check = false;
+	estate->force_squelch = false;
 
 	/*
 	 * Return the executor state structure
