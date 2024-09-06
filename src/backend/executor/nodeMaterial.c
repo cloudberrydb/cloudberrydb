@@ -544,4 +544,9 @@ ExecSquelchMaterial(MaterialState *node)
 		ExecEagerFreeMaterial(node);
 		ExecSquelchNode(outerPlanState(node));
 	}
+	else if (node->ss.ps.state->force_squelch)
+	{
+		ExecSquelchNode(outerPlanState(node));
+		node->ss.ps.squelched = true;
+	}
 }

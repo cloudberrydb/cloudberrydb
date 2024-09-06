@@ -730,8 +730,14 @@ ExecSquelchNode(PlanState *node)
 		return;
 
 	if (node->squelched)
+	{
+		if (nodeTag(node) != T_MotionState)
+		{
+			ExecSquelchNode(outerPlanState(node));
+			ExecSquelchNode(innerPlanState(node));
+		}
 		return;
-
+	}
 	switch (nodeTag(node))
 	{
 		case T_MotionState:
@@ -881,7 +887,12 @@ ExecSquelchNode(PlanState *node)
 		ExecSquelchNode(ips);
 	}
 
-	node->squelched = true;
+	/*
+	 * For T_MaterialState, even if ExecSquelchMaterial is called, it may be
+	 * not squelched, so let itself set that value
+	 */
+	if (nodeTag(node) != T_MaterialState)
+		node->squelched = true;
 }
 
 /*

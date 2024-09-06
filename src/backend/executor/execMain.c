@@ -1166,6 +1166,8 @@ void
 standard_ExecutorFinish(QueryDesc *queryDesc)
 {
 	EState	   *estate;
+	PlanState *planstate = NULL;
+	GpExecIdentity exec_identity;
 	MemoryContext oldcontext;
 
 	/* sanity checks */
@@ -1195,6 +1197,33 @@ standard_ExecutorFinish(QueryDesc *queryDesc)
 
 	if (queryDesc->totaltime)
 		InstrStopNode(queryDesc->totaltime, 0);
+
+	/*
+	 * To squelch the whole plan as the query is finished
+	 *
+	 * For material node, when 'delayEagerFree' is true, it
+	 * will not be squelched even if 'ExecSquelchNode' is
+	 * called on it. But if it is not squechled, it will
+	 * not send the stop msg to its child motion node, and
+	 * the sender motion will hang there until the connection
+	 * is reset or closed. This can lead some issues.
+	 * For e.g: sometimes we need to collect the querystate
+	 * from all the backends through
+	 * 'cdbexplain_recvExecStats'. It will wait until the QE
+	 * sending the querystate to it. But the QE only sends
+	 * that in 'standard_ExecutorEnd'. But if it is still
+	 * blocked at sending out tuples, then the whole query
+	 * will hang up.
+	 */
+	estate->force_squelch = true;
+	exec_identity = getGpExecIdentity(queryDesc, ForwardScanDirection, estate);
+	if (exec_identity == GP_NON_ROOT_ON_QE)
+		planstate = (PlanState *)getMotionState(queryDesc->planstate, LocallyExecutingSliceIndex(estate));
+	else if (exec_identity == GP_ROOT_SLICE)
+		planstate = queryDesc->planstate;
+
+	if (exec_identity != GP_IGNORE && planstate != NULL)
+		ExecSquelchNode(planstate);
 
 	MemoryContextSwitchTo(oldcontext);
 
@@ -2758,6 +2787,8 @@ ExecutePlan(EState *estate,
 			 * received in order to do the right cleanup.
 			 */
 			estate->es_got_eos = true;
+			estate->force_squelch = true;
+			ExecSquelchNode(planstate);
 			/* Allow nodes to release or shut down resources. */
 			(void) ExecShutdownNode(planstate);
 			break;
