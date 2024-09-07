@@ -560,38 +560,31 @@ CREATE POLICY policy_range_parted_subplan on range_parted
 AS RESTRICTIVE for UPDATE USING (true)
 WITH CHECK ((SELECT range_parted.c <= c1 FROM mintab));
 SET SESSION AUTHORIZATION regress_range_parted_user;
-EXPLAIN ANALYZE UPDATE explain_subplan.range_parted set a = 'b', c = 120 WHERE a = 'a' AND c = '200';
-                                                                     QUERY PLAN                                                                     
-----------------------------------------------------------------------------------------------------------------------------------------------------
- Update on range_parted  (cost=0.00..389.09 rows=0 width=0) (never executed)
+EXPLAIN (analyze,  costs off, timing off, summary off) UPDATE explain_subplan.range_parted set a = 'b', c = 120 WHERE a = 'a' AND c = '200';
+                                        QUERY PLAN                                         
+-------------------------------------------------------------------------------------------
+ Update on range_parted (never executed)
    Update on part_a_1_a_10 range_parted_1
    Update on part_a_10_a_20 range_parted_2
-   ->  Explicit Redistribute Motion 1:3  (slice1; segments: 1)  (cost=0.00..389.09 rows=4 width=86) (actual time=2.108..2.109 rows=1 loops=1)
-         ->  Split  (cost=0.00..389.01 rows=4 width=86) (actual time=0.126..0.130 rows=2 loops=1)
-               ->  Append  (cost=0.00..389.01 rows=2 width=86) (actual time=0.111..0.114 rows=1 loops=1)
-                     ->  Seq Scan on part_a_1_a_10 range_parted_1  (cost=0.00..194.50 rows=1 width=86) (never executed)
+   ->  Explicit Redistribute Motion 1:3  (slice1; segments: 1) (actual rows=1 loops=1)
+         ->  Split (actual rows=2 loops=1)
+               ->  Append (actual rows=1 loops=1)
+                     ->  Seq Scan on part_a_1_a_10 range_parted_1 (never executed)
                            Filter: ((a = 'a'::text) AND (c = '200'::numeric))
-                     ->  Seq Scan on part_a_10_a_20 range_parted_2  (cost=0.00..194.50 rows=1 width=86) (actual time=0.026..0.027 rows=1 loops=1)
+                     ->  Seq Scan on part_a_10_a_20 range_parted_2 (actual rows=1 loops=1)
                            Filter: ((a = 'a'::text) AND (c = '200'::numeric))
    SubPlan 1 (copy 2)
-     ->  Result  (cost=0.00..3565.00 rows=96300 width=1) (actual time=0.206..0.209 rows=1 loops=1)
-           ->  Materialize  (cost=0.00..2120.50 rows=96300 width=4) (actual time=0.202..0.204 rows=1 loops=1)
-                 ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..1639.00 rows=96300 width=4) (actual time=0.189..0.191 rows=1 loops=1)
-                       ->  Seq Scan on mintab  (cost=0.00..355.00 rows=32100 width=4) (actual time=0.026..0.029 rows=1 loops=1)
+     ->  Result (actual rows=1 loops=1)
+           ->  Materialize (actual rows=1 loops=1)
+                 ->  Broadcast Motion 3:3  (slice2; segments: 3) (actual rows=1 loops=1)
+                       ->  Seq Scan on mintab (actual rows=1 loops=1)
    SubPlan 1 (copy 3)
-     ->  Result  (cost=0.00..3565.00 rows=96300 width=1) (never executed)
-           ->  Materialize  (cost=0.00..2120.50 rows=96300 width=4) (never executed)
-                 ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..1639.00 rows=96300 width=4) (never executed)
-                       ->  Seq Scan on mintab mintab_1  (cost=0.00..355.00 rows=32100 width=4) (actual time=0.046..0.049 rows=1 loops=1)
- Planning Time: 4.929 ms
-   (slice0)    Executor memory: 147K bytes avg x 3x(0) workers, 158K bytes max (seg1).  Work_mem: 17K bytes max.
-   (slice1)    Executor memory: 123K bytes (seg2).
-   (slice2)    Executor memory: 113K bytes avg x 3x(0) workers, 113K bytes max (seg0).
-   (slice3)    Executor memory: 113K bytes avg x 3x(0) workers, 113K bytes max (seg0).
- Memory used:  128000kB
+     ->  Result (never executed)
+           ->  Materialize (never executed)
+                 ->  Broadcast Motion 3:3  (slice3; segments: 3) (never executed)
+                       ->  Seq Scan on mintab mintab_1 (actual rows=1 loops=1)
  Optimizer: Postgres query optimizer
- Execution Time: 30.124 ms
-(28 rows)
+(21 rows)
 
 RESET SESSION AUTHORIZATION;
 DROP POLICY seeall ON range_parted;
@@ -599,5 +592,6 @@ DROP POLICY policy_range_parted ON range_parted;
 DROP POLICY policy_range_parted_subplan ON range_parted;
 DROP TABLE mintab;
 DROP TABLE range_parted;
+RESET search_path;
 DROP SCHEMA explain_subplan;
 DROP USER regress_range_parted_user;

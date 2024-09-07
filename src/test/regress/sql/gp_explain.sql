@@ -271,7 +271,7 @@ AS RESTRICTIVE for UPDATE USING (true)
 WITH CHECK ((SELECT range_parted.c <= c1 FROM mintab));
 
 SET SESSION AUTHORIZATION regress_range_parted_user;
-EXPLAIN ANALYZE UPDATE explain_subplan.range_parted set a = 'b', c = 120 WHERE a = 'a' AND c = '200';
+EXPLAIN (analyze,  costs off, timing off, summary off) UPDATE explain_subplan.range_parted set a = 'b', c = 120 WHERE a = 'a' AND c = '200';
 RESET SESSION AUTHORIZATION;
 
 DROP POLICY seeall ON range_parted;
@@ -279,5 +279,6 @@ DROP POLICY policy_range_parted ON range_parted;
 DROP POLICY policy_range_parted_subplan ON range_parted;
 DROP TABLE mintab;
 DROP TABLE range_parted;
+RESET search_path;
 DROP SCHEMA explain_subplan;
 DROP USER regress_range_parted_user;
