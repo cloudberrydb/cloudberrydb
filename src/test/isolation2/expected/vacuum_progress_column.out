@@ -49,7 +49,7 @@ DELETE 50000
 SELECT relpages, reltuples, relallvisible FROM pg_class where relname = 'vacuum_progress_ao_column';
  relpages | reltuples | relallvisible 
 ----------+-----------+---------------
- 0        | 0         | 0             
+ 0        | -1        | 0             
 (1 row)
 SELECT n_live_tup, n_dead_tup, last_vacuum, vacuum_count FROM pg_stat_all_tables WHERE relname = 'vacuum_progress_ao_column';
  n_live_tup | n_dead_tup | last_vacuum | vacuum_count 

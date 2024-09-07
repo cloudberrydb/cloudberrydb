@@ -134,7 +134,7 @@ open_all_datumstreamread_segfiles(AOCSScanDesc scan, AOCSFileSegInfo *segInfo)
 static void
 open_ds_write(Relation rel, DatumStreamWrite **ds, TupleDesc relationTupleDesc, bool checksum)
 {
-	int			nvp = relationTupleDesc->natts;
+	int			natts = RelationGetNumberOfAttributes(rel);
 	StdRdOptions **opts = RelationGetAttributeOptions(rel);
 	RelFileNodeBackend rnode;
 
@@ -142,7 +142,7 @@ open_ds_write(Relation rel, DatumStreamWrite **ds, TupleDesc relationTupleDesc, 
 	rnode.backend = rel->rd_backend;
 
 	/* open datum streams.  It will open segment file underneath */
-	for (int i = 0; i < nvp; ++i)
+	for (int i = 0; i < natts; ++i)
 	{
 		Form_pg_attribute attr = TupleDescAttr(relationTupleDesc, i);
 		char	   *ct;
