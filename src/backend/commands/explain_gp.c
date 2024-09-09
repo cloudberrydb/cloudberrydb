@@ -602,22 +602,68 @@ cdbexplain_recvExecStats(struct PlanState *planstate,
 							));
 		}
 
-		/* Slice should have same number of plan nodes on every qExec. */
+		/*
+		 * The same slice may have different number of plan nodes on every qExec.
+		 * Sometimes the plan nodes on one qExec is more than on another.
+		 *
+		 *(in explain_gp.sql)
+		 *
+		 * CREATE POLICY policy_range_parted_subplan on range_parted
+		 *    	AS RESTRICTIVE for UPDATE USING (true)
+		 *  	 WITH CHECK ((SELECT range_parted.c <= c1 FROM mintab));
+		 *
+		 * explain UPDATE range_parted set a = 'b', c = 120 WHERE a = 'a' and c = 200;
+		 *                                                 QUERY PLAN
+		 *
+		 * ------------------------------------------------------------------------------
+		 * ----------------------------
+		 *  Update on range_parted  (cost=0.00..305.09 rows=0 width=0)
+		 *    Update on part_a_1_a_10 range_parted_1
+		 *    Update on part_a_10_a_20 range_parted_2
+		 *    ->  Explicit Redistribute Motion 1:3  (slice1; segments: 1)  (cost=0.00..30
+		 * 5.09 rows=4 width=122)
+		 *          ->  Split  (cost=0.00..305.01 rows=4 width=122)
+		 *                ->  Append  (cost=0.00..305.01 rows=2 width=122)
+		 *                      ->  Seq Scan on part_a_1_a_10 range_parted_1  (cost=0.00.
+		 * .152.50 rows=1 width=122)
+		 *                            Filter: ((a = 'a'::text) AND (c = '200'::numeric))
+		 *                      ->  Seq Scan on part_a_10_a_20 range_parted_2  (cost=0.00
+		 * ..152.50 rows=1 width=122)
+		 *                            Filter: ((a = 'a'::text) AND (c = '200'::numeric))
+		 *    SubPlan 1 (copy 2)
+		 *      ->  Result  (cost=0.00..3565.00 rows=96300 width=1)
+		 *            ->  Materialize  (cost=0.00..2120.50 rows=96300 width=4)
+		 *                  ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..
+		 * 1639.00 rows=96300 width=4)
+		 *                        ->  Seq Scan on mintab  (cost=0.00..355.00 rows=32100 w
+		 * idth=4)
+		 *    SubPlan 1 (copy 3)
+		 *      ->  Result  (cost=0.00..3565.00 rows=96300 width=1)
+		 *            ->  Materialize  (cost=0.00..2120.50 rows=96300 width=4)
+		 *                  ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..
+		 * 1639.00 rows=96300 width=4)
+		 *                        ->  Seq Scan on mintab mintab_1  (cost=0.00..355.00 row
+		 * s=32100 width=4)
+		 *  Optimizer: Postgres query optimizer
+		 * (21 rows)
+		 *
+		 * In the above query, it needs to insert data into a table rather than
+		 * 'part_a_1_a_10' and 'part_a_10_a_20', then it will append another
+		 * subplan to the PlanState on the QE, so the plan nodes of it are more
+		 * than QD and other QEs.
+		 *
+		 * We gather the query stats on QD and depend on PlanState of it to
+		 * generate analyze result, for the extra plan nodes on QE, we just
+		 * ignore them. The subplan is appended to the planstate, so don't
+		 * worry the order of plan nodes.
+		 * The ctx.nStatInst only maintains the smallest number of plan
+		 * nodes collected from QE. Although ctx.nStatInst may be bigger
+		 * the number of plan nodes on QD, but that doesn't matter.
+		 */
 		if (iDispatch == 0)
 			ctx.nStatInst = hdr->nInst;
 		else
-		{
-			/* Check for stats corruption */
-			if (ctx.nStatInst != hdr->nInst)
-				ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-								errmsg("Invalid execution statistics "
-									   "received stats node-count mismatch: cdbexplain_recvExecStats() ctx.nStatInst %d hdr->nInst %d", ctx.nStatInst, hdr->nInst),
-								errhint("Please verify that all instances are using "
-										"the correct %s software version.",
-										PACKAGE_NAME)));
-
-			Assert(ctx.nStatInst == hdr->nInst);
-		}
+			ctx.nStatInst = hdr->nInst < ctx.nStatInst ? hdr->nInst : ctx.nStatInst; 
 
 		/* Save lowest and highest segment id for which we have stats. */
 		if (iDispatch == 0)
@@ -636,7 +682,7 @@ cdbexplain_recvExecStats(struct PlanState *planstate,
 	planstate_walk_node(planstate, cdbexplain_recvStatWalker, &ctx);
 
 	/* Make sure we visited the right number of PlanState nodes. */
-	Assert(ctx.iStatInst == ctx.nStatInst);
+	Assert(ctx.iStatInst <= ctx.nStatInst);
 
 	/* Transfer per-slice stats from message headers to the SliceSummary. */
 	for (imsgptr = 0; imsgptr < ctx.nmsgptr; imsgptr++)
