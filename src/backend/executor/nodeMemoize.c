@@ -1127,9 +1127,10 @@ ExecReScanMemoize(MemoizeState *node)
 }
 
 void
-ExecSquelchMemoize(MemoizeState *node)
+ExecSquelchMemoize(MemoizeState *node, bool force)
 {
-	ExecSquelchNode(outerPlanState(node));
+	node->ss.ps.squelched = true;
+	ExecSquelchNode(outerPlanState(node), force);
 }
 
 /*

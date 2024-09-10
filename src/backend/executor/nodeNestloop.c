@@ -393,7 +393,7 @@ ExecNestLoop(PlanState *pstate)
 		 * clog up the pipeline with our never-to-be-consumed
 		 * data.
 		 */
-		ExecSquelchNode(pstate);
+		ExecSquelchNode(pstate, false);
 	}
 
 	return result;

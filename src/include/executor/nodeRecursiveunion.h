@@ -19,6 +19,6 @@
 extern RecursiveUnionState *ExecInitRecursiveUnion(RecursiveUnion *node, EState *estate, int eflags);
 extern void ExecEndRecursiveUnion(RecursiveUnionState *node);
 extern void ExecReScanRecursiveUnion(RecursiveUnionState *node);
-extern void ExecSquelchRecursiveUnion(RecursiveUnionState *node);
+extern void ExecSquelchRecursiveUnion(RecursiveUnionState *node, bool force);
 
 #endif							/* NODERECURSIVEUNION_H */

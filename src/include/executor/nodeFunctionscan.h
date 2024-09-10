@@ -19,6 +19,6 @@
 extern FunctionScanState *ExecInitFunctionScan(FunctionScan *node, EState *estate, int eflags);
 extern void ExecEndFunctionScan(FunctionScanState *node);
 extern void ExecReScanFunctionScan(FunctionScanState *node);
-extern void ExecSquelchFunctionScan(FunctionScanState *node);
+extern void ExecSquelchFunctionScan(FunctionScanState *node, bool force);
 
 #endif							/* NODEFUNCTIONSCAN_H */

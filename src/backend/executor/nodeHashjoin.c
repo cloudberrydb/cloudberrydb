@@ -738,7 +738,7 @@ ExecHashJoin(PlanState *pstate)
 		 * clog up the pipeline with our never-to-be-consumed
 		 * data.
 		 */
-		ExecSquelchNode(pstate);
+		ExecSquelchNode(pstate, false);
 	}
 
 	return result;
@@ -770,7 +770,7 @@ ExecParallelHashJoin(PlanState *pstate)
 		 * clog up the pipeline with our never-to-be-consumed
 		 * data.
 		 */
-		ExecSquelchNode(pstate);
+		ExecSquelchNode(pstate, false);
 	}
 
 	return result;
@@ -1822,11 +1822,15 @@ ExecEagerFreeHashJoin(HashJoinState *node)
 }
 
 void
-ExecSquelchHashJoin(HashJoinState *node)
+ExecSquelchHashJoin(HashJoinState *node, bool force)
 {
-	ExecEagerFreeHashJoin(node);
-	ExecSquelchNode(outerPlanState(node));
-	ExecSquelchNode(innerPlanState(node));
+	if (!node->js.ps.squelched)
+	{
+		ExecEagerFreeHashJoin(node);
+		node->js.ps.squelched = true;
+	}
+	ExecSquelchNode(outerPlanState(node), force);
+	ExecSquelchNode(innerPlanState(node), force);
 }
 
 

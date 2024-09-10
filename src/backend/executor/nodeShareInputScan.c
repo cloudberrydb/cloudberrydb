@@ -607,11 +607,14 @@ ExecReScanShareInputScan(ShareInputScanState *node)
  * rows from us.
  */
 void
-ExecSquelchShareInputScan(ShareInputScanState *node)
+ExecSquelchShareInputScan(ShareInputScanState *node, bool force)
 {
 	EState	   *estate = node->ss.ps.state;
 	ShareInputScan *sisc = (ShareInputScan *) node->ss.ps.plan;
 	shareinput_local_state *local_state = node->local_state;
+
+	if (node->ss.ps.squelched)
+		return;
 
 	/* clean up tuple table */
 	ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
@@ -661,6 +664,7 @@ ExecSquelchShareInputScan(ShareInputScanState *node)
 			node->ref = NULL;
 		}
 	}
+	node->ss.ps.squelched = true;
 }
 
 

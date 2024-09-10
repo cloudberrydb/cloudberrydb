@@ -210,7 +210,6 @@ CreateExecutorState(void)
 	estate->eliminateAliens = false;
 
 	estate->gp_bypass_unique_check = false;
-	estate->force_squelch = false;
 
 	/*
 	 * Return the executor state structure
@@ -2037,7 +2036,7 @@ void mppExecutorFinishup(QueryDesc *queryDesc)
 		 */
 		if (!estate->es_got_eos)
 		{
-			ExecSquelchNode(queryDesc->planstate);
+			ExecSquelchNode(queryDesc->planstate, true);
 		}
 
 		/*
@@ -2116,7 +2115,7 @@ uint64 mppExecutorWait(QueryDesc *queryDesc)
 		 */
 		if (!estate->es_got_eos)
 		{
-			ExecSquelchNode(queryDesc->planstate);
+			ExecSquelchNode(queryDesc->planstate, true);
 		}
 
 		/*

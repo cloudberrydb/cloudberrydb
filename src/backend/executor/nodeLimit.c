@@ -363,7 +363,7 @@ ExecLimit(PlanState *node)
 		 * QEs from being starved, tell source QEs not to clog up the
 		 * pipeline with our never-to-be-consumed data.
 		 */
-		ExecSquelchNode(node);
+		ExecSquelchNode(node, false);
 	}
 
 	return result;

@@ -215,8 +215,9 @@ ExecReScanSubqueryScan(SubqueryScanState *node)
 }
 
 void
-ExecSquelchSubqueryScan(SubqueryScanState *node)
+ExecSquelchSubqueryScan(SubqueryScanState *node, bool force)
 {
+	node->ss.ps.squelched = true;
 	/* Recurse to subquery */
-	ExecSquelchNode(node->subplan);
+	ExecSquelchNode(node->subplan, force);
 }

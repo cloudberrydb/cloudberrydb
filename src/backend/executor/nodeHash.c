@@ -224,7 +224,7 @@ MultiExecPrivateHash(HashState *node)
 			node->hs_hashkeys_null = true;
 			if (node->hs_quit_if_hashkeys_null)
 			{
-				ExecSquelchNode(outerNode);
+				ExecSquelchNode(outerNode, false);
 				return;
 			}
 		}
@@ -328,7 +328,7 @@ MultiExecParallelHash(HashState *node)
 				if (pstate->phs_lasj_has_null)
 				{
 					node->hs_hashkeys_null = true;
-					ExecSquelchNode(outerNode);
+					ExecSquelchNode(outerNode, false);
 					break;
 				}
 
@@ -360,7 +360,7 @@ MultiExecParallelHash(HashState *node)
 					pstate->phs_lasj_has_null = true;
 					pg_write_barrier();
 					node->hs_hashkeys_null = true;
-					ExecSquelchNode(outerNode);
+					ExecSquelchNode(outerNode, false);
 					break;
 				}
 			}

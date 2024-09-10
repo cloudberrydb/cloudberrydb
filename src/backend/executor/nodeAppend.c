@@ -1225,10 +1225,10 @@ classify_matching_subplans(AppendState *node)
 }
 
 void
-ExecSquelchAppend(AppendState *node)
+ExecSquelchAppend(AppendState *node, bool force)
 {
 	int			i;
-
+	node->ps.squelched = true;
 	for (i = 0; i < node->as_nplans; i++)
-		ExecSquelchNode(node->appendplans[i]);
+		ExecSquelchNode(node->appendplans[i], force);
 }
