@@ -282,7 +282,7 @@ ExecProcNode(PlanState *node)
 }
 #endif
 
-extern void ExecSquelchNode(PlanState *node);
+extern void ExecSquelchNode(PlanState *node, bool force);
 
 typedef enum
 {

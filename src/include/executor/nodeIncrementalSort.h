@@ -24,6 +24,6 @@ extern void ExecIncrementalSortEstimate(IncrementalSortState *node, ParallelCont
 extern void ExecIncrementalSortInitializeDSM(IncrementalSortState *node, ParallelContext *pcxt);
 extern void ExecIncrementalSortInitializeWorker(IncrementalSortState *node, ParallelWorkerContext *pcxt);
 extern void ExecIncrementalSortRetrieveInstrumentation(IncrementalSortState *node);
-extern void ExecSquelchIncrementalSort(IncrementalSortState *node);
+extern void ExecSquelchIncrementalSort(IncrementalSortState *node, bool force);
 
 #endif							/* NODEINCREMENTALSORT_H */

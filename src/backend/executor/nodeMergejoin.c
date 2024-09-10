@@ -1533,7 +1533,7 @@ ExecMergeJoin(PlanState *pstate)
 		 * QEs from being starved, tell source QEs not to clog up the
 		 * pipeline with our never-to-be-consumed data.
 		 */
-		ExecSquelchNode(pstate);
+		ExecSquelchNode(pstate, false);
 	}
 
 	return result;

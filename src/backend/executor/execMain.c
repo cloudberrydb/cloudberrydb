@@ -1107,7 +1107,6 @@ standard_ExecutorFinish(QueryDesc *queryDesc)
 	 * blocked at sending out tuples, then the whole query
 	 * will hang up.
 	 */
-	estate->force_squelch = true;
 	exec_identity = getGpExecIdentity(queryDesc, ForwardScanDirection, estate);
 	if (exec_identity == GP_NON_ROOT_ON_QE)
 		planstate = (PlanState *)getMotionState(queryDesc->planstate, LocallyExecutingSliceIndex(estate));
@@ -1115,7 +1114,7 @@ standard_ExecutorFinish(QueryDesc *queryDesc)
 		planstate = queryDesc->planstate;
 
 	if (exec_identity != GP_IGNORE && planstate != NULL)
-		ExecSquelchNode(planstate);
+		ExecSquelchNode(planstate, true);
 
 	MemoryContextSwitchTo(oldcontext);
 
@@ -2679,8 +2678,6 @@ ExecutePlan(EState *estate,
 			 * received in order to do the right cleanup.
 			 */
 			estate->es_got_eos = true;
-			estate->force_squelch = true;
-			ExecSquelchNode(planstate);
 			/* Allow nodes to release or shut down resources. */
 			(void) ExecShutdownNode(planstate);
 			break;

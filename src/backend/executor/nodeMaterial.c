@@ -528,7 +528,7 @@ ExecEagerFreeMaterial(MaterialState *node)
 }
 
 void
-ExecSquelchMaterial(MaterialState *node)
+ExecSquelchMaterial(MaterialState *node, bool force)
 {
 	/*
 	 * If this Material is shielding the underlying nodes from rescanning (for
@@ -539,14 +539,10 @@ ExecSquelchMaterial(MaterialState *node)
 	 * possible that ExecMaterial hasn't been called even once yet, and we
 	 * haven't created the tuplestore yet.
 	 */
-	if (!node->delayEagerFree)
+	if (!node->ss.ps.squelched && (!node->delayEagerFree || force))
 	{
 		ExecEagerFreeMaterial(node);
-		ExecSquelchNode(outerPlanState(node));
-	}
-	else if (node->ss.ps.state->force_squelch)
-	{
-		ExecSquelchNode(outerPlanState(node));
 		node->ss.ps.squelched = true;
+		ExecSquelchNode(outerPlanState(node), force);
 	}
 }

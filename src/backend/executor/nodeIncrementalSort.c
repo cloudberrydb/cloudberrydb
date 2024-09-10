@@ -1169,9 +1169,10 @@ ExecReScanIncrementalSort(IncrementalSortState *node)
 		ExecReScan(outerPlan);
 }
 
-void ExecSquelchIncrementalSort(IncrementalSortState *node)
+void ExecSquelchIncrementalSort(IncrementalSortState *node, bool force)
 {
-	ExecSquelchNode(outerPlanState(node));
+	node->ss.ps.squelched = true;
+	ExecSquelchNode(outerPlanState(node), force);
 }
 
 /* ----------------------------------------------------------------

@@ -21,6 +21,6 @@ extern MotionState *ExecInitMotion(Motion *node, EState *estate, int eflags);
 extern void ExecEndMotion(MotionState *node);
 extern void ExecReScanMotion(MotionState *node);
 
-extern void ExecSquelchMotion(MotionState *node);
+extern void ExecSquelchMotion(MotionState *node, bool force);
 
 #endif   /* NODEMOTION_H */

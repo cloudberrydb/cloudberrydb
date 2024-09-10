@@ -22,5 +22,5 @@ extern TupleSplitState *ExecInitTupleSplit(TupleSplit *node, EState *estate, int
 extern void ExecEndTupleSplit(TupleSplitState *node);
 extern void ExecReScanTupleSplit(TupleSplitState *node);
 
-extern void ExecSquelchTupleSplit(TupleSplitState *node);
+extern void ExecSquelchTupleSplit(TupleSplitState *node, bool force);
 #endif /* NODETUPLESPLIT_H */

@@ -21,6 +21,6 @@ extern void ExecEndMaterial(MaterialState *node);
 extern void ExecMaterialMarkPos(MaterialState *node);
 extern void ExecMaterialRestrPos(MaterialState *node);
 extern void ExecReScanMaterial(MaterialState *node);
-extern void ExecSquelchMaterial(MaterialState *node);
+extern void ExecSquelchMaterial(MaterialState *node, bool force);
 
 #endif							/* NODEMATERIAL_H */

@@ -327,7 +327,7 @@ extern void hash_agg_set_limits(AggState *aggstate, double hashentrysize, double
 
 extern Datum aggregate_dummy(PG_FUNCTION_ARGS);
 
-extern void ExecSquelchAgg(AggState *aggstate);
+extern void ExecSquelchAgg(AggState *aggstate, bool force);
 extern bool ReuseHashTable(AggState *node);
 
 

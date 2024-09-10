@@ -22,7 +22,7 @@ extern void ExecComputeStoredGenerated(ResultRelInfo *resultRelInfo,
 extern ModifyTableState *ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags);
 extern void ExecEndModifyTable(ModifyTableState *node);
 extern void ExecReScanModifyTable(ModifyTableState *node);
-extern void ExecSquelchModifyTable(ModifyTableState *node);
+extern void ExecSquelchModifyTable(ModifyTableState *node, bool force);
 
 extern void fireASTriggers(ModifyTableState *node);
 

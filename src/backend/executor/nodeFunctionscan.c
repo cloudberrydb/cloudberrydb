@@ -782,10 +782,15 @@ ExecEagerFreeFunctionScan(FunctionScanState *node)
 }
 
 void
-ExecSquelchFunctionScan(FunctionScanState *node)
+ExecSquelchFunctionScan(FunctionScanState *node, bool force)
 {
-	if (!node->delayEagerFree)
+	if (node->ss.ps.squelched)
+		return;
+	if (!node->delayEagerFree || force)
+	{
 		ExecEagerFreeFunctionScan(node);
+		node->ss.ps.squelched = true;
+	}
 }
 
 void

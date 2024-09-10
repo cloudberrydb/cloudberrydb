@@ -489,13 +489,14 @@ ExecEagerFreeSort(SortState *node)
 }
 
 void
-ExecSquelchSort(SortState *node)
+ExecSquelchSort(SortState *node, bool force)
 {
-	if (!node->delayEagerFree)
+	if (!node->ss.ps.squelched && (!node->delayEagerFree || force))
 	{
 		ExecEagerFreeSort(node);
+		node->ss.ps.squelched = true;
 	}
-	ExecSquelchNode(outerPlanState(node));
+	ExecSquelchNode(outerPlanState(node), force);
 }
 
 /* ----------------------------------------------------------------
