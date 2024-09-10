@@ -11,7 +11,7 @@ SELECT name, setting FROM pg_settings WHERE name LIKE 'enable%' and name not in 
  enable_groupagg                | on
  enable_hashagg                 | on
  enable_hashjoin                | on
- enable_incremental_sort        | on
+ enable_incremental_sort        | off
  enable_indexonlyscan           | on
  enable_indexscan               | on
  enable_material                | on
