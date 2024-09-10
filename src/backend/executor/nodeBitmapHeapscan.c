@@ -1034,7 +1034,10 @@ ExecBitmapHeapInitializeWorker(BitmapHeapScanState *node,
 }
 
 void
-ExecSquelchBitmapHeapScan(BitmapHeapScanState *node)
+ExecSquelchBitmapHeapScan(BitmapHeapScanState *node, bool force)
 {
+	if (node->ss.ps.squelched)
+		return;
 	ExecEagerFreeBitmapHeapScan(node);
+	node->ss.ps.squelched = true;
 }

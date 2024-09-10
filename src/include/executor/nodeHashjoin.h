@@ -31,6 +31,6 @@ extern void ExecHashJoinInitializeWorker(HashJoinState *state,
 extern void ExecHashJoinSaveTuple(PlanState *ps, MinimalTuple tuple, uint32 hashvalue,
 								  HashJoinTable hashtable, BufFile **fileptr,
 								  MemoryContext bfCxt);
-extern void ExecSquelchHashJoin(HashJoinState *node);
+extern void ExecSquelchHashJoin(HashJoinState *node, bool force);
 
 #endif							/* NODEHASHJOIN_H */

@@ -262,7 +262,8 @@ void ExecReScanTupleSplit(TupleSplitState *node)
 		ExecReScan(node->ss.ps.lefttree);
 }
 
-void ExecSquelchTupleSplit(TupleSplitState *node)
+void ExecSquelchTupleSplit(TupleSplitState *node, bool force)
 {
-	ExecSquelchNode(outerPlanState(node));
+	node->ss.ps.squelched = true;
+	ExecSquelchNode(outerPlanState(node), force);
 }

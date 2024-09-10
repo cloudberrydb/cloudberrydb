@@ -720,51 +720,52 @@ ExecSupportsBackwardScan(Plan *node)
  * it. However, ReScanning the node will "un-squelch" it, allowing to read
  * again. Squelching a node is roughly equivalent to fetching and discarding
  * all tuples from it.
+ *
+ * Each node's squelch function, such as 'ExecSquelchFunctionScan', only
+ * cares if its self node has been squelched, if not then do that.
+ *
+ * No matter if the node is squelched or not, each node's squelch function
+ * will call 'ExecSquelchNode' for its child nodes.
+ *
+ * For some special nodes, such as MaterialNode or SortNode, which have
+ * 'delayEagerFree' field and 'delayEagerFree' is true,  only can be squelched
+ * when force is true.
  */
 void
-ExecSquelchNode(PlanState *node)
+ExecSquelchNode(PlanState *node, bool force)
 {
 	ListCell   *lc;
 
 	if (!node)
 		return;
 
-	if (node->squelched)
-	{
-		if (nodeTag(node) != T_MotionState)
-		{
-			ExecSquelchNode(outerPlanState(node));
-			ExecSquelchNode(innerPlanState(node));
-		}
-		return;
-	}
 	switch (nodeTag(node))
 	{
 		case T_MotionState:
-			ExecSquelchMotion((MotionState *) node);
+			ExecSquelchMotion((MotionState *) node, force);
 			break;
 
 		case T_ModifyTableState:
-			ExecSquelchModifyTable((ModifyTableState *) node);
+			ExecSquelchModifyTable((ModifyTableState *) node, force);
 			return;
 
 			/*
 			 * Node types that need custom code to recurse.
 			 */
 		case T_AppendState:
-			ExecSquelchAppend((AppendState *) node);
+			ExecSquelchAppend((AppendState *) node, force);
 			break;
 
 		case T_MergeAppendState:
-			ExecSquelchMergeAppend((MergeAppendState *) node);
+			ExecSquelchMergeAppend((MergeAppendState *) node, force);
 			break;
 
 		case T_SequenceState:
-			ExecSquelchSequence((SequenceState *) node);
+			ExecSquelchSequence((SequenceState *) node, force);
 			break;
 
 		case T_SubqueryScanState:
-			ExecSquelchSubqueryScan((SubqueryScanState *) node);
+			ExecSquelchSubqueryScan((SubqueryScanState *) node, force);
 			break;
 
 			/*
@@ -786,8 +787,9 @@ ExecSquelchNode(PlanState *node)
 		case T_WorkTableScanState:
 		case T_ResultState:
 		case T_ProjectSetState:
-			ExecSquelchNode(outerPlanState(node));
-			ExecSquelchNode(innerPlanState(node));
+			node->squelched = true;
+			ExecSquelchNode(outerPlanState(node), force);
+			ExecSquelchNode(innerPlanState(node), force);
 			break;
 
 			/*
@@ -806,6 +808,7 @@ ExecSquelchNode(PlanState *node)
 		case T_GatherState:
 		case T_GatherMergeState:
 		case T_NamedTuplestoreScanState:
+			node->squelched = true;
 			break;
 
 			/*
@@ -813,59 +816,63 @@ ExecSquelchNode(PlanState *node)
 			 * as soon as possible.
 			 */
 		case T_RecursiveUnionState:
-			ExecSquelchRecursiveUnion((RecursiveUnionState *) node);
+			ExecSquelchRecursiveUnion((RecursiveUnionState *) node, force);
 			break;
 
 		case T_ForeignScanState:
-			/*
-			 * For ForeignScans, PostgreSQL's shutdown function does exactly
-			 * what we want.
-			 */
-			ExecShutdownForeignScan((ForeignScanState *) node);
+			if (!node->squelched)
+			{
+				/*
+				 * For ForeignScans, PostgreSQL's shutdown function does exactly
+				 * what we want.
+				 */
+				ExecShutdownForeignScan((ForeignScanState *)node);
+				node->squelched = true;
+			}
 			break;
 
 		case T_BitmapHeapScanState:
-			ExecSquelchBitmapHeapScan((BitmapHeapScanState *) node);
+			ExecSquelchBitmapHeapScan((BitmapHeapScanState *) node, force);
 			break;
 
 		case T_FunctionScanState:
-			ExecSquelchFunctionScan((FunctionScanState *) node);
+			ExecSquelchFunctionScan((FunctionScanState *) node, force);
 			break;
 
 		case T_HashJoinState:
-			ExecSquelchHashJoin((HashJoinState *) node);
+			ExecSquelchHashJoin((HashJoinState *) node, force);
 			break;
 
 		case T_MaterialState:
-			ExecSquelchMaterial((MaterialState*) node);
+			ExecSquelchMaterial((MaterialState*) node, force);
 			break;
 
 		case T_SortState:
-			ExecSquelchSort((SortState *) node);
+			ExecSquelchSort((SortState *) node, force);
 			break;
 
 		case T_AggState:
-			ExecSquelchAgg((AggState*) node);
+			ExecSquelchAgg((AggState*) node, force);
 			break;
 
 		case T_TupleSplitState:
-			ExecSquelchTupleSplit((TupleSplitState*) node);
+			ExecSquelchTupleSplit((TupleSplitState*) node, force);
 			break;
 
 		case T_WindowAggState:
-			ExecSquelchWindowAgg((WindowAggState *) node);
+			ExecSquelchWindowAgg((WindowAggState *) node, force);
 			break;
 
 		case T_ShareInputScanState:
-			ExecSquelchShareInputScan((ShareInputScanState *) node);
+			ExecSquelchShareInputScan((ShareInputScanState *) node, force);
 			break;
 
 		case T_IncrementalSortState:
-			ExecSquelchIncrementalSort((IncrementalSortState *) node);
+			ExecSquelchIncrementalSort((IncrementalSortState *) node, force);
 			break;
 
 		case T_MemoizeState:
-			ExecSquelchMemoize((MemoizeState *) node);
+			ExecSquelchMemoize((MemoizeState *) node, force);
 			break;
 
 		default:
@@ -884,15 +891,8 @@ ExecSquelchNode(PlanState *node)
 
 		if (!ips)
 			elog(ERROR, "subplan has no planstate");
-		ExecSquelchNode(ips);
+		ExecSquelchNode(ips, force);
 	}
-
-	/*
-	 * For T_MaterialState, even if ExecSquelchMaterial is called, it may be
-	 * not squelched, so let itself set that value
-	 */
-	if (nodeTag(node) != T_MaterialState)
-		node->squelched = true;
 }
 
 /*

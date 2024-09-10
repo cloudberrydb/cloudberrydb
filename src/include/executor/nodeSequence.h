@@ -22,6 +22,6 @@ extern SequenceState *ExecInitSequence(Sequence *node, EState *estate, int eflag
 extern TupleTableSlot *ExecSequence(PlanState *pstate);
 extern void ExecReScanSequence(SequenceState *node);
 extern void ExecEndSequence(SequenceState *node);
-extern void ExecSquelchSequence(SequenceState *node);
+extern void ExecSquelchSequence(SequenceState *node, bool force);
 
 #endif

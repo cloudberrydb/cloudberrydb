@@ -3595,9 +3595,16 @@ ExecReScanModifyTable(ModifyTableState *node)
 	elog(ERROR, "ExecReScanModifyTable is not implemented");
 }
 
+/*
+ * Node ModifyTableState's squelched is never set to true.
+ * Because in the standard_ExecutorFinish->ExecPostprocessPlan
+ * may call ExecProcNodeGPDB on it.
+ */
 void
-ExecSquelchModifyTable(ModifyTableState *node)
+ExecSquelchModifyTable(ModifyTableState *node, bool force)
 {
+	if (node->ps.squelched)
+		return;
 	/*
 	 * ModifyTable nodes must run to completion when asked to Squelch so
 	 * that we don't risk losing modifications which should be performed

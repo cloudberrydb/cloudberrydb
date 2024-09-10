@@ -30,6 +30,6 @@ extern void ExecMemoizeInitializeWorker(MemoizeState *node,
 										ParallelWorkerContext *pwcxt);
 extern void ExecMemoizeRetrieveInstrumentation(MemoizeState *node);
 
-extern void ExecSquelchMemoize(MemoizeState *node);
+extern void ExecSquelchMemoize(MemoizeState *node, bool force);
 
 #endif							/* NODEMEMOIZE_H */

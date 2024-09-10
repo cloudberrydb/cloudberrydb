@@ -5057,7 +5057,7 @@ ExecEagerFreeAgg(AggState *node)
 }
 
 void
-ExecSquelchAgg(AggState *node)
+ExecSquelchAgg(AggState *node, bool force)
 {
 	/*
 	 * Sometimes, ExecSquelchAgg() is called, but the node is rescanned anyway.
@@ -5067,12 +5067,13 @@ ExecSquelchAgg(AggState *node)
 	 * Therefore, don't destroy the hash table if reusing hashtable during rescan.
 	 */
 
-	if (!ReuseHashTable(node))
+	if (!node->ss.ps.squelched && (!ReuseHashTable(node) || force))
 	{
 		ExecEagerFreeAgg(node);
+		node->ss.ps.squelched = true;
 	}
 
-	ExecSquelchNode(outerPlanState(node));
+	ExecSquelchNode(outerPlanState(node), force);
 }
 
 bool

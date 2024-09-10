@@ -160,8 +160,9 @@ ExecReScanSequence(SequenceState *node)
 }
 
 void
-ExecSquelchSequence(SequenceState *node)
+ExecSquelchSequence(SequenceState *node, bool force)
 {
+	node->ps.squelched = true;
 	for (int i = 0; i < node->numSubplans; i++)
-		ExecSquelchNode(node->subplans[i]);
+		ExecSquelchNode(node->subplans[i], force);
 }

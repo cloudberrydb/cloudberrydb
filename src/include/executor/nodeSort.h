@@ -22,7 +22,7 @@ extern void ExecEndSort(SortState *node);
 extern void ExecSortMarkPos(SortState *node);
 extern void ExecSortRestrPos(SortState *node);
 extern void ExecReScanSort(SortState *node);
-extern void ExecSquelchSort(SortState *node);
+extern void ExecSquelchSort(SortState *node, bool force);
 
 /* parallel instrumentation support */
 extern void ExecSortEstimate(SortState *node, ParallelContext *pcxt);

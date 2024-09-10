@@ -272,7 +272,7 @@ execMotionSender(MotionState *node)
 			{
 				elog(gp_workfile_caching_loglevel, "Motion calling Squelch on child node");
 				/* propagate stop notification to our children */
-				ExecSquelchNode(outerNode);
+				ExecSquelchNode(outerNode, true);
 				done = true;
 			}
 		}
@@ -1386,12 +1386,13 @@ ExecReScanMotion(MotionState *node)
  * never be called again, so we *must* send the stop message now.
  */
 void
-ExecSquelchMotion(MotionState *node)
+ExecSquelchMotion(MotionState *node, bool force)
 {
 	Motion	   *motion;
 
 	AssertArg(node != NULL);
-
+	if (node->ps.squelched)
+		return;
 	motion = (Motion *) node->ps.plan;
 	node->stopRequested = true;
 	node->ps.state->active_recv_id = -1;
@@ -1400,4 +1401,5 @@ ExecSquelchMotion(MotionState *node)
 	SendStopMessage(node->ps.state->motionlayer_context,
 					node->ps.state->interconnect_context,
 					motion->motionID);
+	node->ps.squelched = true;
 }

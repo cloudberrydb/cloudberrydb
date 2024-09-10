@@ -2971,10 +2971,11 @@ ExecReScanWindowAgg(WindowAggState *node)
 }
 
 void
-ExecSquelchWindowAgg(WindowAggState *node)
+ExecSquelchWindowAgg(WindowAggState *node, bool force)
 {
+	node->ss.ps.squelched = true;
 	// TODO: do some eager freeing here?
-	ExecSquelchNode(outerPlanState(node));
+	ExecSquelchNode(outerPlanState(node), force);
 }
 
 /*
