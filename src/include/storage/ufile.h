@@ -22,7 +22,7 @@ typedef struct FileAm
 {
 	struct UFile* (*open) (Oid spcId, const char *fileName, int fileFlags,
 				char *errorMessage, int errorMessageSize);
-	void (*close) (struct UFile *file);
+	int (*close) (struct UFile *file);
 	int (*sync) (struct UFile *file);
 	int (*read) (struct UFile *file, char *buffer, int amount);
 	int (*write) (struct UFile *file, char *buffer, int amount);
@@ -46,7 +46,7 @@ extern UFile *UFileOpen(Oid spcId,
 						int fileFlags,
 						char *errorMessage,
 						int errorMessageSize);
-extern void UFileClose(UFile *file);
+extern int UFileClose(UFile *file);
 extern int UFileSync(UFile *fiLe);
 
 extern int UFileRead(UFile *file, char *buffer, int amount);

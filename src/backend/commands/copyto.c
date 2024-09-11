@@ -2166,8 +2166,14 @@ CopyToDirectoryTable(CopyToState cstate)
 			ereport(ERROR,
 						(errcode(ERRCODE_IO_ERROR),
 						 errmsg("Copy directory table to file failed, as file content is not consistent.")));
+ 
+		if (UFileClose(file) < 0)
+			ereport(ERROR,
+						(errcode(ERRCODE_IO_ERROR),
+						 errmsg("failed to close the file \"%s\": %s",
+								scopedFileUrl, UFileGetLastError(file))));
 
-		UFileClose(file);
+		pfree(file);
 
 		/*
 		 * Increment the number of processed tuples, and report the

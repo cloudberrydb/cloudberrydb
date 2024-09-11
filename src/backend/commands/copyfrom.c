@@ -1144,9 +1144,14 @@ CopyFromDirectoryTable(CopyFromState cstate)
 			if (UFileSync(file) != 0)
 				ereport(ERROR,
 							(errcode(ERRCODE_IO_ERROR),
-							 errmsg("unable to sync file \"%s\": %s", glob_copystmt->dirfilename, UFileGetLastError(file))));
+							 errmsg("unable to sync the file \"%s\": %s", glob_copystmt->dirfilename, UFileGetLastError(file))));
 
-			UFileClose(file);
+			if (UFileClose(file) < 0)
+				ereport(ERROR,
+							(errcode(ERRCODE_IO_ERROR),
+							 errmsg("failed to close the file \"%s\": %s", glob_copystmt->dirfilename, UFileGetLastError(file))));
+
+			pfree(file);
 
 			pg_cryptohash_final(hashCtx, md5Sum, sizeof(md5Sum));
 			pg_cryptohash_free(hashCtx);
@@ -1269,7 +1274,12 @@ CopyFromDirectoryTable(CopyFromState cstate)
 						(errcode(ERRCODE_IO_ERROR),
 						 errmsg("unable to sync file \"%s\": %s", glob_copystmt->dirfilename, UFileGetLastError(file))));
 
-		UFileClose(file);
+		if (UFileClose(file) < 0)
+			ereport(ERROR,
+						(errcode(ERRCODE_IO_ERROR),
+						 errmsg("failed to close the file \"%s\": %s", glob_copystmt->dirfilename, UFileGetLastError(file))));
+
+		pfree(file);
 
 		pg_cryptohash_final(hashCtx, md5Sum, sizeof(md5Sum));
 		pg_cryptohash_free(hashCtx);

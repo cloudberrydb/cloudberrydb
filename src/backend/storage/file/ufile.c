@@ -38,7 +38,7 @@ typedef struct LocalFile
 
 static UFile *localFileOpen(Oid spcId, const char *fileName, int fileFlags,
 							char *errorMessage, int errorMessageSize);
-static void localFileClose(UFile *file);
+static int localFileClose(UFile *file);
 static int localFileSync(UFile *file);
 static int localFileRead(UFile *file, char *buffer, int amount);
 static int localFileWrite(UFile *file, char *buffer, int amount);
@@ -94,12 +94,14 @@ localFileOpen(Oid spcId,
 	return (UFile *) result;
 }
 
-static void
+static int
 localFileClose(UFile *file)
 {
 	LocalFile *localFile = (LocalFile *) file;
 
 	FileClose(localFile->file);
+
+	return 0;
 }
 
 static int
@@ -374,12 +376,12 @@ UFileOpen(Oid spcId,
 	return ufile;
 }
 
-void
+int
 UFileClose(UFile *file)
 {
-	file->methods->close(file);
-	//TODO pfree move to close
-	pfree(file);
+	int ret;
+	ret = file->methods->close(file);
+	return ret;
 }
 
 int
