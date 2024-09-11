@@ -1848,27 +1848,39 @@ RemoveInvalidDataInBuf(CopyFromState cstate)
 static bool
 FindEolInUnverifyRawBuf(const CopyFromState cstate, int *scanidx)
 {
-	EolType eol_type = cstate->opts.eol_type;
 	bool found = false;
-	for (*scanidx = 0;
-		 *scanidx < (cstate->raw_buf_len - cstate->raw_buf_index);
-		 (*scanidx)++)
+	EolType eol_type = cstate->opts.eol_type;
+
+	for (*scanidx = 0; *scanidx < RAW_BUF_BYTES(cstate); (*scanidx)++)
 	{
-		char c1 = cstate->raw_buf[cstate->raw_buf_index + *scanidx];
-		char c2 = cstate->raw_buf[cstate->raw_buf_index + *scanidx + 1];
-		if (((eol_type == EOL_CRNL || eol_type == EOL_UNKNOWN) && c1 == '\r' &&
-			 c2 == '\n'))
+		if ('\r' == cstate->raw_buf[cstate->raw_buf_index + *scanidx])
 		{
-			*scanidx += 2;
-			found = true;
-			break;
+			if (eol_type == EOL_CR || eol_type == EOL_UNKNOWN)
+			{
+				*scanidx += 1;
+				found = true;
+				break;
+			}
+
+			if (eol_type == EOL_CRNL || eol_type == EOL_UNKNOWN)
+			{
+				if (*scanidx + 1 < RAW_BUF_BYTES(cstate) &&
+					'\n' == cstate->raw_buf[cstate->raw_buf_index + *scanidx + 1])
+				{
+					*scanidx += 2;
+					found = true;
+					break;
+				}
+			}
 		}
-		else if (((eol_type == EOL_CR || eol_type == EOL_UNKNOWN) && c1 == '\r') ||
-				 ((eol_type == EOL_NL || eol_type == EOL_UNKNOWN) && c1 == '\n'))
+		else if ('\n' == cstate->raw_buf[cstate->raw_buf_index + *scanidx])
 		{
-			*scanidx += 1;
-			found = true;
-			break;
+			if (eol_type == EOL_NL || eol_type == EOL_UNKNOWN)
+			{
+				*scanidx += 1;
+				found = true;
+				break;
+			}
 		}
 	}
 
