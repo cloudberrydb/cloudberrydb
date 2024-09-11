@@ -231,7 +231,13 @@ getFileContent(Oid spcId, char *scopedFileUrl)
 		curPos += bytesRead;
 	}
 
-	UFileClose(file);
+	int ret = UFileClose(file);
+	if (ret < 0)
+		ereport(ERROR,
+					(errcode(ERRCODE_INTERNAL_ERROR),
+					 errmsg("failed to close the file \"%s\": %s", scopedFileUrl, UFileGetLastError(file))));
+
+	pfree(file);
 
 	PG_RETURN_BYTEA_P(content);
 }
