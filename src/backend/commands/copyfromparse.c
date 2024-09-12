@@ -73,6 +73,7 @@
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "port/pg_bswap.h"
+#include "utils/elog.h"
 #include "utils/memutils.h"
 #include "utils/rel.h"
 
@@ -149,6 +150,8 @@ static const char BinarySignature[11] = "PGCOPY\n\377\r\n\0";
 
 /* Low-level communications functions */
 static void CopyLoadInputBuf(CopyFromState cstate);
+static void RemoveInvalidDataInBuf(CopyFromState cstate);
+static bool FindEolInUnverifyRawBuf(const CopyFromState cstate, int *scanidx);
 
 void
 ReceiveCopyBegin(CopyFromState cstate)
@@ -633,6 +636,7 @@ CopyLoadInputBuf(CopyFromState cstate)
 	for (;;)
 	{
 		/* If we now have some unconverted data, try to convert it */
+sreh_conversion_error:
 		CopyConvertBuf(cstate);
 
 		/* If we now have some more input bytes ready, return them */
@@ -645,7 +649,28 @@ CopyLoadInputBuf(CopyFromState cstate)
 		 * conversion error.
 		 */
 		if (cstate->input_reached_error)
-			CopyConversionError(cstate);
+		{
+			/* so far, we only support no transcoding conversion error handling */
+			if (cstate->cdbsreh && !cstate->need_transcoding)
+			{
+				MemoryContext oldcontext = CurrentMemoryContext;
+				PG_TRY();
+				{
+					CopyConversionError(cstate);
+				}
+				PG_CATCH();
+				{
+					HandleCopyError(cstate);
+					RemoveInvalidDataInBuf(cstate);
+					MemoryContextSwitchTo(oldcontext);
+				}
+				PG_END_TRY();
+				/* clean illegal character do conversion again */
+				goto sreh_conversion_error;
+			}
+			else
+				CopyConversionError(cstate);
+		}
 
 		/* no more input, and everything has been converted */
 		if (cstate->input_reached_eof)
@@ -654,6 +679,31 @@ CopyLoadInputBuf(CopyFromState cstate)
 		/* Try to load more raw data */
 		Assert(!cstate->raw_reached_eof);
 		CopyLoadRawBuf(cstate);
+
+		while (cstate->find_eol_with_rawreading && !cstate->raw_reached_eof)
+		{
+			int seekid;
+			if (FindEolInUnverifyRawBuf(cstate, &seekid))
+			{
+				cstate->raw_buf_index += seekid;
+				nbytes = RAW_BUF_BYTES(cstate);
+				if (nbytes > 0 && cstate->raw_buf_index > 0)
+					memmove(cstate->raw_buf,
+							cstate->raw_buf + cstate->raw_buf_index, nbytes);
+
+				cstate->raw_buf_len -= cstate->raw_buf_index;
+				cstate->raw_buf_index = 0;
+				cstate->find_eol_with_rawreading = false;
+			}
+			else
+			{
+				/*
+				 * if EOL can not find, continuous read raw page until eof or
+				 * find out.
+				 */
+				CopyLoadRawBuf(cstate);
+			}
+		}
 	}
 }
 
@@ -1734,4 +1784,105 @@ CopyReadBinaryAttribute(CopyFromState cstate, FmgrInfo *flinfo,
 
 	*isnull = false;
 	return result;
+}
+
+void
+RemoveInvalidDataInBuf(CopyFromState cstate)
+{
+	int nbytes;
+	int scanidx;
+
+	if (cstate->errMode == ALL_OR_NOTHING)
+		CopyConversionError(cstate);
+
+	/* reach EOF, do not need clean */
+	if (cstate->input_reached_eof)
+		return;
+
+	if (!cstate->need_transcoding)
+	{
+		/*
+		 * According to `BeginCopyFrom`, if not need_transcoding these two
+		 * pointer share one memory space.
+		 */
+		Assert(cstate->raw_buf == cstate->input_buf);
+
+		if (FindEolInUnverifyRawBuf(cstate, &scanidx))
+		{
+			cstate->raw_buf_index += scanidx;
+			nbytes = RAW_BUF_BYTES(cstate);
+			if (nbytes > 0 && cstate->raw_buf_index > 0)
+				memmove(cstate->raw_buf,
+						cstate->raw_buf + cstate->raw_buf_index, nbytes);
+
+			cstate->raw_buf_len -= cstate->raw_buf_index;
+			cstate->raw_buf_index = 0;
+		}
+		else
+		{
+			/* Current page can not find eol, to skip current raw buffer */
+			cstate->raw_buf_len = 0;
+			cstate->raw_buf_index = 0;
+
+			/* leave a hint to identify find eol after next raw page read */
+			cstate->find_eol_with_rawreading = true;
+		}
+
+		/* reset input buf, so we can redo conversion/verification */
+		cstate->input_reached_error = false;
+		cstate->input_buf_index = 0;
+		cstate->input_buf_len = 0;
+
+		/* reset line_buf */
+		resetStringInfo(&cstate->line_buf);
+		cstate->line_buf_valid = false;
+		cstate->cdbsreh->rejectcount++;
+	}
+	else
+	{
+		ereport(ERROR, (errmsg("Data validation error: since the source data "
+							   "need transcoding sreh can not handle yet.")));
+	}
+}
+
+static bool
+FindEolInUnverifyRawBuf(const CopyFromState cstate, int *scanidx)
+{
+	bool found = false;
+	EolType eol_type = cstate->opts.eol_type;
+
+	for (*scanidx = 0; *scanidx < RAW_BUF_BYTES(cstate); (*scanidx)++)
+	{
+		if ('\r' == cstate->raw_buf[cstate->raw_buf_index + *scanidx])
+		{
+			if (eol_type == EOL_CR || eol_type == EOL_UNKNOWN)
+			{
+				*scanidx += 1;
+				found = true;
+				break;
+			}
+
+			if (eol_type == EOL_CRNL || eol_type == EOL_UNKNOWN)
+			{
+				if (*scanidx + 1 < RAW_BUF_BYTES(cstate) &&
+					'\n' == cstate->raw_buf[cstate->raw_buf_index + *scanidx + 1])
+				{
+					*scanidx += 2;
+					found = true;
+					break;
+				}
+			}
+		}
+		else if ('\n' == cstate->raw_buf[cstate->raw_buf_index + *scanidx])
+		{
+			if (eol_type == EOL_NL || eol_type == EOL_UNKNOWN)
+			{
+				*scanidx += 1;
+				found = true;
+				break;
+			}
+		}
+	}
+
+	return found;
 }

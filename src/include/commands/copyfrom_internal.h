@@ -190,6 +190,7 @@ typedef struct CopyFromStateData
 	/* Information on the connections to QEs. */
 	CdbCopy		*cdbCopy;
 	bool		delim_off;	/* delimiter is set to OFF? */
+	bool		find_eol_with_rawreading; /* sreh: encoding error skip current line data */
 	/* end Cloudberry Database specific variables */
 } CopyFromStateData;
 
@@ -247,5 +248,6 @@ CopyGetInt16(CopyFromState cstate, int16 *val)
 }
 
 extern char *limit_printout_length(const char *str);
+extern void HandleCopyError(CopyFromState cstate);
 
 #endif							/* COPYFROM_INTERNAL_H */

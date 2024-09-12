@@ -207,7 +207,6 @@ static bool NextCopyFromRawFieldsX(CopyFromState cstate, char ***fields, int *nf
 								   int stop_processing_at_field);
 static bool NextCopyFromX(CopyFromState cstate, ExprContext *econtext,
 						  Datum *values, bool *nulls);
-static void HandleCopyError(CopyFromState cstate);
 static void HandleQDErrorFrame(CopyFromState cstate, char *p);
 
 static void CopyInitDataParser(CopyFromState cstate);
@@ -3027,6 +3026,7 @@ BeginCopyFrom(ParseState *pstate,
 		cstate->raw_fields = (char **) palloc(attr_count * sizeof(char *));
 	}
 
+	cstate->find_eol_with_rawreading = false;
 	MemoryContextSwitchTo(oldcontext);
 
 	return cstate;
@@ -3137,7 +3137,7 @@ NextCopyFrom(CopyFromState cstate, ExprContext *econtext,
  *
  * changing me? take a look at FILEAM_HANDLE_ERROR in fileam.c as well.
  */
-static void
+void
 HandleCopyError(CopyFromState cstate)
 {
 	if (cstate->errMode == ALL_OR_NOTHING)

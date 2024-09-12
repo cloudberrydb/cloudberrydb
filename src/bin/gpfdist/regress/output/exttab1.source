@@ -793,15 +793,17 @@ drop external table if exists external_sreh_bad_data_text;
 NOTICE:  foreign table "external_sreh_bad_data_text" does not exist, skipping
 create external table external_sreh_bad_data_text(name text) location('gpfdist://@hostname@:7070/exttab1/bad_data.tbl') format 'text' log errors segment reject limit 3;
 select * from external_sreh_bad_data_text;
-ERROR:  segment reject limit reached, aborting operation
-CONTEXT:  External table external_sreh_bad_data_text, line 4 of gpfdist://@hostname:7070/exttab1/bad_data.tbl: ""
+NOTICE:  found 2 data formatting errors (2 or more input rows), rejected related input data
+ name  
+-------
+ AAABB
+(1 row)
+
 select rawbytes from gp_read_error_log('external_sreh_bad_data_text');
  rawbytes 
 ----------
  
- 
- 
-(3 rows)
+(1 row)
 
 drop external table external_sreh_bad_data_text;
 -- sreh 2 custom format with bad data.
