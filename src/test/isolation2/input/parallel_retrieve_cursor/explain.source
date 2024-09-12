@@ -1,5 +1,17 @@
 -- @Description Tests "EXPLAIN" statement for the PARALLEL RETRIEVE CURSOR
 -- 
+-- TODO: incremental sort is turned off by default, because it may have
+-- wrong result for some core case. Turn it on to run the existing tests
+-- and minimize the difference from upstream.
+-- start_matchignore
+-- m/ Settings: enable_incremental_sort = 'on'/
+-- end_matchignore
+-- start_matchsubs
+-- m/ *$/
+-- s/ *$//
+-- end_matchsubs
+set enable_incremental_sort=on;
+
 DROP TABLE IF EXISTS t1;
 CREATE TABLE t1 (a INT) DISTRIBUTED by (a);
 insert into t1 select generate_series(1,100);

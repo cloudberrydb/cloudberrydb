@@ -22,6 +22,7 @@ create schema dpe_single;
 set search_path='dpe_single';
 set gp_segments_for_planner=2;
 set optimizer_segments=2;
+set enable_incremental_sort=on;
 drop table if exists pt;
 NOTICE:  table "pt" does not exist, skipping
 drop table if exists pt1;

@@ -1,3 +1,8 @@
+-- TODO: incremental sort is turned off by default, because it may have
+-- wrong result for some core case. Turn it on to run the existing tests
+-- and minimize the difference from upstream.
+set enable_incremental_sort=on;
+
 --
 -- Tests on partition pruning (with ORCA) or constraint exclusion (with the
 -- Postgres planner). These tests check that you get an "expected" plan, that
