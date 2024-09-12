@@ -11,6 +11,11 @@ SELECT count(*) from gp_opt_version();
 -- s/^LOG.*\"Feature/\"Feature/
 -- end_matchsubs
 
+-- TODO: incremental sort is turned off by default, because it may have
+-- wrong result for some core case. Turn it on to run the existing tests
+-- and minimize the difference from upstream.
+set enable_incremental_sort=on;
+
 -- fix the number of segments for Orca
 set optimizer_segments = 3;
 
