@@ -107,7 +107,6 @@ bool		gp_detect_data_correctness;		/* Detect if the current data distribution is
 
 
 #ifdef USE_INTERNAL_FTS
-
 /*
  * Probe retry count for fts prober.
  */
