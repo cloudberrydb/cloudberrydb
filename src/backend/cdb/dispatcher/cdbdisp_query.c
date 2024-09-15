@@ -1072,7 +1072,7 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 	 *
 	 * On return, gangs have been allocated and CDBProcess lists have
 	 * been filled in the slice table.)
-	 * 
+	 *
 	 * Notice: This must be done before cdbdisp_buildPlanQueryParms
 	 */
 	AssignGangs(ds, queryDesc);
@@ -1164,7 +1164,7 @@ cdbdisp_dispatchX(QueryDesc* queryDesc,
 		{
 			if (ds->primaryResults->errcode)
 				break;
-			if (InterruptPending)
+			if (QueryCancelPending)
 				break;
 		}
 		SIMPLE_FAULT_INJECTOR("before_one_slice_dispatched");
