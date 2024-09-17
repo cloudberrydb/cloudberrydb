@@ -37,6 +37,9 @@ EXPLAIN (VERBOSE, COSTS false) DECLARE c1 PARALLEL RETRIEVE CURSOR FOR SELECT * 
 -- Test: Locus CdbLocusType_Strewn
 EXPLAIN (VERBOSE, COSTS false) DECLARE c1 PARALLEL RETRIEVE CURSOR FOR SELECT * FROM t2;
 
+-- Do some prepatation work in order to obtain correct `reltuples` number.
+VACUUM pg_class;
+
 -- Test for system table which is accessible on coordinator
 EXPLAIN (VERBOSE, COSTS false) DECLARE c1 CURSOR FOR SELECT * FROM pg_class;
 
