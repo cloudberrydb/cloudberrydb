@@ -3330,9 +3330,8 @@ WHERE first_emp = 1 OR last_emp = 1;
          ->  WindowAgg
                Partition By: empsalary.depname
                Order By: empsalary.enroll_date
-               ->  Incremental Sort
+               ->  Sort
                      Sort Key: empsalary.depname, empsalary.enroll_date
-                     Presorted Key: empsalary.depname
                      ->  WindowAgg
                            Partition By: empsalary.depname
                            Order By: empsalary.enroll_date
