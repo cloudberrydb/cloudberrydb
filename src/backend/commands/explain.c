@@ -1673,7 +1673,7 @@ ExplainNode(PlanState *planstate, List *ancestors,
 			pname = sname = "Sort";
 			break;
 		case T_TupleSplit:
-			pname = "TupleSplit";
+			pname = sname = "TupleSplit";
 			break;
 		case T_IncrementalSort:
 			pname = sname = "Incremental Sort";
