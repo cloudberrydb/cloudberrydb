@@ -92,9 +92,6 @@ distclean:
 
 installcheck:
 	$(MAKE) -C gp_internal_tools installcheck
-	if [ "$(enable_mapreduce)" = "yes" ]; then \
-		$(MAKE) -C gpmapreduce installcheck; \
-	fi
 	if [ "$(enable_orafce)" = "yes" ]; then $(MAKE) -C orafce installcheck; fi
 	if [ "$(enable_pxf)" = "yes" ]; then $(MAKE) -C pxf_fdw installcheck; fi
 	if [ "$(with_zstd)" = "yes" ]; then $(MAKE) -C zstd installcheck; fi
