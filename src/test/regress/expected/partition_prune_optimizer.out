@@ -4156,15 +4156,13 @@ explain (costs off) update listp1 set a = 1 where a = 2;
 ------------------------------------------------------------
  Update on listp1
    ->  Result
-         One-Time Filter: true
-         ->  Result
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)
-                     Hash Key: listp1_1.a
-                     ->  Split
-                           ->  Seq Scan on listp1 listp1_1
-                                 Filter: (a = 2)
+         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               Hash Key: listp1_1.a
+               ->  Split
+                     ->  Seq Scan on listp1 listp1_1
+                           Filter: (a = 2)
  Optimizer: Pivotal Optimizer (GPORCA)
-(10 rows)
+(8 rows)
 
 -- constraint exclusion enabled
 set constraint_exclusion to 'on';
@@ -4182,15 +4180,13 @@ explain (costs off) update listp1 set a = 1 where a = 2;
 ------------------------------------------------------------
  Update on listp1
    ->  Result
-         One-Time Filter: true
-         ->  Result
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)
-                     Hash Key: listp1_1.a
-                     ->  Split
-                           ->  Seq Scan on listp1 listp1_1
-                                 Filter: (a = 2)
+         ->  Redistribute Motion 3:3  (slice1; segments: 3)
+               Hash Key: listp1_1.a
+               ->  Split
+                     ->  Seq Scan on listp1 listp1_1
+                           Filter: (a = 2)
  Optimizer: Pivotal Optimizer (GPORCA)
-(10 rows)
+(8 rows)
 
 reset constraint_exclusion;
 reset enable_partition_pruning;

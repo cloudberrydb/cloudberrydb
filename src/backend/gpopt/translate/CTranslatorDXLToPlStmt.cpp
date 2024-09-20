@@ -4104,14 +4104,11 @@ CTranslatorDXLToPlStmt::TranslateDXLDml(
 							 nullptr,  // translate context for the base table
 							 child_contexts, output_context);
 
-	BOOL isNonSplitUpdate = (m_cmd_type == CMD_UPDATE && !isSplit);
-	if (isNonSplitUpdate)
-	{
-		// set all columns as updateCols for non-split updates
-		updateCols = GetRelationActiveColums(md_rel);
-	}
+	// set all columns as updateCols for non-split updates
+	updateCols = GetRelationActiveColums(md_rel);
 
 	// pad child plan's target list with NULLs for dropped columns for all DML operator types
+	BOOL isNonSplitUpdate = (m_cmd_type == CMD_UPDATE && !isSplit);
 	List *target_list_with_dropped_cols =
 		CreateTargetListWithNullsForDroppedCols(dml_target_list, md_rel, !isNonSplitUpdate);
 	dml_target_list = target_list_with_dropped_cols;
@@ -4157,23 +4154,6 @@ CTranslatorDXLToPlStmt::TranslateDXLDml(
 
 	result_plan->targetlist = target_list_with_dropped_cols;
 	SetParamIds(result_plan);
-
-	if (m_cmd_type == CMD_UPDATE && isSplit)
-	{
-		Result *final_result = MakeNode(Result);
-		Plan *final_result_plan = &(final_result->plan);
-
-		final_result_plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
-		final_result_plan->lefttree = result_plan;
-		final_result_plan->targetlist = CreateDirectCopyTargetList(target_list_with_dropped_cols);
-		final_result->resconstantqual =
-			(Node *) gpdb::LAppend(NIL, gpdb::MakeBoolConst(true /*value*/, false /*isnull*/));
-
-		SetParamIds(final_result_plan);
-
-		result = final_result;
-		result_plan = final_result_plan;
-	}
 
 	child_plan = (Plan *) result;
 
@@ -5827,27 +5807,6 @@ CTranslatorDXLToPlStmt::TranslateNestLoopParamList(
 			gpdb::LAppend(nest_params_list, (void *) nest_params);
 	}
 	return nest_params_list;
-}
-
-List *
-CTranslatorDXLToPlStmt::CreateDirectCopyTargetList(List *target_list)
-{
-	List *result_target_list = NIL;
-	ListCell *lc = nullptr;
-
-	ForEach(lc, target_list)
-	{
-		TargetEntry *te = (TargetEntry *) lfirst(lc);
-		Node *expr = (Node *) te->expr;
-
-		Var *var = gpdb::MakeVar(OUTER_VAR, te->resno, gpdb::ExprType(expr),
-				gpdb::ExprTypeMod(expr), 0 /* varlevelsup */);
-		TargetEntry *new_te = gpdb::MakeTargetEntry((Expr *) var, te->resno, te->resname, te->resjunk);
-
-		result_target_list = gpdb::LAppend(result_target_list, new_te);
-	}
-
-	return result_target_list;
 }
 
 List *

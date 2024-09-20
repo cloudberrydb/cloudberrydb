@@ -427,17 +427,15 @@ EXPLAIN (costs off) UPDATE rw_view1 SET a=6 WHERE a=5;
 -------------------------------------------------------------------------------------
  Update on base_tbl
    ->  Result
-         One-Time Filter: true
-         ->  Result
-               ->  Sort
-                     Sort Key: (DMLAction)
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
-                           Hash Key: base_tbl_1.a
-                           ->  Split
-                                 ->  Index Scan using base_tbl_pkey on base_tbl base_tbl_1
-                                       Index Cond: ((a = 5) AND (a > 0))
+         ->  Sort
+               Sort Key: (DMLAction)
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     Hash Key: base_tbl_1.a
+                     ->  Split
+                           ->  Index Scan using base_tbl_pkey on base_tbl base_tbl_1
+                                 Index Cond: ((a = 5) AND (a > 0))
  Optimizer: Pivotal Optimizer (GPORCA)
-(12 rows)
+(10 rows)
 
 EXPLAIN (costs off) DELETE FROM rw_view1 WHERE a=5;
                          QUERY PLAN                          
@@ -504,19 +502,17 @@ SELECT * FROM rw_view2;
 (3 rows)
 
 EXPLAIN (costs off) UPDATE rw_view2 SET aaa=5 WHERE aaa=4;
-                                        QUERY PLAN                                         
--------------------------------------------------------------------------------------------
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
  Update on base_tbl
    ->  Result
-         One-Time Filter: true
-         ->  Result
-               ->  Sort
-                     Sort Key: (DMLAction)
-                     ->  Redistribute Motion 3:3  (slice1; segments: 3)
-                           Hash Key: base_tbl_1.a
-                           ->  Split
-                                 ->  Index Scan using base_tbl_pkey on base_tbl base_tbl_1
-                                       Index Cond: ((a = 4) AND (a < 10) AND (a > 0))
+         ->  Sort
+               Sort Key: (DMLAction)
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)
+                     Hash Key: base_tbl_1.a
+                     ->  Split
+                           ->  Index Scan using base_tbl_pkey on base_tbl base_tbl_1
+                                 Index Cond: ((a = 4) AND (a < 10) AND (a > 0))
  Optimizer: Pivotal Optimizer (GPORCA)
 (10 rows)
 

@@ -565,9 +565,6 @@ private:
 		CDXLColRefArray *pdrgdxlcrOuterRefs, CDXLTranslateContext *dxltrctxLeft,
 		CDXLTranslateContext *dxltrctxRight);
 
-	// create final target list for update
-	static List *CreateDirectCopyTargetList(List *target_list);
-
 	// get all non-dropped columns of a relation
 	static List *GetRelationActiveColums(const IMDRelation *md_rel);
 };
