@@ -1556,6 +1556,7 @@ cdb_pull_up_eclass(PlannerInfo *root,
 	Expr	   *sub_distkeyexpr;
 	EquivalenceClass *outer_ec;
 	Expr	   *newexpr = NULL;
+	Index sortref = 0;
 
 	Assert(eclass);
 	Assert(!newvarlist ||
@@ -1596,6 +1597,16 @@ cdb_pull_up_eclass(PlannerInfo *root,
 		elog(ERROR, "could not pull up equivalence class using projected target list");
 
 	/*
+	 * See https://github.com/cloudberrydb/cloudberrydb/issues/593
+	 *
+	 * Postgres have an assumption: volatile epxr must have a valid sortref index.
+	 * The sub_distkeyexpr is formed by GPDB, to avoid Assert failure, set sortref
+	 * by eclass if it's volatile.
+	 */
+	if (sub_distkeyexpr && contain_volatile_functions((Node *) sub_distkeyexpr))
+		sortref = eclass->ec_sortref;
+
+	/*
 	 * It should be OK to set nullable_relids = NULL, since this eclass is only
 	 * used for DistributionKey, so it would not participate in qual deduction.
 	 */
@@ -1605,7 +1616,7 @@ cdb_pull_up_eclass(PlannerInfo *root,
 										eclass->ec_opfamilies,
 										exprType((Node *) newexpr),
 										exprCollation((Node *) newexpr),
-										0,
+										sortref,
 										relids,
 										true);
 
