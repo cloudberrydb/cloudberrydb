@@ -23,6 +23,7 @@
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_rewrite.h"
 #include "cdb/cdbllize.h"
+#include "commands/matview.h"
 #include "optimizer/aqumv.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/planmain.h"
@@ -104,9 +105,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 	Relation		matviewRel;
 	SysScanDesc		rcscan;
 	HeapTuple		tup;
-	RewriteRule		*rule;
 	Form_pg_rewrite	rewrite_tup;
-	List			*actions;
 	bool			need_close = false;
 	PlannerInfo		*subroot;
 	List			*mv_final_tlist = NIL; /* Final target list we want to rewrite to. */
@@ -183,19 +182,11 @@ answer_query_using_materialized_views(PlannerInfo *root,
 			!MatviewIsGeneralyUpToDate(RelationGetRelid(matviewRel)))
 			continue;
 
-		if (matviewRel->rd_rel->relhasrules == false ||
-			matviewRel->rd_rules->numLocks != 1)
-			continue;
-
-		rule = matviewRel->rd_rules->rules[0];
-
-		/* Filter a SELECT action, and not instead. */
-		if ((rule->event != CMD_SELECT) || !(rule->isInstead))
-			continue;
-
-		actions = rule->actions;
-		if (list_length(actions) != 1)
-			continue;
+		/*
+		 * Get a copy of view query to rewrite.
+		 */
+		viewQuery = copyObject(get_matview_query(matviewRel));
+		Assert(IsA(viewQuery, Query));
 
 		/*
 		 * AQUMV
@@ -211,8 +202,6 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * The Seqscan on a heap-storaged mv seems ordered, but it's a free lunch.
 		 * A Parallel Seqscan breaks that hypothesis.
 		 */
-		viewQuery = copyObject(linitial_node(Query, actions));
-		Assert(IsA(viewQuery, Query));
 		if(viewQuery->hasAggs ||
 			viewQuery->hasWindowFuncs ||
 			viewQuery->hasDistinctOn ||

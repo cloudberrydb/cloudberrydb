@@ -176,7 +176,10 @@ static void refresh_by_heap_swap(Oid matviewOid, Oid OIDNewHeap, char relpersist
 static bool is_usable_unique_index(Relation indexRel);
 static void OpenMatViewIncrementalMaintenance(void);
 static void CloseMatViewIncrementalMaintenance(void);
+/* CBDB: move to matview.h */
+#if 0
 static Query *get_matview_query(Relation matviewRel);
+#endif
 
 static Query *rewrite_query_for_preupdate_state(Query *query, List *tables,
 								  ParseState *pstate, Oid matviewid);
@@ -1390,7 +1393,7 @@ CloseMatViewIncrementalMaintenance(void)
 /*
  * get_matview_query - get the Query from a matview's _RETURN rule.
  */
-static Query *
+Query *
 get_matview_query(Relation matviewRel)
 {
 	RewriteRule *rule;
