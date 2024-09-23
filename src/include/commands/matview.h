@@ -47,4 +47,6 @@ extern bool isIvmName(const char *s);
 extern void mv_InitHashTables(void);
 extern Size mv_TableShmemSize(void);
 extern void AddPreassignedMVEntry(Oid matview_id, Oid table_id, const char* snapname);
+
+extern Query *get_matview_query(Relation matviewRel);
 #endif							/* MATVIEW_H */
