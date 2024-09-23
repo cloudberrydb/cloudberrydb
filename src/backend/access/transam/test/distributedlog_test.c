@@ -20,7 +20,7 @@
 
 /*
  * A bug found in MPP-20426 was we were overrunnig to the next page
- * of DistributedLog.  The intention of the memset with zeors is to
+ * of DistributedLog.  The intention of the memset with zeros is to
  * reset the reset of the current page if we are in the middle of page,
  * so that we won't see uncommited data due to some recovery work.
  * However, we were doing the wrong math that calculates the size of
