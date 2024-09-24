@@ -1367,6 +1367,7 @@ def main(options, args, parser):
     global _gp_shrink
 
     remove_pid = True
+    gpshrink_db_status = None
     try:
         # setup signal handlers so we can clean up correctly
         signal.signal(signal.SIGTERM, sig_handler)
