@@ -102,6 +102,10 @@ int         gp_segment_connect_timeout = 180;  /* Maximum time (in seconds) allo
 												* for a new worker process to start
 												* or a mirror to respond.
 												*/
+
+bool		gp_detect_data_correctness;		/* Detect if the current data distribution is correct */
+
+
 #ifdef USE_INTERNAL_FTS
 /*
  * Probe retry count for fts prober.
