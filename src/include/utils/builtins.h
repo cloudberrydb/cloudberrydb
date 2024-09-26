@@ -92,6 +92,8 @@ extern void generate_operator_clause(fmStringInfo buf,
 
 /* varchar.c */
 extern int	bpchartruelen(char *s, int len);
+extern BpChar *bpchar_input(const char *s, size_t len, int32 atttypmod);
+extern VarChar *varchar_input(const char *s, size_t len, int32 atttypmod);
 
 /* popular functions from varlena.c */
 extern text *cstring_to_text(const char *s);
