@@ -122,7 +122,7 @@ anychar_typmodout(int32 typmod)
  * If the input string is too long, raise an error, unless the extra
  * characters are spaces, in which case they're truncated.  (per SQL)
  */
-static BpChar *
+BpChar *
 bpchar_input(const char *s, size_t len, int32 atttypmod)
 {
 	BpChar	   *result;
@@ -450,7 +450,7 @@ bpchartypmodout(PG_FUNCTION_ARGS)
  * Uses the C string to text conversion function, which is only appropriate
  * if VarChar and text are equivalent types.
  */
-static VarChar *
+VarChar *
 varchar_input(const char *s, size_t len, int32 atttypmod)
 {
 	VarChar    *result;
