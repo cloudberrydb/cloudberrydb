@@ -599,12 +599,7 @@ makeCdbProcess(SegmentDatabaseDescriptor *segdbDesc)
 
 	process->listenerAddr = pstrdup(qeinfo->config->hostip);
 
-	if (CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_UDPIFC)
-		process->listenerPort = (segdbDesc->motionListener >> 16) & 0x0ffff;
-	else if (CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_TCP ||
-			 CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_PROXY)
-		process->listenerPort = (segdbDesc->motionListener & 0x0ffff);
-
+	process->listenerPort = (segdbDesc->motionListener & 0x0ffff);
 	process->pid = segdbDesc->backendPid;
 	process->contentid = segdbDesc->segindex;
 	process->dbid = qeinfo->config->dbid;
