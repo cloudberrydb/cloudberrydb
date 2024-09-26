@@ -32,6 +32,9 @@
 
 MotionIPCLayer *CurrentMotionIPCLayer = NULL;
 
+static int CurrentIPCLayerImplNum = 0;
+static MotionIPCLayer* IPCLayerImpls[MAX_NUMBER_TYPES];
+
 /*
  * MOTION NODE INFO DATA STRUCTURES
  */
@@ -717,7 +720,7 @@ processIncomingChunks(MotionLayerState *mlStates,
 	}
 
 	/* The chunk list we just processed freed-up our rx-buffer space. */
-	if (numChunks > 0 && CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_UDPIFC)
+	if (numChunks > 0)
 		CurrentMotionIPCLayer->DirectPutRxBuffer(transportStates, motNodeID, srcRoute);
 
 	/* Stats */
@@ -1273,4 +1276,148 @@ UpdateSentRecordCache(int32 *sent_record_typmod)
 	{
 		*sent_record_typmod = NextRecordTypmod;
 	}
+}
+
+/*
+ * Set CurrentMotionIPCLayer when gp_interconnect_type is changed.
+ */
+void
+SetCurrentMotionIPCLayer(const char *type_name)
+{
+	/* do nothing before interconnect.so loaded. */
+	if (!process_shared_preload_libraries_done)
+		return;
+
+	for (int i = 0; i < CurrentIPCLayerImplNum; ++i)
+	{
+		if (!pg_strcasecmp(IPCLayerImpls[i]->type_name, type_name))
+		{
+			CurrentMotionIPCLayer = IPCLayerImpls[i];
+			Gp_interconnect_type  = CurrentMotionIPCLayer->ic_type;
+			return;
+		}
+	}
+
+	/* should never run here */
+	ereport(ERROR,
+			(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
+			 errmsg("No IPC layer implement found with type: \"%s\".",
+					type_name)));
+
+	return;
+}
+
+/*
+ * Check the new value of gp_interconnect_type with type_name of the loaded IPC
+ * layer implements.
+ */
+bool
+CheckGpInterconnectTypeStr(char **type_name)
+{
+	/*
+	 * do nothing before interconnect.so loaded.
+	 *
+	 * gp_interconnect_type will be checked after interconnect.so is loaded
+	 * in PostmasterMain() by calling InitializeCurrentMotionIPCLayer().
+	 */
+	if (!process_shared_preload_libraries_done)
+		return true;
+
+	for (int i = 0; i < CurrentIPCLayerImplNum; ++i)
+	{
+		if (!pg_strcasecmp(IPCLayerImpls[i]->type_name, *type_name))
+			return true;
+	}
+
+	return false;
+}
+
+/*
+ * Called by interconnect.so to register a new IPC layer implement.
+ */
+void
+RegisterIPCLayerImpl(MotionIPCLayer *impl)
+{
+	if (CurrentIPCLayerImplNum >= MAX_NUMBER_TYPES)
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
+				 errmsg("There is no free entry for a new IPC layer implement.")));
+
+		return;
+	}
+
+	for (int i = 0; i < CurrentIPCLayerImplNum; ++i)
+	{
+		if (impl->ic_type == IPCLayerImpls[i]->ic_type)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
+					 errmsg("type: \"%s\" has been registered.", impl->type_name)));
+
+			return;
+		}
+	}
+
+	IPCLayerImpls[CurrentIPCLayerImplNum++] = impl;
+}
+
+/*
+ * Called by PostmasterMain() to reset the CurrentMotionIPCLayer after
+ * interconnect.so is loaded.
+ */
+void
+InitializeCurrentMotionIPCLayer(void)
+{
+	const char *cur_val;
+	const char *reset_val PG_USED_FOR_ASSERTS_ONLY;
+	StringInfoData types;
+
+	/*
+	 * Do nothing if no any IPC layer implement loaded, such as singlenode.
+	 */
+	if (CurrentIPCLayerImplNum <= 0)
+		return;
+
+	/*
+	 * Get current value and reset_val of gp_interconnect_type.
+	 *
+	 * NOTE: called by PostmasterMain() after interconnect.so is loaded,
+	 *       cur_val and reset_val should be the same.
+	 */
+	cur_val   = GetConfigOption("gp_interconnect_type", false, false);
+	reset_val = GetConfigOptionResetString("gp_interconnect_type");
+
+	Assert(cur_val);
+	Assert(reset_val);
+	Assert(pg_strcasecmp(cur_val, reset_val) == 0);
+
+	/*
+	 * Check cur_val by loaded IPC layer implements.
+	 */
+	for (int i = 0; i < CurrentIPCLayerImplNum; ++i)
+	{
+		if (!pg_strcasecmp(cur_val, IPCLayerImpls[i]->type_name))
+		{
+			SetCurrentMotionIPCLayer(IPCLayerImpls[i]->type_name);
+			return;
+		}
+	}
+
+	/*
+	 * Report error with valid types.
+	 */
+	initStringInfo(&types);
+	for (int i = 0; i < CurrentIPCLayerImplNum; ++i)
+	{
+		appendStringInfo(&types, "%s", IPCLayerImpls[i]->type_name);
+
+		if (i != CurrentIPCLayerImplNum - 1)
+			appendStringInfo(&types, ", ");
+	}
+
+	ereport(ERROR,
+			(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
+			 errmsg("Invalid gp_interconnect_type: %s, valid values are: %s.",
+					cur_val, types.data)));
 }

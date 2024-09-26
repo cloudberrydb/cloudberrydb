@@ -158,6 +158,7 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbendpoint.h"
 #include "cdb/ic_proxy_bgworker.h"
+#include "cdb/ml_ipc.h"
 #include "utils/metrics_utils.h"
 #include "utils/resgroup.h"
 #include "utils/resource_manager.h"
@@ -1237,6 +1238,11 @@ PostmasterMain(int argc, char *argv[])
 	 * process any libraries that should be preloaded at postmaster start
 	 */
 	process_shared_preload_libraries();
+
+	/*
+	 * Set CurrentMotionIPCLayer after interconnect.so is loaded.
+	 */
+	InitializeCurrentMotionIPCLayer();
 
 	/*
 	 * Initialize SSL library, if specified.

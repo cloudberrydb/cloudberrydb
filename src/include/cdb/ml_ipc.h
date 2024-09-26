@@ -37,6 +37,7 @@ extern int		UDP_listenerFd;
 typedef struct MotionIPCLayer
 {
 	GpVars_Interconnect_Type ic_type;
+	const char *type_name;
 
 	/* Get max tuple chuck size.
 	 */
@@ -289,5 +290,22 @@ typedef struct MotionIPCLayer
 
 /* MotionIPCLayer selected */
 extern MotionIPCLayer *CurrentMotionIPCLayer;
+
+/*
+ * Called by interconnect.so to register a new IPC layer implement.
+ */
+extern void RegisterIPCLayerImpl(MotionIPCLayer *impl);
+
+/*
+ * Check and set the CurrentMotionIPCLayer when gp_interconnect_type is changed.
+ */
+extern void SetCurrentMotionIPCLayer(const char *new_type);
+extern bool CheckGpInterconnectTypeStr(char **type_name);
+
+/*
+ * Called by PostmasterMain() to reset the CurrentMotionIPCLayer after
+ * interconnect.so is loaded.
+ */
+extern void InitializeCurrentMotionIPCLayer(void);
 
 #endif   /* ML_IPC_H */
