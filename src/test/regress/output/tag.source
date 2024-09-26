@@ -634,6 +634,7 @@ ALTER DATABASE tag_db3 TAG (tag3 = ''); -- error
 ERROR:  tag value "" is not in tag "tag3" allowed values
 ALTER DATABASE tag_db4 UNSET TAG (tag1, tag2);
 ALTER DATABASE tag_db4 TAG (tag1 = 'val3', tag4 = '');
+WARNING:  object "tag_db4" does not have tag "tag1", creating
 ALTER DATABASE tag_db5 TAG (tag4 = '', tag4 = ' ');
 ALTER DATABASE tag_db6 TAG (tag4 = ' '); 
 ALTER DATABASE tag_db7 TAG (tag1 = 'val2', tag2 = '3');
@@ -656,18 +657,16 @@ ORDER BY 1, 2, 3, 4;
             0 | tag_db3  | tag1    | val1
             0 | tag_db3  | tag2    | 1
             0 | tag_db4  | tag1    | val3
-            0 | tag_db4  | tag2    | 
             0 | tag_db4  | tag4    | 
             0 | tag_db5  | tag2    | 300
             0 | tag_db5  | tag4    |  
             0 | tag_db6  | tag4    |  
-            0 | tag_db7  | tag1    | 
             0 | tag_db7  | tag2    | 3
             0 | tag_db7  | tag4    |  
             0 | tag_db8  | tag1    | val1
             0 | tag_db8  | tag4    | 123
             0 | tag_db9  | tag4    | 123
-(18 rows)
+(16 rows)
 
 SELECT datname, datdba, encoding, datistemplate, datallowconn, datconnlimit
 FROM pg_database
@@ -840,6 +839,7 @@ ALTER USER tag_user3 TAG (tag3 = ''); -- error
 ERROR:  tag value "" is not in tag "tag3" allowed values
 ALTER USER tag_user4 UNSET TAG (tag1, tag2);
 ALTER USER tag_user4 TAG (tag1 = 'val3', tag4 = '');
+WARNING:  object "tag_user4" does not have tag "tag1", creating
 ALTER USER tag_user5 TAG (tag4 = '', tag4 = ' ');
 ALTER USER tag_user6 TAG (tag4 = ' '); 
 ALTER USER tag_user7 TAG (tag1 = 'val2', tag2 = '3');
@@ -863,18 +863,16 @@ ORDER BY 1, 2, 3, 4;
             0 | tag_user3  | tag1    | val1
             0 | tag_user3  | tag2    | 1
             0 | tag_user4  | tag1    | val3
-            0 | tag_user4  | tag2    | 
             0 | tag_user4  | tag4    | 
             0 | tag_user5  | tag2    | 300
             0 | tag_user5  | tag4    |  
             0 | tag_user6  | tag4    |  
-            0 | tag_user7  | tag1    | 
             0 | tag_user7  | tag2    | 3
             0 | tag_user7  | tag4    |  
             0 | tag_user8  | tag1    | val1
             0 | tag_user8  | tag4    | 123
             0 | tag_user9  | tag4    | 123
-(18 rows)
+(16 rows)
 
 SELECT rolname, rolsuper, rolconnlimit FROM pg_authid
 WHERE rolname like '%tag_user%'
@@ -959,13 +957,17 @@ ALTER TABLESPACE tag_tablespace TAG (tag4 = '', tag1 = 'val1');
 WARNING:  object "tag_tablespace" does not have tag "tag4", creating
 ALTER TABLESPACE tag_tablespace UNSET TAG (tag1, tag2);
 ALTER TABLESPACE tag_tablespace UNSET TAG (tag2);
+ERROR:  object "tag_tablespace" does not have tag "tag2"
+ALTER TABLESPACE tag_tablespace TAG (tag2 = '10');
+WARNING:  object "tag_tablespace" does not have tag "tag2", creating
 ALTER TABLESPACE tag_tablespace TAG (tag1 = 'val2', tag1 = 'val3');
+WARNING:  object "tag_tablespace" does not have tag "tag1", creating
 SELECT * FROM tablespace_tag_descriptions
 ORDER BY 1, 2, 3, 4;
  tddatabaseid |    spcname     | tagname | tagvalue 
 --------------+----------------+---------+----------
             0 | tag_tablespace | tag1    | val3
-            0 | tag_tablespace | tag2    | 
+            0 | tag_tablespace | tag2    | 10
             0 | tag_tablespace | tag4    | 
 (3 rows)
 
@@ -1128,6 +1130,7 @@ ALTER SCHEMA tag_schema3 TAG (tag3 = ''); -- error
 ERROR:  tag value "" is not in tag "tag3" allowed values
 ALTER SCHEMA tag_schema4 UNSET TAG (tag1, tag2);
 ALTER SCHEMA tag_schema4 TAG (tag1 = 'val3', tag4 = '');
+WARNING:  object "tag_schema4" does not have tag "tag1", creating
 ALTER SCHEMA tag_schema5 TAG (tag4 = '', tag4 = ' ');
 ALTER SCHEMA tag_schema6 TAG (tag4 = ' '); 
 ALTER SCHEMA tag_schema7 TAG (tag1 = 'val2', tag2 = '3');
@@ -1151,18 +1154,16 @@ ORDER BY 1, 2, 3, 4;
  postgres | tag_schema3  | tag1    | val1
  postgres | tag_schema3  | tag2    | 1
  postgres | tag_schema4  | tag1    | val3
- postgres | tag_schema4  | tag2    | 
  postgres | tag_schema4  | tag4    | 
  postgres | tag_schema5  | tag2    | 300
  postgres | tag_schema5  | tag4    |  
  postgres | tag_schema6  | tag4    |  
- postgres | tag_schema7  | tag1    | 
  postgres | tag_schema7  | tag2    | 3
  postgres | tag_schema7  | tag4    |  
  postgres | tag_schema8  | tag1    | val1
  postgres | tag_schema8  | tag4    | 123
  postgres | tag_schema9  | tag4    | 123
-(18 rows)
+(16 rows)
 
 SELECT nspname, nspowner FROM pg_namespace
 WHERE nspname like '%tag_schema%'
@@ -1343,6 +1344,7 @@ ALTER TABLE tag_table2 TAG (tag2 = '10');
 ALTER TABLE tag_table3 TAG (tag3 = '');
 ALTER TABLE tag_table4 UNSET TAG (tag1, tag2);
 ALTER TABLE tag_table4 TAG (tag1 = 'val3', tag4 = '');
+WARNING:  object "tag_table4" does not have tag "tag1", creating
 ALTER TABLE tag_table5 TAG (tag4 = '', tag4 = ' ');
 ALTER TABLE tag_table6 TAG (tag4 = ' '); 
 ALTER TABLE tag_table7 TAG (tag1 = 'val2', tag2 = '3');
@@ -1361,18 +1363,16 @@ ORDER BY 1, 2, 3, 4, 5, 6;
 ----------+-------------+--------------+---------+---------+-----------------------------------------------------------------------------------
  postgres | tag_table10 | public       | r       | tag3    | dadkqjefpqfqfqe4l123j9i1snkqenp3412n4jnflqjenfaddpiqepj21304i12;kfnqpqnepfqefqwef
  postgres | tag_table4  | public       | r       | tag1    | val3
- postgres | tag_table4  | public       | r       | tag2    | 
  postgres | tag_table4  | public       | r       | tag4    | 
  postgres | tag_table5  | public       | r       | tag2    | 300
  postgres | tag_table5  | public       | r       | tag4    |  
  postgres | tag_table6  | public       | r       | tag4    |  
- postgres | tag_table7  | public       | r       | tag1    | 
  postgres | tag_table7  | public       | r       | tag2    | 3
  postgres | tag_table7  | public       | r       | tag4    |  
  postgres | tag_table8  | public       | r       | tag1    | val1
  postgres | tag_table8  | public       | r       | tag4    | 123
  postgres | tag_table9  | public       | r       | tag4    | 123
-(13 rows)
+(11 rows)
 
 SELECT relname, relpersistence FROM pg_class
 WHERE relname like '%tag_table%'
@@ -1416,9 +1416,18 @@ ORDER BY 1;
 ---------+----------------
 (0 rows)
 
+-- Test tag with null allowed_values
+CREATE TAG tag_with_null_values;
+CREATE DATABASE test TAG (tag_with_null_values = '123');
+ALTER DATABASE test TAG (tag_with_null_values = 'qweda');
+DROP TAG tag_with_null_values;	-- error
+DETAIL:  tag of tag description with tag tag_with_null_values
+ERROR:  tag "tag_with_null_values" cannot be dropped because some objects depend on it
+DROP DATABASE test;
 -- Cleanup
 DROP TAG tag1;
 DROP TAG tag2;
 DROP TAG tag3;
 DROP TAG tag4;
+DROP TAG tag_with_null_values;
 DROP DATABASE other_db;

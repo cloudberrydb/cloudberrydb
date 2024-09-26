@@ -489,25 +489,22 @@ AddTagDescriptions(List *tags,
 								Anum_pg_tag_allowed_values,
 								&isnull);
 
-		if (isnull)
-			ereport(ERROR,
-					(errcode(ERRCODE_UNDEFINED_OBJECT),
-					 errmsg("tag value \"%s\" does not exist in tag \"%s\"",
-							tagvalue, tagname)));
-
-		allowed_values = untransformTagValues(datum);
-
-		foreach(value_cell, allowed_values)
+		if (!isnull)
 		{
-			char	*allowed_value = strVal(lfirst(value_cell));
+			allowed_values = untransformTagValues(datum);
 
-			if (strcmp(tagvalue, allowed_value) == 0)
+			foreach(value_cell, allowed_values)
 			{
-				break;
+				char	*allowed_value = strVal(lfirst(value_cell));
+
+				if (strcmp(tagvalue, allowed_value) == 0)
+				{
+					break;
+				}
 			}
 		}
 
-		if (value_cell)
+		if (value_cell || isnull)
 		{
 			desc_tuple = SearchSysCache4(TAGDESCRIPTION,
 										 ObjectIdGetDatum(databaseid),
@@ -637,7 +634,7 @@ AlterTagDescriptions(List *tags,
 		Datum	datum;
 		bool	isnull;
 		List	*allowed_values;
-		ListCell	*value_cell;
+		ListCell	*value_cell = NULL;
 
 		DefElem	*def = lfirst(cell);
 		tagname = def->defname;
@@ -653,25 +650,22 @@ AlterTagDescriptions(List *tags,
 								Anum_pg_tag_allowed_values,
 								&isnull);
 
-		if (isnull)
-			ereport(ERROR,
-					(errcode(ERRCODE_UNDEFINED_OBJECT),
-					 errmsg("tag value \"%s\" does not exist in tag \"%s\"",
-							tagvalue, tagname)));
-
-		allowed_values = untransformTagValues(datum);
-
-		foreach(value_cell, allowed_values)
+		if (!isnull)
 		{
-			char	*allowed_value = strVal(lfirst(value_cell));
+			allowed_values = untransformTagValues(datum);
 
-			if (strcmp(tagvalue, allowed_value) == 0)
+			foreach(value_cell, allowed_values)
 			{
-				break;
+				char	*allowed_value = strVal(lfirst(value_cell));
+
+				if (strcmp(tagvalue, allowed_value) == 0)
+				{
+					break;
+				}
 			}
 		}
 
-		if (!value_cell)
+		if (!value_cell && !isnull)
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_UNDEFINED_OBJECT),
@@ -763,13 +757,9 @@ UnsetTagDescriptions(List *tags,
 	{
 		HeapTuple	tuple;
 		HeapTuple	desc_tuple;
-		HeapTuple	new_tuple;
 		Form_pg_tag tagform;
 		Oid		tagId;
 		char	*tagname = NULL;
-		Datum	tag_desc_repl_val[Natts_pg_tag_description];
-		bool	tag_desc_repl_null[Natts_pg_tag_description];
-		bool	tag_desc_repl_repl[Natts_pg_tag_description];
 		
 		tagname = strVal(lfirst(cell));
 		
@@ -793,27 +783,20 @@ UnsetTagDescriptions(List *tags,
 					 objname, tagname)));
 
 		/*
-		 * Unset existing tag value in pg_tag_description
+		 * Remove tag description tuple in pg_tag_description.
 		 */
-		memset(tag_desc_repl_val, 0, sizeof(tag_desc_repl_val));
-		memset(tag_desc_repl_null, false, sizeof(tag_desc_repl_null));
-		memset(tag_desc_repl_repl, false, sizeof(tag_desc_repl_repl));
+		CatalogTupleDelete(tag_desc_rel, &desc_tuple->t_self);
 
-		tag_desc_repl_null[Anum_pg_tag_description_tagvalue - 1] = true;
-		tag_desc_repl_repl[Anum_pg_tag_description_tagvalue - 1] = true;
-
-		/* Everything looks good - update the tuple */
-		new_tuple = heap_modify_tuple(desc_tuple, RelationGetDescr(tag_desc_rel),
-									  tag_desc_repl_val, tag_desc_repl_null, tag_desc_repl_repl);
-
-		CatalogTupleUpdate(tag_desc_rel, &new_tuple->t_self, new_tuple);
-
-		heap_freetuple(new_tuple);
-
-		ReleaseSysCache(desc_tuple);
-		ReleaseSysCache(tuple);
+		/*
+		 * Delete shared dependency references related to this tag description object.
+		 */
+		deleteSharedDependencyRecordsFor(TagDescriptionRelationId,
+										 ((Form_pg_tag_description) GETSTRUCT(desc_tuple))->oid, 0);
 
 		CommandCounterIncrement();
+		
+		ReleaseSysCache(desc_tuple);
+		ReleaseSysCache(tuple);
 	}
 
 	table_close(tag_desc_rel, RowExclusiveLock);
@@ -837,7 +820,7 @@ DeleteTagDescriptions(Oid databaseid,
 	Relation	rel;
 	ScanKeyData	skey[3];
 	SysScanDesc	scan;
-	Form_pg_tag tagform;
+	Form_pg_tag_description tagdesc_form;
 
 	ScanKeyInit(&skey[0],
 				Anum_pg_tag_description_tddatabaseid,
@@ -859,8 +842,8 @@ DeleteTagDescriptions(Oid databaseid,
 	
 	while ((desc_tuple = systable_getnext(scan)) != NULL)
 	{
-		tagform = (Form_pg_tag) GETSTRUCT(desc_tuple);
-		tagdescId = tagform->oid;
+		tagdesc_form = (Form_pg_tag_description) GETSTRUCT(desc_tuple);
+		tagdescId = tagdesc_form->oid;
 		
 		CatalogTupleDelete(rel, &desc_tuple->t_self);
 

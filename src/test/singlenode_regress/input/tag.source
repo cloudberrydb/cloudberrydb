@@ -434,6 +434,7 @@ ALTER TABLESPACE tag_tablespace SET (random_page_cost = 1.0, seq_page_cost = 1.1
 ALTER TABLESPACE tag_tablespace TAG (tag4 = '', tag1 = 'val1');
 ALTER TABLESPACE tag_tablespace UNSET TAG (tag1, tag2);
 ALTER TABLESPACE tag_tablespace UNSET TAG (tag2);
+ALTER TABLESPACE tag_tablespace TAG (tag2 = '10');
 ALTER TABLESPACE tag_tablespace TAG (tag1 = 'val2', tag1 = 'val3');
 
 SELECT * FROM tablespace_tag_descriptions
