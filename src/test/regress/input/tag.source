@@ -434,6 +434,7 @@ ALTER TABLESPACE tag_tablespace SET (random_page_cost = 1.0, seq_page_cost = 1.1
 ALTER TABLESPACE tag_tablespace TAG (tag4 = '', tag1 = 'val1');
 ALTER TABLESPACE tag_tablespace UNSET TAG (tag1, tag2);
 ALTER TABLESPACE tag_tablespace UNSET TAG (tag2);
+ALTER TABLESPACE tag_tablespace TAG (tag2 = '10');
 ALTER TABLESPACE tag_tablespace TAG (tag1 = 'val2', tag1 = 'val3');
 
 SELECT * FROM tablespace_tag_descriptions
@@ -617,10 +618,18 @@ SELECT relname, relpersistence FROM pg_class
 WHERE relname like '%tag_table%'
 ORDER BY 1;
 
+-- Test tag with null allowed_values
+CREATE TAG tag_with_null_values;
+CREATE DATABASE test TAG (tag_with_null_values = '123');
+ALTER DATABASE test TAG (tag_with_null_values = 'qweda');
+DROP TAG tag_with_null_values;	-- error
+
+DROP DATABASE test;
 
 -- Cleanup
 DROP TAG tag1;
 DROP TAG tag2;
 DROP TAG tag3;
 DROP TAG tag4;
+DROP TAG tag_with_null_values;
 DROP DATABASE other_db;
