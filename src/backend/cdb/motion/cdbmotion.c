@@ -32,6 +32,9 @@
 
 MotionIPCLayer *CurrentMotionIPCLayer = NULL;
 
+int CurrentIPCLayerImplNum = 0;
+MotionIPCLayer* IPCLayerImpls[IPCLAYER_IMPL_NUMBER_MAX];
+
 /*
  * MOTION NODE INFO DATA STRUCTURES
  */
@@ -1273,4 +1276,26 @@ UpdateSentRecordCache(int32 *sent_record_typmod)
 	{
 		*sent_record_typmod = NextRecordTypmod;
 	}
+}
+
+void
+SetCurrentMotionIPCLayer(int type)
+{
+	int i;
+
+	Assert(CurrentIPCLayerImplNum);
+
+	for (i = 0; i < CurrentIPCLayerImplNum; ++i)
+	{
+		if (IPCLayerImpls[i]->ic_type == type)
+		{
+			CurrentMotionIPCLayer = IPCLayerImpls[i];
+			break;
+		}
+	}
+
+	if (i >= CurrentIPCLayerImplNum)
+		ereport(ERROR,
+				(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
+				 errmsg("invalid interconnect type: %d", type)));
 }

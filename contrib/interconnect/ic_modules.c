@@ -146,20 +146,15 @@ _PG_init(void)
 				 errmsg("could not load interconnect outside process shared preload")));
     }
 
-    switch(Gp_interconnect_type) {
-        case INTERCONNECT_TYPE_TCP:
-            CurrentMotionIPCLayer = &tcp_ipc_layer;
-            break;
-        case INTERCONNECT_TYPE_UDPIFC:
-            CurrentMotionIPCLayer = &udpifc_ipc_layer;
-            break;
-        case INTERCONNECT_TYPE_PROXY:
-            CurrentMotionIPCLayer = &proxy_ipc_layer;
-            break;    
-        default:
-            ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not decide interconnect type")));
-    }
-    
+	IPCLayerImpls[CurrentIPCLayerImplNum++] = &tcp_ipc_layer;
+	IPCLayerImpls[CurrentIPCLayerImplNum++] = &udpifc_ipc_layer;
+	IPCLayerImpls[CurrentIPCLayerImplNum++] = &proxy_ipc_layer;
+
+	/*
+	 * set CurrentMotionIPCLayer with Gp_interconnect_type if it's NULL.
+	 */
+	if (CurrentMotionIPCLayer == NULL)
+	{
+		SetCurrentMotionIPCLayer(Gp_interconnect_type);
+	}
 }
