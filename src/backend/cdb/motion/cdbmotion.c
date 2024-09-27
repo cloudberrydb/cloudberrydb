@@ -1279,23 +1279,75 @@ UpdateSentRecordCache(int32 *sent_record_typmod)
 }
 
 void
-SetCurrentMotionIPCLayer(int type)
+SetCurrentMotionIPCLayer(int new_type)
 {
-	int i;
+	int type;
 
-	Assert(CurrentIPCLayerImplNum);
+	/* interconnect.so is not loaded. */
+	if (CurrentIPCLayerImplNum == 0)
+	{
+		Assert(CurrentMotionIPCLayer == NULL);
+		Gp_interconnect_type = new_type;
+		ereport(WARNING,
+				(errcode(ERRCODE_WARNING_GP_INTERCONNECTION),
+				 errmsg("No any IPCLayer implement loaded.")));
 
-	for (i = 0; i < CurrentIPCLayerImplNum; ++i)
+		return;
+	}
+
+	/* check new type */
+	if (IsICTypeExist(new_type))
+	{
+		type = new_type;
+	}
+	else
+	{
+		ereport(WARNING,
+				(errcode(ERRCODE_WARNING_GP_INTERCONNECTION),
+				 errmsg("No IPCLayer implement found with type: %d, choose default one.",
+						new_type)));
+
+		/* try best to find one appropriate implement */
+		if (IsICTypeExist(Gp_interconnect_type))
+		{
+			/* keep old setting */
+			type = Gp_interconnect_type;
+		}
+		else
+		{
+			if (IsICTypeExist(INTERCONNECT_TYPE_UDPIFC))
+			{
+				type = INTERCONNECT_TYPE_UDPIFC;
+			}
+			else
+			{
+				Assert(CurrentIPCLayerImplNum);
+				type = IPCLayerImpls[0]->ic_type;
+			}
+		}
+	}
+
+	for (int i = 0; i < CurrentIPCLayerImplNum; ++i)
 	{
 		if (IPCLayerImpls[i]->ic_type == type)
 		{
 			CurrentMotionIPCLayer = IPCLayerImpls[i];
+			Gp_interconnect_type = CurrentMotionIPCLayer->ic_type;
 			break;
 		}
 	}
 
-	if (i >= CurrentIPCLayerImplNum)
-		ereport(ERROR,
-				(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-				 errmsg("invalid interconnect type: %d", type)));
+	return;
+}
+
+bool
+IsICTypeExist(GpVars_Interconnect_Type type)
+{
+	for (int i = 0; i < CurrentIPCLayerImplNum; ++i)
+	{
+		if (IPCLayerImpls[i]->ic_type == type)
+			return true;
+	}
+
+	return false;
 }

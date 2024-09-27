@@ -297,5 +297,6 @@ extern MotionIPCLayer *CurrentMotionIPCLayer;
 extern int CurrentIPCLayerImplNum;
 extern MotionIPCLayer* IPCLayerImpls[IPCLAYER_IMPL_NUMBER_MAX];
 extern void SetCurrentMotionIPCLayer(int type);
+extern bool IsICTypeExist(GpVars_Interconnect_Type type);
 
 #endif   /* ML_IPC_H */

@@ -5479,13 +5479,5 @@ DispatchSyncPGVariable(struct config_generic * gconfig)
 static void
 assign_gp_interconnect_type(int newval, void *extra)
 {
-	Gp_interconnect_type = newval;
-
-	/*
-	 * "interconnect.so" is not currently loaded if CurrentIPCLayerImplNum == 0.
-	 */
-	if (CurrentIPCLayerImplNum != 0)
-	{
-		SetCurrentMotionIPCLayer(Gp_interconnect_type);
-	}
+	SetCurrentMotionIPCLayer(newval);
 }

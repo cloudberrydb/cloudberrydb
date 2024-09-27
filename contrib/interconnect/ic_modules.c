@@ -137,24 +137,47 @@ MotionIPCLayer udpifc_ipc_layer = {
     .GetMotionConnTupleRemapper = GetMotionConnTupleRemapper,
 };
 
+MotionIPCLayer *ipc_layer_impls[] = {
+	&tcp_ipc_layer,
+	&udpifc_ipc_layer,
+	&proxy_ipc_layer,
+};
+
 void
 _PG_init(void)
 {
+	int elevel, impls_num;
+
 	if (!process_shared_preload_libraries_in_progress) {
         ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not load interconnect outside process shared preload")));
     }
 
-	IPCLayerImpls[CurrentIPCLayerImplNum++] = &tcp_ipc_layer;
-	IPCLayerImpls[CurrentIPCLayerImplNum++] = &udpifc_ipc_layer;
-	IPCLayerImpls[CurrentIPCLayerImplNum++] = &proxy_ipc_layer;
+#ifdef USE_ASSERT_CHECKING
+	elevel = WARNING;
+#else
+	elevel = LOG;
+#endif
 
-	/*
-	 * set CurrentMotionIPCLayer with Gp_interconnect_type if it's NULL.
-	 */
-	if (CurrentMotionIPCLayer == NULL)
+	impls_num = sizeof(ipc_layer_impls) / sizeof(MotionIPCLayer *);
+	for (int i = 0; i < impls_num; ++i)
 	{
-		SetCurrentMotionIPCLayer(Gp_interconnect_type);
+		if (CurrentIPCLayerImplNum >= IPCLAYER_IMPL_NUMBER_MAX)
+		{
+			elog(elevel,
+				 "IPCLayerImpls[] is full, can not register more IPC layer implement.");
+			break;
+		}
+
+		if (IsICTypeExist(ipc_layer_impls[i]->ic_type))
+		{
+			elog(elevel,
+				 "ic_type: %d has been registered in IPCLayerImpls[].",
+				 ipc_layer_impls[i]->ic_type);
+			continue;
+		}
+
+		IPCLayerImpls[CurrentIPCLayerImplNum++] = ipc_layer_impls[i];
 	}
 }
