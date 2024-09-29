@@ -79,6 +79,7 @@ typedef struct BufferedAppend
     int64                fileLen;
     int64				 fileLen_uncompressed; /* for calculating compress ratio */
 
+	const struct f_smgr_ao	*smgrAO;
 } BufferedAppend;
 
 /*
@@ -102,7 +103,8 @@ extern void BufferedAppendInit(
 	int32          memoryLen,
 	int32          maxBufferWithCompressionOverrrunLen,
 	int32          maxLargeWriteLen,
-	char           *relationName);
+	char           *relationName,
+	const struct f_smgr_ao *smgrAO);
 
 /*
  * Takes an open file handle for the next file.

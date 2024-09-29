@@ -17,6 +17,7 @@
 
 #include "htup_details.h"
 #include "storage/fd.h"
+#include "storage/smgr.h"
 #include "utils/rel.h"
 
 struct AOVacuumRelStats;
@@ -40,7 +41,7 @@ extern File OpenAOSegmentFile(Relation rel,
 				  char *filepathname,
 				  int64	logicalEof);
 
-extern void CloseAOSegmentFile(File fd);
+extern void CloseAOSegmentFile(File fd, Relation rel);
 
 extern void
 TruncateAOSegmentFile(File fd,
@@ -55,7 +56,8 @@ extern void
 mdunlink_ao(RelFileNodeBackend rnode, ForkNumber forkNumber, bool isRedo);
 
 extern void
-copy_append_only_data(RelFileNode src, RelFileNode dst, BackendId backendid, char relpersistence);
+copy_append_only_data(RelFileNode src, RelFileNode dst, 
+	SMgrRelation srcSMGR, SMgrRelation dstSMGR, BackendId backendid, char relpersistence);
 
 /*
  * return value should be true if the callback was able to find the given

@@ -69,7 +69,8 @@ AppendOnlyStorageWrite_Init(AppendOnlyStorageWrite *storageWrite,
 							char *relationName,
 							char *title,
 							AppendOnlyStorageAttributes *storageAttributes,
-							bool needsWAL)
+							bool needsWAL,
+							const struct f_smgr_ao *smgrAO)
 {
 	uint8	   *memory;
 	int32		memoryLen;
@@ -82,9 +83,13 @@ AppendOnlyStorageWrite_Init(AppendOnlyStorageWrite *storageWrite,
 	Assert(relationName != NULL);
 	Assert(storageAttributes != NULL);
 
+	Assert(smgrAO != NULL);
+
 	/* UNDONE: Range check fields in storageAttributes */
 
 	MemSet(storageWrite, 0, sizeof(AppendOnlyStorageWrite));
+
+	storageWrite->smgrAO = smgrAO; 
 
 	storageWrite->maxBufferLen = maxBufferLen;
 
@@ -147,7 +152,8 @@ AppendOnlyStorageWrite_Init(AppendOnlyStorageWrite *storageWrite,
 					   memoryLen,
 					   storageWrite->maxBufferWithCompressionOverrrunLen,
 					   storageWrite->maxLargeWriteLen,
-					   relationName);
+					   relationName,
+					   smgrAO);
 
 	elogif(Debug_appendonly_print_insert || Debug_appendonly_print_append_block, LOG,
 		   "Append-Only Storage Write initialize for table '%s' (compression = %s, compression level %d, maximum buffer length %d, large write length %d)",
@@ -319,7 +325,7 @@ AppendOnlyStorageWrite_OpenFile(AppendOnlyStorageWrite *storageWrite,
 	errno = 0;
 
 	int			fileFlags = O_RDWR | PG_BINARY;
-	file = PathNameOpenFile(path, fileFlags);
+	file = storageWrite->smgrAO->smgr_AORelOpenSegFile(path, fileFlags);
 	if (file < 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),

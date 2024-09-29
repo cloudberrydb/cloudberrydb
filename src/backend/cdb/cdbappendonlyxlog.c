@@ -67,6 +67,13 @@ ao_insert_replay(XLogReaderState *record)
 	xl_ao_insert *xlrec = (xl_ao_insert *) XLogRecGetData(record);
 	char	   *buffer = (char *) xlrec + SizeOfAOInsert;
 	uint32		len = XLogRecGetDataLen(record) - SizeOfAOInsert;
+	SMgrRelation smgr;
+
+	/*
+	 * Open the relation at smgr level.  Relations using shared buffers need
+	 * the default SMGR implementation.
+	 */
+	smgr = smgropen(xlrec->target.node, InvalidBackendId, SMGR_AO, NULL);
 
 	dbPath = GetDatabasePath(xlrec->target.node.dbNode,
 							 xlrec->target.node.spcNode);
@@ -82,14 +89,14 @@ ao_insert_replay(XLogReaderState *record)
 	/* When writing from the beginning of the file, it might not exist yet. Create it. */
 	if (xlrec->target.offset == 0)
 		fileFlags |= O_CREAT;
-	file = PathNameOpenFile(path, fileFlags);
+	file = smgr->smgr_ao->smgr_AORelOpenSegFile(path, fileFlags);
 	if (file < 0)
 	{
 		XLogAOSegmentFile(xlrec->target.node, xlrec->target.segment_filenum);
 		return;
 	}
 
-	written_len = FileWrite(file, buffer, len, xlrec->target.offset,
+	written_len = smgr->smgr_ao->smgr_FileWrite(file, buffer, len, xlrec->target.offset,
 							WAIT_EVENT_COPY_FILE_WRITE);
 	if (written_len < 0 || written_len != len)
 	{
@@ -104,7 +111,7 @@ ao_insert_replay(XLogReaderState *record)
 							  xlrec->target.segment_filenum,
 							  file);
 
-	FileClose(file);
+	smgr->smgr_ao->smgr_FileClose(file);
 }
 
 /*
@@ -130,8 +137,16 @@ ao_truncate_replay(XLogReaderState *record)
 	char	   *dbPath;
 	char		path[MAXPGPATH];
 	File		file;
+	SMgrRelation smgr;
 
 	xl_ao_truncate *xlrec = (xl_ao_truncate*) XLogRecGetData(record);
+
+	/*
+	 * Open the relation at smgr level.  Relations using shared buffers need
+	 * the default SMGR implementation.
+	 */
+	smgr = smgropen(xlrec->target.node, InvalidBackendId, SMGR_AO, NULL);
+
 
 	dbPath = GetDatabasePath(xlrec->target.node.dbNode,
 							 xlrec->target.node.spcNode);
@@ -143,7 +158,7 @@ ao_truncate_replay(XLogReaderState *record)
 	pfree(dbPath);
 	dbPath = NULL;
 
-	file = PathNameOpenFile(path, O_RDWR | PG_BINARY);
+	file = smgr->smgr_ao->smgr_AORelOpenSegFile(path, O_RDWR | PG_BINARY);
 	if (file < 0)
 	{
 		/*

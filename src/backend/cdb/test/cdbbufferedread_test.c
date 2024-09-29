@@ -17,12 +17,13 @@ test__BufferedReadInit__IsConsistent(void **state)
 	int32 maxBufferLen = 128;
 	int32 maxLargeReadLen = 128;
 	RelFileNode file_node = {0};
+	const struct f_smgr_ao *smgrAO = smgrAOGetDefault();
 
 	memset(bufferedRead, 0 , sizeof(BufferedRead));
 	/*
 	 * Call the function so as to set the above values.
 	 */
-	BufferedReadInit(bufferedRead, memory, memoryLen, maxBufferLen, maxLargeReadLen, relname, &file_node);
+	BufferedReadInit(bufferedRead, memory, memoryLen, maxBufferLen, maxLargeReadLen, relname, &file_node, smgrAO);
 	/*
 	 * Check for consistency
 	 */
@@ -47,12 +48,13 @@ test__BufferedReadUseBeforeBuffer__IsNextReadLenZero(void **state)
 	int32 nextBufferLen;
 	int32 maxReadAheadLen = 64;
 	RelFileNode file_node = {0};
+	const struct f_smgr_ao *smgrAO = smgrAOGetDefault();
 
 	memset(bufferedRead, 0 , sizeof(BufferedRead));
 	/*
 	 * Initialize the buffer
 	 */
-	BufferedReadInit(bufferedRead, memory, memoryLen, maxBufferLen, maxLargeReadLen, relname, &file_node);
+	BufferedReadInit(bufferedRead, memory, memoryLen, maxBufferLen, relname, maxLargeReadLen, &file_node, smgrAO);
 	/*
 	 * filling up the bufferedRead struct
 	 */

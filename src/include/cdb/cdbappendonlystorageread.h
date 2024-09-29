@@ -16,6 +16,7 @@
 
 #include "catalog/pg_appendonly.h"
 #include "catalog/pg_compression.h"
+#include "storage/smgr.h"
 #include "cdb/cdbappendonlystorage.h"
 #include "cdb/cdbappendonlystoragelayer.h"
 #include "cdb/cdbbufferedread.h"
@@ -191,6 +192,7 @@ typedef struct AppendOnlyStorageRead
 										 * pointers. The array index
 										 * corresponds to COMP_FUNC_*	*/
 
+	const struct f_smgr_ao *smgrAO;
 } AppendOnlyStorageRead;
 
 extern void AppendOnlyStorageRead_Init(AppendOnlyStorageRead *storageRead,
@@ -198,7 +200,7 @@ extern void AppendOnlyStorageRead_Init(AppendOnlyStorageRead *storageRead,
 						   int32 maxBufferLen,
 						   char *relationName, char *title,
 						   AppendOnlyStorageAttributes *storageAttributes,
-						   RelFileNode *relFileNode);
+						   RelFileNode *relFileNode, const struct f_smgr_ao *smgrAO);
 
 extern char *AppendOnlyStorageRead_RelationName(AppendOnlyStorageRead *storageRead);
 extern char *AppendOnlyStorageRead_SegmentFileName(AppendOnlyStorageRead *storageRead);
