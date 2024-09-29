@@ -165,6 +165,7 @@ SetNextFileSegForRead(AppendOnlyScanDesc scan)
 	if (!scan->initedStorageRoutines)
 	{
 		PGFunction *fns = NULL;
+		RelationOpenSmgr(reln);
 
 		AppendOnlyStorageRead_Init(
 								   &scan->storageRead,
@@ -173,7 +174,7 @@ SetNextFileSegForRead(AppendOnlyScanDesc scan)
 								   NameStr(scan->aos_rd->rd_rel->relname),
 								   scan->title,
 								   &scan->storageAttributes,
-								   &scan->aos_rd->rd_node);
+								   &scan->aos_rd->rd_node, reln->rd_smgr->smgr_ao);
 
 		/*
 		 * There is no guarantee that the current memory context will be
@@ -286,6 +287,7 @@ SetNextFileSegForRead(AppendOnlyScanDesc scan)
 	Assert(strlen(scan->aos_filenamepath) + 1 <= scan->aos_filenamepath_maxlen);
 
 	Assert(scan->initedStorageRoutines);
+
 
 	AppendOnlyStorageRead_OpenFile(
 								   &scan->storageRead,
@@ -2219,6 +2221,8 @@ appendonly_fetch_init(Relation relation,
 		aoFetchDesc->lastSequence[segno] = ReadLastSequence(aoFormData.segrelid, segno);
 	}
 
+	RelationOpenSmgr(relation);
+
 	AppendOnlyStorageRead_Init(
 							   &aoFetchDesc->storageRead,
 							   aoFetchDesc->initContext,
@@ -2226,7 +2230,7 @@ appendonly_fetch_init(Relation relation,
 							   NameStr(aoFetchDesc->relation->rd_rel->relname),
 							   aoFetchDesc->title,
 							   &aoFetchDesc->storageAttributes,
-							   &relation->rd_node);
+							   &relation->rd_node, relation->rd_smgr->smgr_ao);
 
 
 	fns = get_funcs_for_compression(NameStr(aoFormData.compresstype));
@@ -2758,6 +2762,8 @@ appendonly_insert_init(Relation rel, int segno)
 					 RelationGetRelationName(aoInsertDesc->aoi_rel));
 	aoInsertDesc->title = titleBuf.data;
 
+	RelationOpenSmgr(rel);
+
 	AppendOnlyStorageWrite_Init(
 								&aoInsertDesc->storageWrite,
 								NULL,
@@ -2765,7 +2771,7 @@ appendonly_insert_init(Relation rel, int segno)
 								RelationGetRelationName(aoInsertDesc->aoi_rel),
 								aoInsertDesc->title,
 								&aoInsertDesc->storageAttributes,
-								XLogIsNeeded() && RelationNeedsWAL(aoInsertDesc->aoi_rel));
+								XLogIsNeeded() && RelationNeedsWAL(aoInsertDesc->aoi_rel), rel->rd_smgr->smgr_ao);
 
 	aoInsertDesc->storageWrite.compression_functions = fns;
 	aoInsertDesc->storageWrite.compressionState = cs;

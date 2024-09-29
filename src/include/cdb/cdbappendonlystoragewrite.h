@@ -176,6 +176,8 @@ typedef struct AppendOnlyStorageWrite
 
 	bool needsWAL;
 
+	const struct f_smgr_ao *smgrAO;
+
 } AppendOnlyStorageWrite;
 
 extern void AppendOnlyStorageWrite_Init(AppendOnlyStorageWrite *storageWrite,
@@ -184,7 +186,9 @@ extern void AppendOnlyStorageWrite_Init(AppendOnlyStorageWrite *storageWrite,
 										char *relationName,
 										char *title,
 										AppendOnlyStorageAttributes *storageAttributes,
-										bool needsWAL);
+										bool needsWAL,
+										const struct f_smgr_ao *smgrAO);
+
 extern void AppendOnlyStorageWrite_FinishSession(AppendOnlyStorageWrite *storageWrite);
 
 extern void AppendOnlyStorageWrite_TransactionCreateFile(AppendOnlyStorageWrite *storageWrite,

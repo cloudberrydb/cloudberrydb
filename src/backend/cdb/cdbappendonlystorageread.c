@@ -63,7 +63,8 @@ AppendOnlyStorageRead_Init(AppendOnlyStorageRead *storageRead,
 						   char *relationName,
 						   char *title,
 						   AppendOnlyStorageAttributes *storageAttributes,
-						   RelFileNode *relFileNode)
+						   RelFileNode *relFileNode,
+						   const struct f_smgr_ao *smgrAO)
 {
 	uint8	   *memory;
 	int32		memoryLen;
@@ -117,7 +118,8 @@ AppendOnlyStorageRead_Init(AppendOnlyStorageRead *storageRead,
 					 storageRead->maxBufferLen,
 					 storageRead->largeReadLen,
 					 relationName,
-					 relFileNode);
+					 relFileNode,
+					 smgrAO);
 
 	elogif(Debug_appendonly_print_scan || Debug_appendonly_print_read_block, LOG,
 		   "Append-Only Storage Read initialize for table '%s' "
@@ -135,6 +137,8 @@ AppendOnlyStorageRead_Init(AppendOnlyStorageRead *storageRead,
 	MemoryContextSwitchTo(oldMemoryContext);
 
 	storageRead->isActive = true;
+
+	storageRead->smgrAO = smgrAO;
 }
 
 /*
@@ -244,7 +248,7 @@ AppendOnlyStorageRead_DoOpenFile(AppendOnlyStorageRead *storageRead,
 	/*
 	 * Open the file for read.
 	 */
-	file = PathNameOpenFile(filePathName, fileFlags);
+	file = storageRead->smgrAO->smgr_AORelOpenSegFile(filePathName, fileFlags);
 
 	return file;
 }
@@ -316,6 +320,7 @@ AppendOnlyStorageRead_OpenFile(AppendOnlyStorageRead *storageRead,
 	Assert(storageRead != NULL);
 	Assert(storageRead->isActive);
 	Assert(filePathName != NULL);
+	Assert(storageRead->smgrAO);
 
 	/*
 	 * The EOF must be greater than 0, otherwise we risk transactionally
