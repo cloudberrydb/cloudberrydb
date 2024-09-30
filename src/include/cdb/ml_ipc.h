@@ -293,9 +293,8 @@ extern MotionIPCLayer *CurrentMotionIPCLayer;
 /*
  * All the available implements of the IPC layers.
  */
-#define IPCLAYER_IMPL_NUMBER_MAX 4
 extern int CurrentIPCLayerImplNum;
-extern MotionIPCLayer* IPCLayerImpls[IPCLAYER_IMPL_NUMBER_MAX];
+extern MotionIPCLayer* IPCLayerImpls[INTERCONNECT_TYPE_NUM];
 extern void SetCurrentMotionIPCLayer(int type);
 extern bool IsICTypeExist(GpVars_Interconnect_Type type);
 

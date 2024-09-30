@@ -163,7 +163,7 @@ _PG_init(void)
 	impls_num = sizeof(ipc_layer_impls) / sizeof(MotionIPCLayer *);
 	for (int i = 0; i < impls_num; ++i)
 	{
-		if (CurrentIPCLayerImplNum >= IPCLAYER_IMPL_NUMBER_MAX)
+		if (CurrentIPCLayerImplNum >= INTERCONNECT_TYPE_NUM)
 		{
 			elog(elevel,
 				 "IPCLayerImpls[] is full, can not register more IPC layer implement.");

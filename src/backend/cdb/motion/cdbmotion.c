@@ -33,7 +33,7 @@
 MotionIPCLayer *CurrentMotionIPCLayer = NULL;
 
 int CurrentIPCLayerImplNum = 0;
-MotionIPCLayer* IPCLayerImpls[IPCLAYER_IMPL_NUMBER_MAX];
+MotionIPCLayer* IPCLayerImpls[INTERCONNECT_TYPE_NUM];
 
 /*
  * MOTION NODE INFO DATA STRUCTURES

@@ -310,6 +310,7 @@ typedef enum GpVars_Interconnect_Type
 	INTERCONNECT_TYPE_UDPIFC,
 	INTERCONNECT_TYPE_PROXY,
 	INTERCONNECT_TYPE_UDP2,
+	INTERCONNECT_TYPE_NUM, /* it must be the last one */
 } GpVars_Interconnect_Type;
 
 extern int Gp_interconnect_type;
