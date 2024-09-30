@@ -349,8 +349,7 @@ aoco_dml_finish(Relation relation, CmdType operation)
 			 */
 			if (state->uniqueCheckDesc->visimap)
 			{
-				index_close(state->uniqueCheckDesc->visimap->visimapStore.visimapIndex, AccessShareLock);
-				table_close(state->uniqueCheckDesc->visimap->visimapStore.visimapRelation, AccessShareLock);
+				AppendOnlyVisimapStore_Finish(&state->uniqueCheckDesc->visimap->visimapStore, AccessShareLock);
 			}
 		}
 		state->uniqueCheckDesc->visimap = NULL;
