@@ -63,3 +63,4 @@
 /directory_table.out
 /directory_table_optimizer.out
 /tag.out
+/ao_unique_index_partition.out
