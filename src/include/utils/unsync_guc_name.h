@@ -111,6 +111,7 @@
 		"enable_async_append",
 		"enable_bitmapscan",
 		"enable_gathermerge",
+		"enable_geqo",
 		"enable_groupagg",
 		"enable_hashagg",
 		"enable_hashagg_disk",
