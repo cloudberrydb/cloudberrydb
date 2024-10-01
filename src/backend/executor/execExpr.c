@@ -58,6 +58,7 @@
 #include "cdb/cdbvars.h"
 #include "utils/pg_locale.h"
 
+#include "port/pg_bitutils.h"
 
 typedef struct LastAttnumInfo
 {
@@ -1139,7 +1140,23 @@ ExecInitExprRec(Expr *node, ExprState *state,
 				 * value.
 				 */
 				scratch.opcode = EEOP_ROWIDEXPR;
-				scratch.d.rowidexpr.rowcounter = ((int64) GpIdentity.dbid) << 48;
+
+				/*
+				 * CBDB_PARALLEL
+				 * Planner have ensured that there is enough space for num of segments and parallel workers.
+				 * As we has not set ParallelWokerNumber yet now, use TotalParallelWorkerNumberOfSlice here
+				 * and keep bits space for ParallelWokerNumber.
+				 */
+				if (TotalParallelWorkerNumberOfSlice > 0)
+				{
+					int parallel_bits = pg_leftmost_one_pos32(TotalParallelWorkerNumberOfSlice) + 1;
+					int segs = getgpsegmentCount();
+					int segs_bits = pg_leftmost_one_pos32(segs) + 1;
+					Assert(segs_bits + parallel_bits <= 16);
+					scratch.d.rowidexpr.rowcounter = ((int64) GpIdentity.dbid) << (48 + parallel_bits);
+				}
+				else
+					scratch.d.rowidexpr.rowcounter = ((int64) GpIdentity.dbid) << 48;
 
 				ExprEvalPushStep(state, &scratch);
 				break;

@@ -44,6 +44,7 @@
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
 
+#include "port/pg_bitutils.h"
 
 typedef struct
 {
@@ -2998,6 +2999,8 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 	CdbPathLocus_MakeNull(&inner.move_to);
 	outer.isouter = true;
 	inner.isouter = false;
+	int outerParallel = outer.locus.parallel_workers;
+	int innerParallel = inner.locus.parallel_workers;
 
 	Assert(cdbpathlocus_is_valid(outer.locus));
 	Assert(cdbpathlocus_is_valid(inner.locus));
@@ -3091,6 +3094,9 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 		case JOIN_INNER:
 			break;
 		case JOIN_SEMI:
+			if (!enable_parallel_semi_join)
+				goto fail;
+			/* FALLTHROUGH */
 		case JOIN_ANTI:
 		case JOIN_LEFT:
 		case JOIN_LASJ_NOTIN:
@@ -3100,10 +3106,109 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 		case JOIN_UNIQUE_INNER:
 		case JOIN_RIGHT:
 		case JOIN_FULL:
-		case JOIN_DEDUP_SEMI:
-		case JOIN_DEDUP_SEMI_REVERSE:
 			/* Join types are not supported in parallel yet. */
 			goto fail;
+		case JOIN_DEDUP_SEMI:
+			if (!enable_parallel_dedup_semi_join)
+				goto fail;
+
+			if (!CdbPathLocus_IsPartitioned(inner.locus))
+				goto fail;
+
+			if (CdbPathLocus_IsPartitioned(outer.locus) ||
+				CdbPathLocus_IsBottleneck(outer.locus))
+			{
+				/* ok */
+			}
+			else if (CdbPathLocus_IsGeneral(outer.locus))
+			{
+				CdbPathLocus_MakeSingleQE(&outer.locus,
+										  CdbPathLocus_NumSegments(inner.locus));
+				outer.path->locus = outer.locus;
+			}
+			else if (CdbPathLocus_IsSegmentGeneral(outer.locus))
+			{
+				CdbPathLocus_MakeSingleQE(&outer.locus,
+										  CdbPathLocus_CommonSegments(inner.locus,
+																	  outer.locus));
+				outer.path->locus = outer.locus;
+			}
+			else if (CdbPathLocus_IsSegmentGeneralWorkers(outer.locus))
+			{
+				/* CBDB_PARALLEL_FIXME: Consider gather from SegmentGeneralWorkers. */
+				goto fail;
+			}
+			else
+				goto fail;
+			inner.ok_to_replicate = false;
+
+			/*
+			 * CBDB_PARALLEL:
+			 * rowidexpr is executed by 48 bits of row counter of a 64 bit int.
+			 * When in parallel mode, we need to compute the total bits of the
+			 * left 16 bits for segments and parallel workers.
+			 * The formula is:
+			 *  parallel_bits + seg_bits
+			 * while segs is total primary segments.
+			 * And keep some room to make sure there should not be
+			 * duplicated rows when execution.
+			 */
+			if (outerParallel > 1)
+			{
+				int segs = getgpsegmentCount();
+				int parallel_bits = pg_leftmost_one_pos32(outerParallel) + 1;
+				int seg_bits = pg_leftmost_one_pos32(segs) + 1;
+				if (parallel_bits + seg_bits > 16)
+					goto fail;
+			}
+			outer.path = add_rowid_to_path(root, outer.path, p_rowidexpr_id);
+			*p_outer_path = outer.path;
+			break;
+
+		case JOIN_DEDUP_SEMI_REVERSE:
+			if (!enable_parallel_dedup_semi_reverse_join)
+				goto fail;
+			/* same as JOIN_DEDUP_SEMI, but with inner and outer reversed */
+			if (!CdbPathLocus_IsPartitioned(outer.locus))
+				goto fail;
+			if (CdbPathLocus_IsPartitioned(inner.locus) ||
+				CdbPathLocus_IsBottleneck(inner.locus))
+			{
+				/* ok */
+			}
+			else if (CdbPathLocus_IsGeneral(inner.locus))
+			{
+				CdbPathLocus_MakeSingleQE(&inner.locus,
+										  CdbPathLocus_NumSegments(outer.locus));
+				inner.path->locus = inner.locus;
+			}
+			else if (CdbPathLocus_IsSegmentGeneral(inner.locus))
+			{
+				CdbPathLocus_MakeSingleQE(&inner.locus,
+										  CdbPathLocus_CommonSegments(outer.locus,
+																	  inner.locus));
+				inner.path->locus = inner.locus;
+			}
+			else if (CdbPathLocus_IsSegmentGeneralWorkers(inner.locus))
+			{
+				/* CBDB_PARALLEL_FIXME: Consider gather from SegmentGeneralWorkers. */
+				goto fail;
+			}
+			else
+				goto fail;
+			outer.ok_to_replicate = false;
+			if (innerParallel > 1)
+			{
+				int segs = getgpsegmentCount();
+				int parallel_bits = pg_leftmost_one_pos32(innerParallel) + 1;
+				int seg_bits = pg_leftmost_one_pos32(segs) + 1;
+				if (parallel_bits + seg_bits > 16)
+					goto fail;
+			}
+			inner.path = add_rowid_to_path(root, inner.path, p_rowidexpr_id);
+			*p_inner_path = inner.path;
+			break;
+
 		default:
 			elog(ERROR, "unexpected join type %d", jointype);
 	}
@@ -3111,8 +3216,6 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 	/* Get rel sizes. */
 	outer.bytes = outer.path->rows * outer.path->pathtarget->width;
 	inner.bytes = inner.path->rows * inner.path->pathtarget->width;
-	int outerParallel = outer.locus.parallel_workers;
-	int innerParallel = inner.locus.parallel_workers;
 
 	if (join_quals_contain_outer_references ||
 		CdbPathLocus_IsOuterQuery(outer.locus) ||

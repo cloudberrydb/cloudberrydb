@@ -144,6 +144,9 @@ bool		gp_appendonly_verify_write_block = false;
 bool		gp_appendonly_compaction = true;
 int			gp_appendonly_compaction_threshold = 0;
 bool		enable_parallel = false;
+bool		enable_parallel_semi_join = true;
+bool		enable_parallel_dedup_semi_join = true;
+bool		enable_parallel_dedup_semi_reverse_join = true;
 int			gp_appendonly_insert_files = 0;
 int			gp_appendonly_insert_files_tuples_range = 0;
 int			gp_random_insert_segments = 0;
@@ -3039,6 +3042,36 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&enable_parallel,
 		false,
+		NULL, NULL, NULL
+	},
+	{
+		{"enable_parallel_semi_join", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("allow to use of parallel semi join."),
+			NULL,
+			GUC_EXPLAIN
+		},
+		&enable_parallel_semi_join,
+		true,
+		NULL, NULL, NULL
+	},
+	{
+		{"enable_parallel_dedup_semi_join", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("allow to use of parallel dedup semi join."),
+			NULL,
+			GUC_EXPLAIN
+		},
+		&enable_parallel_dedup_semi_join,
+		true,
+		NULL, NULL, NULL
+	},
+	{
+		{"enable_parallel_dedup_semi_reverse_join", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("allow to use of parallel dedup semi reverse join."),
+			NULL,
+			GUC_EXPLAIN
+		},
+		&enable_parallel_dedup_semi_reverse_join,
+		true,
 		NULL, NULL, NULL
 	},
 	{
