@@ -63,6 +63,10 @@ extern volatile bool ParallelMessagePending;
 extern PGDLLIMPORT int ParallelWorkerNumber;
 extern PGDLLIMPORT bool InitializingParallelWorker;
 
+/* CBDB_PARALLEL: Total parallel workers of a slice including myself, 0 for no parallel */
+extern PGDLLIMPORT int ParallelWorkerNumberOfSlice;
+extern PGDLLIMPORT int TotalParallelWorkerNumberOfSlice;
+
 typedef struct ParallelEntryTag
 {
 	int cid;
@@ -89,6 +93,15 @@ typedef struct GpParallelDSMEntry
 	int			temp_worker_id;  /* temproary usage */
 	Barrier		build_barrier;	/* synchronization for the build dsm phases */
 } GpParallelDSMEntry;
+
+/*
+ * CBDB_PARALLEL
+ * The Postgres uses ParallelWorkerNumber to handle background workers including
+ * parallel workers under Gather node.
+ * To avoid mixing them and assertion failure, we use ParallelWorkerNumberOfSlice
+ * to indentify CBDB style parallel mode.
+ */
+#define		IsParallelWorkerOfSlice()	(ParallelWorkerNumberOfSlice >= 0)
 
 #define		IsParallelWorker()		(ParallelWorkerNumber >= 0)
 

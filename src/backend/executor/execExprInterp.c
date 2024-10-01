@@ -1603,6 +1603,12 @@ ExecInterpExpr(ExprState *state, ExprContext *econtext, bool *isnull)
 		EEO_CASE(EEOP_ROWIDEXPR)
 		{
 			int64		rowcounter = ++op->d.rowidexpr.rowcounter;
+			/*
+			 * CBDB_PARALLEL_FIXME
+			 * Take ParallelWorkerNumberOfSlice into account for just once when initialization.
+			 */
+			if (IsParallelWorkerOfSlice())
+				rowcounter |= (((int64) ParallelWorkerNumberOfSlice) << (48));
 
 			*op->resvalue = Int64GetDatum(rowcounter);
 			*op->resnull = false;

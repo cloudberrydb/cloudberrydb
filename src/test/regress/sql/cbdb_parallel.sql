@@ -39,6 +39,52 @@ set search_path to test_parallel;
 -- set this to default in case regress change it by gpstop.
 set gp_appendonly_insert_files = 4;
 
+--
+-- Parallel Parallel Join: DEDUP_SEMI and DEDUP_SEMI_REVERSE
+--
+begin;
+create table foo(a int) with(parallel_workers=2) distributed randomly;
+create table bar(b int) with(parallel_workers=2) distributed randomly;
+insert into foo select i from generate_series(1, 1000)i;
+insert into bar select i from generate_series(1, 20000)i;
+analyze foo;
+analyze bar;
+
+-- non-parallel
+set local enable_parallel = off;
+explain (costs off)
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+set local enable_parallel = on;
+
+-- Parallel DEDUP_SEMI
+set local enable_parallel_semi_join = off; 
+set local enable_parallel_dedup_semi_reverse_join = off;
+explain (costs off)
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+
+-- Parallel DEDUP_SEMI_REVERSE
+set local enable_parallel_semi_join = off; 
+set local enable_parallel_dedup_semi_reverse_join = on;
+set local enable_parallel_dedup_semi_join = on;
+explain (costs off)
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+
+-- Parallel oblivious
+set local enable_parallel_hash = off;
+explain (costs off)
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+
+set local enable_parallel_dedup_semi_reverse_join = off;
+explain (costs off)
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+abort;
+
+
 -- CBDB(#131): test parallel_workers during create AO/AOCO table take effect
 begin;
 set local enable_parallel = on;

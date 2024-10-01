@@ -1925,6 +1925,12 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 			ExecSlice *sendSlice = &estate->es_sliceTable->slices[m->motionID];
 			estate->currentSliceId = sendSlice->parentIndex;
 			estate->useMppParallelMode = sendSlice->useMppParallelMode;
+			/*
+			 * CBDB_PARALLEL
+			 * Remember: parallel_workers is set to no less than = 1 when gang is filled
+			 * for convenience in Motion execution.
+			 */
+			TotalParallelWorkerNumberOfSlice = sendSlice->parallel_workers > 1 ? sendSlice->parallel_workers : 0;
 		}
 		/* Compute SubPlans' root plan nodes for SubPlans reachable from this plan root */
 		estate->locallyExecutableSubplans = getLocallyExecutableSubplans(plannedstmt, start_plan_node);
@@ -1961,9 +1967,10 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 			bool		save_useMppParallelMode = estate->useMppParallelMode;
 
 			estate->currentSliceId = estate->es_plannedstmt->subplan_sliceIds[subplan_id - 1];
-			/* FIXME: test whether mpp parallel style exists for subplan case */
+			/* CBDB_PARALLEL_FIXME: test whether mpp parallel style exists for subplan case */
 			estate->useMppParallelMode = false;
 
+			/* CBDB_PARALLEL_FIXME: update TotalParallelWorkerNumberOfSlice for subplan, could it be possible? */
 			Plan	   *subplan = (Plan *) lfirst(l);
 			subplanstate = ExecInitNode(subplan, estate, sp_eflags);
 
