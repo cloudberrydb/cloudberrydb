@@ -703,6 +703,9 @@ AppendOptimizedTruncateToEOF(Relation aorel)
 
 	relname = RelationGetRelationName(aorel);
 
+	elogif(Debug_appendonly_print_compaction, LOG,
+		   "Truncating AO relation %s block-file segments to its EOF", relname);
+
 	/*
 	 * The algorithm below for choosing a target segment is not concurrent-safe.
 	 * Grab a lock to serialize.
@@ -801,6 +804,9 @@ AppendOnlyCompact(Relation aorel,
 	Assert(Gp_role == GP_ROLE_EXECUTE || Gp_role == GP_ROLE_UTILITY);
 
 	relname = RelationGetRelationName(aorel);
+	
+	elogif(Debug_appendonly_print_compaction, LOG,
+		   "Compact AO relation %s block-file segment %d", relname, compaction_segno);
 
 	/* Fetch under the write lock to get latest committed eof. */
 	fsinfo = GetFileSegInfo(aorel, appendOnlyMetaDataSnapshot, compaction_segno, true);
