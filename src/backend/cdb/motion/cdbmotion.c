@@ -720,7 +720,7 @@ processIncomingChunks(MotionLayerState *mlStates,
 	}
 
 	/* The chunk list we just processed freed-up our rx-buffer space. */
-	if (numChunks > 0 && CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_UDPIFC)
+	if (numChunks > 0)
 		CurrentMotionIPCLayer->DirectPutRxBuffer(transportStates, motNodeID, srcRoute);
 
 	/* Stats */

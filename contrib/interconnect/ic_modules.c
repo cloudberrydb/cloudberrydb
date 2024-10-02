@@ -46,10 +46,10 @@ MotionIPCLayer tcp_ipc_layer = {
     .RecvTupleChunkFrom = RecvTupleChunkFromTCP,
     .RecvTupleChunk = RecvTupleChunkTCP,
 
-    .DirectPutRxBuffer = NULL,
+    .DirectPutRxBuffer = DirectPutRxBufferTCP,
 
     .DeregisterReadInterest = DeregisterReadInterestTCP,
-    .GetActiveMotionConns = NULL,
+    .GetActiveMotionConns = GetActiveMotionConnsTCP,
 
     .GetTransportDirectBuffer = GetTransportDirectBuffer,
     .PutTransportDirectBuffer = PutTransportDirectBuffer,
@@ -83,10 +83,10 @@ MotionIPCLayer proxy_ipc_layer = {
     .RecvTupleChunkFrom = RecvTupleChunkFromTCP,
     .RecvTupleChunk = RecvTupleChunkTCP,
 
-    .DirectPutRxBuffer = NULL,
+    .DirectPutRxBuffer = DirectPutRxBufferTCP,
 
     .DeregisterReadInterest = DeregisterReadInterestTCP,
-    .GetActiveMotionConns = NULL,
+    .GetActiveMotionConns = GetActiveMotionConnsTCP,
 
     .GetTransportDirectBuffer = GetTransportDirectBuffer,
     .PutTransportDirectBuffer = PutTransportDirectBuffer,
