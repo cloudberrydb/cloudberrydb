@@ -37,6 +37,7 @@ except:
     import subprocess
 import threading
 import pipes  # for shell-quoting, pipes.quote()
+import time
 
 class ReplicaCheck(threading.Thread):
     def __init__(self, segrow, datname, relation_types):
@@ -58,7 +59,50 @@ Primary Data Directory Location: %s\n\
 Mirror Data Directory Location: %s' % (self.getName(), self.host, self.port, self.datname,
                                           self.ploc, self.mloc)
 
+    def wait_for_wal_sync(self):
+        cmd = "PGOPTIONS='-c gp_role=utility' psql -h %s -p %s -d %s -t -A -c \"SELECT pg_current_wal_lsn() AS master_wal, replay_lsn AS standby_wal, pg_current_wal_lsn() = replay_lsn AS are_equal FROM pg_stat_replication;\"" % (self.host, self.port, pipes.quote(self.datname))
+        while True:
+            try:
+                output = subprocess.check_output(cmd, shell=True).decode().strip().split("\n")
+                print(f"Debug - Full output: {output}")  # Debug print
+
+                if not output:
+                    print("No output received from psql command.")
+                    time.sleep(5)
+                    continue
+
+                # With -t and -A options, we should get only one line of data
+                data_row = output[0].split("|")
+                if len(data_row) != 3:
+                    print(f"Unexpected data row format. Data row: {data_row}")
+                    time.sleep(5)
+                    continue
+
+                master_wal = data_row[0].strip()
+                standby_wal = data_row[1].strip()
+                are_equal = data_row[2].strip().lower() == "t"
+
+                print(f"Debug - Parsed values: master_wal={master_wal}, standby_wal={standby_wal}, are_equal={are_equal}")  # Debug print
+
+                if are_equal:
+                    print("WAL sync achieved.")
+                    break
+                else:
+                    print(f"Waiting for WAL sync. Current status: master={master_wal}, standby={standby_wal}")
+            except subprocess.CalledProcessError as e:
+                with self.lock:
+                    print(f"Error executing command: {e.cmd}")
+                    print(f"Return code: {e.returncode}")
+                    print(f"Output: {e.output}")
+            except Exception as e:
+                print(f"Unexpected error in wait_for_wal_sync: {str(e)}")
+
+            # Add a small delay before the next attempt
+            time.sleep(5)
+
+
     def run(self):
+        self.wait_for_wal_sync();
         cmd = '''PGOPTIONS='-c gp_role=utility' psql -h %s -p %s -c "select * from gp_replica_check('%s', '%s', '%s')" %s''' % (self.host, self.port,
                                                                                                                                         self.ploc, self.mloc,
                                                                                                                                         self.relation_types,
