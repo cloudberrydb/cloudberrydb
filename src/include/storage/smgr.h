@@ -74,7 +74,7 @@ typedef struct SMgrRelationData
 	char				smgr_relpersistence;
 	/* pointer to storage manager */
 	const struct f_smgr *smgr;
-    /*pointer to AO storage manager */
+	/*pointer to AO storage manager */
 	const struct f_smgr_ao *smgr_ao; 
 
 	/*
@@ -131,24 +131,22 @@ typedef struct f_smgr
 } f_smgr;
 
 typedef struct f_smgr_ao {
-	off_t 		(*smgr_FileDiskSize) (File file);
-	void 		(*smgr_FileClose) (File file);
-	int         (*smgr_FileTruncate) (File file, int64 offset, uint32 wait_event_info);
-	File		(*smgr_AORelOpenSegFile) (const char *filePath, int fileFlags);
-	int         (*smgr_FileWrite) (File file, char *buffer, int amount, off_t offset, uint32 wait_event_info);
-    int         (*smgr_FileRead) (File file, char *buffer, int amount, off_t offset, uint32 wait_event_info);
-	int	        (*smgr_FileSync) (File file, uint32 wait_event_info);
+	off_t			(*smgr_FileDiskSize) (File file);
+	void			(*smgr_FileClose) (File file);
+	int			(*smgr_FileTruncate) (File file, int64 offset, uint32 wait_event_info);
+	File			(*smgr_AORelOpenSegFile) (const char *filePath, int fileFlags);
+	int			(*smgr_FileWrite) (File file, char *buffer, int amount, off_t offset, uint32 wait_event_info);
+	int			(*smgr_FileRead) (File file, char *buffer, int amount, off_t offset, uint32 wait_event_info);
+	int			(*smgr_FileSync) (File file, uint32 wait_event_info);
 } f_smgr_ao;
 
 
 typedef void (*smgr_init_hook_type) (void);
 typedef void (*smgr_hook_type) (SMgrRelation reln, BackendId backend, SMgrImpl which, Relation rel);
 typedef void (*smgr_shutdown_hook_type) (void);
-typedef void (*smgrao_hook_type)(SMgrRelation reln, BackendId backend, SMgrImpl which, Relation rel);
 extern PGDLLIMPORT smgr_init_hook_type smgr_init_hook;
 extern PGDLLIMPORT smgr_hook_type smgr_hook;
 extern PGDLLIMPORT smgr_shutdown_hook_type smgr_shutdown_hook;
-extern PGDLLIMPORT smgrao_hook_type smgrao_hook;
 
 extern bool smgr_is_heap_relation(SMgrRelation reln);
 

@@ -23,7 +23,7 @@ test__aocs_begin_headerscan(void **state)
 	SMgrRelationData smgrdata;
 	FormData_pg_class pgclass;
 
-	memset(&reldata, 0, sizeof(SMgrRelationData));
+	memset(&reldata, 0, sizeof(RelationData));
 
 	reldata.rd_rel = &pgclass;
 	reldata.rd_id = 12345;

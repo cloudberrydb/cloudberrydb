@@ -275,7 +275,8 @@ extern DatumStreamRead *create_datumstreamread(
 					   Form_pg_attribute attr,
 					   char *relname,
 					   char *title,
-					   RelFileNode *relFileNode, const struct f_smgr_ao *smgrAO);
+					   RelFileNode *relFileNode,
+					   const struct f_smgr_ao *smgrAO);
 
 extern void datumstreamwrite_open_file(
 						   DatumStreamWrite * ds,
