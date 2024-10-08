@@ -32,6 +32,7 @@
 
 MotionIPCLayer *CurrentMotionIPCLayer = NULL;
 
+#define IPCLAYER_CANDIDATE_NUM 3
 int CurrentIPCLayerImplNum = 0;
 MotionIPCLayer* IPCLayerImpls[INTERCONNECT_TYPE_NUM];
 
@@ -1278,19 +1279,42 @@ UpdateSentRecordCache(int32 *sent_record_typmod)
 	}
 }
 
+/*
+ * try best to find the most appropriate IPC layer implement.
+ */
+static int
+TryFindICType()
+{
+	/* IPCLayerImpls[0]->ic_type is valid at least */
+	Assert(CurrentIPCLayerImplNum);
+
+	int candidate_types_order[IPCLAYER_CANDIDATE_NUM] =
+		{Gp_interconnect_type, INTERCONNECT_TYPE_UDPIFC, IPCLayerImpls[0]->ic_type};
+
+	for (int i = 0; i < IPCLAYER_CANDIDATE_NUM; ++i)
+	{
+		if (IsICTypeExist(candidate_types_order[i]))
+			return candidate_types_order[i];
+	}
+
+	/* never run here, just keep compiler slience */
+	Assert(0);
+	return INTERCONNECT_TYPE_UDPIFC;
+}
+
 void
 SetCurrentMotionIPCLayer(int new_type)
 {
 	int type;
 
-	/* interconnect.so is not loaded. */
+	/* interconnect.so is not loaded currently. */
 	if (CurrentIPCLayerImplNum == 0)
 	{
 		Assert(CurrentMotionIPCLayer == NULL);
 		Gp_interconnect_type = new_type;
-		ereport(WARNING,
-				(errcode(ERRCODE_WARNING_GP_INTERCONNECTION),
-				 errmsg("No any IPCLayer implement loaded.")));
+
+		if (!IS_SINGLENODE())
+			elog(DEBUG1, "No any IPCLayer implement loaded.");
 
 		return;
 	}
@@ -1304,27 +1328,11 @@ SetCurrentMotionIPCLayer(int new_type)
 	{
 		ereport(WARNING,
 				(errcode(ERRCODE_WARNING_GP_INTERCONNECTION),
-				 errmsg("No IPCLayer implement found with type: %d, choose default one.",
+				 errmsg("No IPCLayer implement found with type: %d, "
+						"choose one from the loaded implements.",
 						new_type)));
 
-		/* try best to find one appropriate implement */
-		if (IsICTypeExist(Gp_interconnect_type))
-		{
-			/* keep old setting */
-			type = Gp_interconnect_type;
-		}
-		else
-		{
-			if (IsICTypeExist(INTERCONNECT_TYPE_UDPIFC))
-			{
-				type = INTERCONNECT_TYPE_UDPIFC;
-			}
-			else
-			{
-				Assert(CurrentIPCLayerImplNum);
-				type = IPCLayerImpls[0]->ic_type;
-			}
-		}
+		type = TryFindICType();
 	}
 
 	for (int i = 0; i < CurrentIPCLayerImplNum; ++i)
