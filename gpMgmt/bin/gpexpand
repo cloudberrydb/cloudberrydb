@@ -17,10 +17,10 @@ import signal
 import traceback
 from collections import defaultdict
 from time import strftime, sleep
-
+import psycopg2
+from psycopg2 import DatabaseError, OperationalError
+from psycopg2 import extras
 try:
-    import pg, pgdb
-
     from gppylib.commands.unix import *
     from gppylib.commands.gp import *
     from gppylib.gparray import GpArray, MODE_NOT_SYNC, STATUS_DOWN
@@ -32,9 +32,9 @@ try:
     from gppylib.operations.startSegments import MIRROR_MODE_MIRRORLESS
     from gppylib.system import configurationInterface, configurationImplGpdb
     from gppylib.system.environment import GpCoordinatorEnvironment
-    from pgdb import DatabaseError
     from gppylib.gpcatalog import COORDINATOR_ONLY_TABLES
     from gppylib.operations.package import SyncPackages
+    from gppylib.programs.clsRecoverSegment_triples import get_segments_with_running_basebackup
     from gppylib.operations.utils import ParallelOperation
     from gppylib.parseutils import line_reader, check_values, canonicalize_address
     from gppylib.heapchecksum import HeapChecksum
@@ -48,6 +48,9 @@ except ImportError as e:
 # constants
 MAX_PARALLEL_EXPANDS = 96
 MAX_BATCH_SIZE = 128
+
+FIRST_NORMAL_OID = 16384
+RELKIND_FOREIGN_TABLE = 'f'
 
 SEGMENT_CONFIGURATION_BACKUP_FILE = "gpexpand.gp_segment_configuration"
 
@@ -259,6 +262,17 @@ def gpexpand_status_file_exists(coordinator_data_directory):
     return os.path.exists(coordinator_data_directory + '/gpexpand.status')
 
 
+def is_cluster_up_and_balanced(dburl):
+    count = -1
+    sql = "select count(*) from gp_segment_configuration where status <> 'u' or preferred_role <> role;"
+    try:
+        with closing(dbconn.connect(dburl, encoding='UTF8')) as conn:
+            count = dbconn.querySingleton(conn, sql)
+    except Exception as e:
+        raise Exception("failed to query cluster role check: %s" % str(e))
+
+    return count == 0
+
 # -------------------------------------------------------------------------
 # expansion schema
 
@@ -275,16 +289,16 @@ status_table_sql = """CREATE TABLE gpexpand.status
                           updated timestamp ) """
 
 status_detail_table_sql = """CREATE TABLE gpexpand.status_detail
-                        ( dbname text,
+                        ( table_oid oid,
+                          dbname text,
                           fq_name text,
-                          table_oid oid,
                           root_partition_oid oid,
                           rank int,
                           external_writable bool,
                           status text,
                           expansion_started timestamp,
                           expansion_finished timestamp,
-                          source_bytes numeric ) """
+                          source_bytes numeric ) distributed by (table_oid)"""
 # gpexpand views
 progress_view_simple_sql = """CREATE VIEW gpexpand.expansion_progress AS
 SELECT
@@ -1143,6 +1157,13 @@ class gpexpand:
         return dict(cursor.fetchall())
 
     def addNewSegments(self, inputFileEntryList):
+        segments_with_running_basebackup = get_segments_with_running_basebackup()
+        contentIds_with_running_basebackup = [seg.contentId for seg in inputFileEntryList if seg.contentId in segments_with_running_basebackup]
+
+        if len(contentIds_with_running_basebackup)>0:
+            raise Exception(
+            "Found pg_basebackup running for segments with contentIds %s" %contentIds_with_running_basebackup)
+
         for seg in inputFileEntryList:
             self.gparray.addExpansionSeg(content=int(seg.contentId)
                                          , preferred_role=seg.role
@@ -1596,32 +1617,82 @@ class gpexpand:
         # including new segments has been started once before so finalize
         self.finalize_prepare()
 
+    def generate_sql_to_populate_table_size(self, sql):
+        # This function generate a SQL that can compute table size
+        # taking the advantage of MPP. Previous code put pg_relation_size
+        # in target list of a query involving only catalog, thus each
+        # tuple will lead to a dispatch to compute pg_relation_size
+        # thus bad performance. Now we let pg_relation_size compute
+        # at each segment and then group by the table oid and sum
+        # together to get each table's size. pg_relation_size is
+        # volatile function, so the following CTE sql's subquery
+        # x will never be pulled up which means the pg_relation_size
+        # will always be evaluated before later motion to gurantee
+        # correctness no matter single stage or multi stage agg.
+        #
+        # Also note, we filter out those relations with relkind is
+        # RELKIND_FOREIGN_TABLE, because we only expand those
+        # are external writable, and even for external writable ones
+        # we simple modify the numsegments and do not move data.
+        # Refer to C code: ATExecExpandTable and ATExecExpandPartitionTablePrepare.
+        cte_sql = """with table_size_cte(table_oid, size) as
+        (
+           select table_oid, sum(size)
+           from (
+             select oid as table_oid,
+                    pg_relation_size(oid) as size
+             from gp_dist_random('pg_class')
+             where oid >= %d and relkind <> '%s'
+           ) x(table_oid, size)
+           group by table_oid
+        )
+        """ % (FIRST_NORMAL_OID, RELKIND_FOREIGN_TABLE)
+
+        final_sql = """{cte_sql}
+        select
+          s1.table_oid,
+          s1.dbname,
+          s1.fq_name,
+          s1.root_partition_oid,
+          s1.rank,
+          s1.external_writable,
+          s1.undone_status,
+          s1.expansion_started,
+          s1.expansion_finished,
+          coalesce(table_size_cte.size, 0) as source_bytes
+        from ({orig_sql})s1 left join table_size_cte
+        on s1.table_oid = table_size_cte.table_oid
+        """
+        return final_sql.format(cte_sql=cte_sql,
+                                orig_sql=sql)
+
     def _populate_regular_tables(self, dbname):
-        src_bytes_str = "0" if self.options.simple_progress else "pg_relation_size(quote_ident(n.nspname) || '.' || quote_ident(c.relname))"
         sql = """SELECT
-    current_database(),
-    quote_ident(n.nspname) || '.' || quote_ident(c.relname) as fq_name,
-    c.oid as tableoid,
-    NULL as root_partition_oid,
-    2 as rank,
-    pe.writable is not null as external_writable,
-    '%s' as undone_status,
-    NULL as expansion_started,
-    NULL as expansion_finished,
-    %s as source_bytes
-FROM
-    pg_class c
-    JOIN pg_namespace n ON (c.relnamespace=n.oid)
-    JOIN pg_catalog.gp_distribution_policy p on (c.oid = p.localoid)
-    LEFT JOIN pg_partitioned_table pp on (c.oid=pp.partrelid)
-    LEFT JOIN pg_exttable pe on (c.oid=pe.reloid and pe.writable)
-WHERE
-    pp.partrelid is NULL
-    AND NOT c.relispartition
-    AND n.nspname != 'gpexpand'
-    AND n.nspname != 'pg_bitmapindex'
-    AND c.relpersistence != 't'
-                  """ % (undone_status, src_bytes_str)
+                   c.oid as table_oid,
+                   current_database() as dbname,
+                   quote_ident(n.nspname) || '.' || quote_ident(c.relname) as fq_name,
+                   NULL as root_partition_oid,
+                   2 as rank,
+                   pe.writable is not null as external_writable,
+                   '%s' as undone_status,
+                   NULL as expansion_started,
+                   NULL as expansion_finished,
+                   0 as source_bytes
+                FROM
+                       pg_class c
+                  JOIN pg_namespace n ON (c.relnamespace=n.oid)
+                  JOIN  pg_catalog.gp_distribution_policy p on (c.oid = p.localoid)
+              LEFT JOIN pg_partitioned_table pp on (c.oid=pp.partrelid)
+              LEFT JOIN pg_exttable pe on (c.oid=pe.reloid and pe.writable)
+                WHERE
+                      pp.partrelid is NULL
+                  AND NOT c.relispartition
+                  AND n.nspname != 'gpexpand'
+                  AND n.nspname != 'pg_bitmapindex'
+                  AND c.relpersistence != 't' """ % undone_status
+
+        if not self.options.simple_progress:
+            sql = self.generate_sql_to_populate_table_size(sql)
         self.logger.debug(sql)
         table_conn = self.connect_database(dbname)
 
@@ -1684,19 +1755,18 @@ WHERE
             self.logger.debug(prepare_cmd)
             dbconn.execSQL(table_conn, prepare_cmd, autocommit=False)
 
-        src_bytes_str = "0" if self.options.simple_progress else "pg_relation_size(c.oid)"
         get_status_detail_cmd = """
              SELECT
-                current_database(),
+                c.oid as table_oid,
+                current_database() as dbname,
                 quote_ident(n.nspname) || '.' || quote_ident(c.relname) as fq_name,
-                c.oid as tableoid,
                 d.oid as root_partition_oid,
                 2 as rank,
                 false as external_writable,
                 '%s' as undone_status,
                 NULL as expansion_started,
                 NULL as expansion_finished,
-                %s as source_bytes
+                0 as source_bytes
             FROM
                 pg_inherits a,
                 pg_partitioned_table b,
@@ -1710,7 +1780,10 @@ WHERE
                 c.relnamespace = n.oid and
                 c.relkind != 'p' and
                 c.relkind != 'f'
-        """ % (undone_status, src_bytes_str)
+        """ % undone_status
+
+        if not self.options.simple_progress:
+            get_status_detail_cmd = self.generate_sql_to_populate_table_size(get_status_detail_cmd)
         self.logger.debug(get_status_detail_cmd)
 
         try:
@@ -1836,7 +1909,7 @@ WHERE
                 expansionStopped)
             dbconn.execSQL(self.conn, sql)
             self.conn.close()
-        except pgdb.OperationalError:
+        except OperationalError:
             pass
         except Exception:
             # schema doesn't exist.  Cancel or error during setup
@@ -1888,7 +1961,7 @@ WHERE
     def connect_database(self, dbname):
         test_url = copy.deepcopy(self.dburl)
         test_url.pgdb = dbname
-        c = dbconn.connect(test_url, encoding='UTF8', allowSystemTableMods=True)
+        c = dbconn.connect(test_url, encoding='UTF8', allowSystemTableMods=True, cursorFactory=psycopg2.extras.NamedTupleCursor)
         return c
 
     def sync_packages(self):
@@ -1947,7 +2020,7 @@ class ExpandTable():
     def __init__(self, options, row=None):
         self.options = options
         if row is not None:
-            (self.dbname, self.fq_name, self.table_oid,
+            (self.table_oid, self.dbname, self.fq_name,
              self.root_partition_oid,
              self.rank, self.external_writable, self.status,
              self.expansion_started, self.expansion_finished,
@@ -2129,7 +2202,7 @@ class ExpandCommand(SQLCommand):
 
         try:
             status_conn = dbconn.connect(self.status_url, encoding='UTF8')
-            table_conn = dbconn.connect(self.table_url, encoding='UTF8')
+            table_conn = dbconn.connect(self.table_url, encoding='UTF8', cursorFactory=psycopg2.extras.NamedTupleCursor)
         except DatabaseError as ex:
             if self.options.verbose:
                 logger.exception(ex)
@@ -2459,6 +2532,10 @@ def main(options, args, parser):
             except ExpansionError as e:
                 logger.error(e)
                 sys.exit(1)
+
+        # check if the cluster is in good health
+        if gpexpand_file_status is None and gpexpand_db_status is None and not is_cluster_up_and_balanced(dburl):
+            logger.warning('One or more segments are either down or not in preferred role.')
 
         if gpexpand_db_status == 'SETUP DONE' or gpexpand_db_status == 'EXPANSION STOPPED':
             if not _gp_expand.validate_max_connections():
