@@ -36,7 +36,6 @@ test__aocs_begin_headerscan(void **state)
 	reldata.rd_smgr = &smgrdata;
 	reldata.rd_backend = InvalidBackendId;
 
-
 	opts[0] = &opt;
 
 	strncpy(&pgclass.relname.data[0], "mock_relation", 13);
