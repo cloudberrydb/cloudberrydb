@@ -1891,7 +1891,7 @@ ao_aux_tables_safe_truncate(Relation rel)
 	Oid aoblkdir_relid = InvalidOid;
 	Oid aovisimap_relid = InvalidOid;
 
-	GetAppendOnlyEntryAuxOids(relid, NULL, &aoseg_relid,
+	GetAppendOnlyEntryAuxOids(rel, &aoseg_relid,
 							  &aoblkdir_relid, NULL, &aovisimap_relid,
 							  NULL);
 
@@ -15540,7 +15540,7 @@ ATExecChangeOwner(Oid relationOid, Oid newOwnerId, bool recursing, LOCKMODE lock
 		{
 			Oid segrelid, blkdirrelid;
 			Oid visimap_relid;
-			GetAppendOnlyEntryAuxOids(relationOid, NULL,
+			GetAppendOnlyEntryAuxOids(target_rel,
 									  &segrelid,
 									  &blkdirrelid, NULL,
 									  &visimap_relid, NULL);
@@ -16133,7 +16133,7 @@ ATExecSetTableSpace(Oid tableOid, Oid newTableSpace, LOCKMODE lockmode)
 
 	/* Get the ao sub objects */
 	if (RelationIsAppendOptimized(rel))
-		GetAppendOnlyEntryAuxOids(tableOid, NULL,
+		GetAppendOnlyEntryAuxOids(rel,
 								  &relaosegrelid,
 								  &relaoblkdirrelid, &relaoblkdiridxid,
 								  &relaovisimaprelid, &relaovisimapidxid);

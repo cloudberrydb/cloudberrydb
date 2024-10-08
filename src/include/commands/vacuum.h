@@ -188,25 +188,28 @@ typedef struct VacAttrStats
 	float4		corrval;	  /* correlation gathered from segments */
 } VacAttrStats;
 
+typedef enum VacuumOption
+{
+	VACOPT_VACUUM = 1 << 0,		/* do VACUUM */
+	VACOPT_ANALYZE = 1 << 1,	/* do ANALYZE */
+	VACOPT_VERBOSE = 1 << 2,	/* print progress info */
+	VACOPT_FREEZE = 1 << 3,		/* FREEZE option */
+	VACOPT_FULL = 1 << 4,		/* FULL (non-concurrent) vacuum */
+	VACOPT_SKIP_LOCKED = 1 << 5,	/* skip if cannot get lock */
+	VACOPT_PROCESS_TOAST = 1 << 6,	/* process the TOAST table, if any */
+	VACOPT_DISABLE_PAGE_SKIPPING = 1 << 7,	/* don't skip any pages */
 
-/* flag bits for VacuumParams->options */
-#define VACOPT_VACUUM 0x01		/* do VACUUM */
-#define VACOPT_ANALYZE 0x02		/* do ANALYZE */
-#define VACOPT_VERBOSE 0x04		/* print progress info */
-#define VACOPT_FREEZE 0x08		/* FREEZE option */
-#define VACOPT_FULL 0x10		/* FULL (non-concurrent) vacuum */
-#define VACOPT_SKIP_LOCKED 0x20 /* skip if cannot get lock */
-#define VACOPT_PROCESS_TOAST 0x40	/* process the TOAST table, if any */
-#define VACOPT_DISABLE_PAGE_SKIPPING 0x80	/* don't skip any pages */
-/* GPDB_14_MERGE_FIXME: is flags bits suitable with upstream? */
-/* Extra GPDB options */
-#define VACOPT_ROOTONLY 0x400
-#define VACOPT_FULLSCAN 0x800
-/* AO vacuum phases. Mutually exclusive */
-#define VACOPT_AO_PRE_CLEANUP_PHASE 0x1000
-#define VACOPT_AO_COMPACT_PHASE 0x2000
-#define VACOPT_AO_POST_CLEANUP_PHASE 0x4000
-#define VACOPT_UPDATE_DATFROZENXID 0x8000
+	/* Extra GPDB options */
+	VACOPT_AO_AUX_ONLY = 1 << 8,
+	VACOPT_ROOTONLY = 1 << 10,
+	VACOPT_FULLSCAN = 1 << 11,
+
+	/* AO vacuum phases. Mutually exclusive */
+	VACOPT_AO_PRE_CLEANUP_PHASE = 1 << 12,
+	VACOPT_AO_COMPACT_PHASE = 1 << 13,
+	VACOPT_AO_POST_CLEANUP_PHASE = 1 << 14,
+	VACOPT_UPDATE_DATFROZENXID = 1 << 15
+} VacuumOption;
 
 #define VACUUM_AO_PHASE_MASK (VACOPT_AO_PRE_CLEANUP_PHASE | \
 							  VACOPT_AO_COMPACT_PHASE | \

@@ -464,10 +464,4 @@ SELECT segment_id, segno, tupcount, state FROM gp_toolkit.__gp_aocsseg('brintest
 -- Tests for brin_summarize_new_values
 SELECT brin_summarize_new_values('brintest_aocs'); -- error, not an index
 SELECT brin_summarize_new_values('tenk1_unique1'); -- error, not a BRIN index
--- New strategy of VACUUM AO/CO was introduced by PR #13255 for performance enhancement.
--- Index dead tuples will not always be cleaned up completely after VACUUM, resulting
--- brin_summarize_new_values() will not always be accurate. So ignore the check to
--- coordinate with the new behavior.
--- start_ignore
 SELECT brin_summarize_new_values('brinaocsidx'); -- ok, no change expected
--- end_ignore

@@ -1571,7 +1571,7 @@ appendonly_beginrangescan_internal(Relation relation,
 		Oid			visimaprelid;
 		Oid			visimapidxid;
 
-		GetAppendOnlyEntryAuxOids(relation->rd_id, NULL,
+		GetAppendOnlyEntryAuxOids(relation,
 								  NULL, NULL, NULL, &visimaprelid, &visimapidxid);
 
 		AppendOnlyVisimap_Init(&scan->visibilityMap,
@@ -2139,7 +2139,7 @@ appendonly_fetch_init(Relation relation,
 	FormData_pg_appendonly			aoFormData;
 	int								segno;
 
-	GetAppendOnlyEntry(relation->rd_id, &aoFormData);
+	GetAppendOnlyEntry(relation, &aoFormData);
 
 	/*
 	 * increment relation ref count while scanning relation
@@ -2543,7 +2543,7 @@ appendonly_delete_init(Relation rel)
 	Oid visimaprelid;
 	Oid visimapidxid;
 
-	GetAppendOnlyEntryAuxOids(rel->rd_id, NULL, NULL, NULL, NULL, &visimaprelid, &visimapidxid);
+	GetAppendOnlyEntryAuxOids(rel, NULL, NULL, NULL, &visimaprelid, &visimapidxid);
 
 	AppendOnlyDeleteDesc aoDeleteDesc = palloc0(sizeof(AppendOnlyDeleteDescData));
 
@@ -2634,7 +2634,6 @@ appendonly_insert_init(Relation rel, int segno)
 	AppendOnlyStorageAttributes *attr;
 
 	StringInfoData titleBuf;
-	Oid segrelid;
 	int32 blocksize;
 	int32 safefswritesize;
 	int16 compresslevel;
@@ -2818,14 +2817,11 @@ appendonly_insert_init(Relation rel, int segno)
 	 */
 	Assert(aoInsertDesc->fsInfo->segno == segno);
 
-	GetAppendOnlyEntryAuxOids(aoInsertDesc->aoi_rel->rd_id, NULL, &segrelid,
+	GetAppendOnlyEntryAuxOids(aoInsertDesc->aoi_rel, &aoInsertDesc->segrelid,
 			NULL, NULL, NULL, NULL);
 
-	firstSequence =
-		GetFastSequences(segrelid,
-						 segno,
-						 aoInsertDesc->rowCount + 1,
-						 NUM_FAST_SEQUENCES);
+	firstSequence = GetFastSequences(aoInsertDesc->segrelid, segno, 
+						 aoInsertDesc->rowCount + 1, NUM_FAST_SEQUENCES);
 	aoInsertDesc->numSequences = NUM_FAST_SEQUENCES;
 
 	/* Set last_sequence value */
@@ -3053,17 +3049,10 @@ appendonly_insert(AppendOnlyInsertDesc aoInsertDesc,
 	 */
 	if (aoInsertDesc->numSequences == 0)
 	{
-		int64		firstSequence;
-		Oid segrelid;
-
-		GetAppendOnlyEntryAuxOids(aoInsertDesc->aoi_rel->rd_id, NULL,
-				&segrelid, NULL, NULL, NULL, NULL);
-
-		firstSequence =
-			GetFastSequences(segrelid,
-							 aoInsertDesc->cur_segno,
-							 aoInsertDesc->lastSequence + 1,
-							 NUM_FAST_SEQUENCES);
+		int64 firstSequence = GetFastSequences(aoInsertDesc->segrelid,
+											   aoInsertDesc->cur_segno,
+											   aoInsertDesc->lastSequence + 1,
+											   NUM_FAST_SEQUENCES);
 
 		/* fast sequence could be inconsecutive when insert multiple segfiles */
 		AssertImply(gp_appendonly_insert_files <= 1, firstSequence == aoInsertDesc->lastSequence + 1);

@@ -28,16 +28,22 @@
 #include <sys/file.h>
 
 #include "access/aomd.h"
+#include "access/aocssegfiles.h"
 #include "access/appendonlytid.h"
 #include "access/appendonlywriter.h"
+#include "access/appendonly_compaction.h"
+#include "access/table.h"
 #include "catalog/catalog.h"
 #include "catalog/pg_appendonly.h"
 #include "cdb/cdbappendonlystorage.h"
 #include "cdb/cdbappendonlyxlog.h"
 #include "crypto/bufenc.h"
+#include "commands/progress.h"
 #include "common/relpath.h"
 #include "pgstat.h"
+#include "storage/bufmgr.h"
 #include "storage/sync.h"
+#include "utils/faultinjector.h"
 #include "utils/guc.h"
 
 #define SEGNO_SUFFIX_LENGTH 12
@@ -46,6 +52,7 @@ static void mdunlink_ao_base_relfile(void *ctx);
 static bool mdunlink_ao_perFile(const int segno, void *ctx);
 static bool copy_append_only_data_perFile(const int segno, void *ctx);
 static bool truncate_ao_perFile(const int segno, void *ctx);
+static uint64 ao_segfile_get_physical_size(Relation aorel, int segno, int col);
 
 int
 AOSegmentFilePathNameLen(Relation rel)
@@ -177,12 +184,19 @@ CloseAOSegmentFile(File fd)
  * Truncate all bytes from offset to end of file.
  */
 void
-TruncateAOSegmentFile(File fd, Relation rel, int32 segFileNum, int64 offset)
+TruncateAOSegmentFile(File fd, Relation rel, int32 segFileNum, int64 offset, AOVacuumRelStats *vacrelstats)
 {
 	char *relname = RelationGetRelationName(rel);
+	int64 filesize_before;
 
 	Assert(fd > 0);
 	Assert(offset >= 0);
+
+	filesize_before = FileSize(fd);
+	if (filesize_before < offset)
+		ereport(ERROR,
+				(errmsg("\"%s\": file size smaller than logical eof: %m",
+						relname)));
 
 	/*
 	 * Call the 'fd' module with a 64-bit length since AO segment files
@@ -192,8 +206,18 @@ TruncateAOSegmentFile(File fd, Relation rel, int32 segFileNum, int64 offset)
 		ereport(ERROR,
 				(errmsg("\"%s\": failed to truncate data after eof: %m",
 					    relname)));
+	if (vacrelstats)
+	{
+		/* report heap-equivalent blocks vacuumed */
+		vacrelstats->nbytes_truncated += filesize_before - offset;
+		pgstat_progress_update_param(PROGRESS_VACUUM_HEAP_BLKS_VACUUMED,
+									 RelationGuessNumberOfBlocksFromSize(vacrelstats->nbytes_truncated));
+	}
+
 	if (XLogIsNeeded() && RelationNeedsWAL(rel))
 		xlog_ao_truncate(rel->rd_node, segFileNum, offset);
+
+	SIMPLE_FAULT_INJECTOR("appendonly_after_truncate_segment_file");
 
 	if (file_truncate_hook)
 	{
@@ -570,7 +594,7 @@ truncate_ao_perFile(const int segno, void *ctx)
 
 	if (fd >= 0)
 	{
-		TruncateAOSegmentFile(fd, aorel, segno, 0);
+		TruncateAOSegmentFile(fd, aorel, segno, 0, NULL);
 		CloseAOSegmentFile(fd);
 	}
 	else
@@ -583,4 +607,105 @@ truncate_ao_perFile(const int segno, void *ctx)
 	}
 
 	return true;
+}
+
+/*
+ * Returns the total of segment files' on-disk size for an AO/AOCO relation.
+ * This is only used by AO vaccum progress reporting.
+ */
+uint64
+ao_rel_get_physical_size(Relation aorel)
+{
+	Relation	pg_aoseg_rel;
+	TupleDesc	pg_aoseg_dsc;
+	SysScanDesc aoscan;
+	HeapTuple	tuple;
+	Snapshot	appendOnlyMetaDataSnapshot = RegisterSnapshot(GetCatalogSnapshot(InvalidOid));
+	Oid			segrelid;
+	uint64 		total_physical_size = 0;
+
+	Assert(RelationIsAppendOptimized(aorel));
+
+	GetAppendOnlyEntryAuxOids(aorel,
+							  &segrelid, NULL, NULL, NULL, NULL);
+
+	pg_aoseg_rel = heap_open(segrelid, AccessShareLock);
+	pg_aoseg_dsc = RelationGetDescr(pg_aoseg_rel);
+
+	aoscan = systable_beginscan(pg_aoseg_rel, InvalidOid, false, appendOnlyMetaDataSnapshot, 0, NULL);
+	while ((tuple = systable_getnext(aoscan)) != NULL)
+	{
+		int			segno;
+		bool		isNull;
+
+		if (RelationIsAoRows(aorel))
+		{
+			segno = DatumGetInt32(fastgetattr(tuple,
+											  Anum_pg_aoseg_segno,
+											  pg_aoseg_dsc, &isNull));
+			total_physical_size += ao_segfile_get_physical_size(aorel, segno, -1);
+		}
+		else
+		{
+			Datum		d;
+			AOCSVPInfo *vpinfo;
+			int			col;
+
+			Assert(RelationIsAoCols(aorel));
+
+			segno = DatumGetInt32(fastgetattr(tuple,
+											  Anum_pg_aocs_segno,
+											  pg_aoseg_dsc, &isNull));
+			d = fastgetattr(tuple,
+							Anum_pg_aocs_vpinfo,
+							pg_aoseg_dsc, &isNull);
+			vpinfo = (AOCSVPInfo *) PG_DETOAST_DATUM(d);
+
+			for (col = 0; col < vpinfo->nEntry; ++col)
+				total_physical_size += ao_segfile_get_physical_size(aorel, segno, col);
+
+			if (DatumGetPointer(d) != (Pointer) vpinfo)
+				pfree(vpinfo);
+		}
+	}
+	systable_endscan(aoscan);
+
+	heap_close(pg_aoseg_rel, AccessShareLock);
+	UnregisterSnapshot(appendOnlyMetaDataSnapshot);
+	return total_physical_size;
+}
+
+static uint64
+ao_segfile_get_physical_size(Relation aorel, int segno, int col)
+{
+	const char *relname;
+	File		fd;
+	int32		fileSegNo;
+	char		filenamepath[MAXPGPATH];
+	uint64 		physical_size = 0;
+
+	relname = RelationGetRelationName(aorel);
+
+	MakeAOSegmentFileName(aorel, segno, col, &fileSegNo, filenamepath);
+	elogif(Debug_appendonly_print_compaction, LOG,
+		   "Opening append-optimized relation \"%s\", relation id %u, relfilenode %lu column #%d, logical segment #%d (physical segment file #%d)",
+		   RelationGetRelationName(aorel),
+		   aorel->rd_id,
+		   aorel->rd_node.relNode,
+		   col,
+		   segno,
+		   fileSegNo);
+	fd = PathNameOpenFile(filenamepath, O_RDONLY | PG_BINARY);
+	if (fd >= 0)
+		physical_size = FileDiskSize(fd);
+	else
+		elogif(Debug_appendonly_print_compaction, LOG,
+			   "No gp_relation_node entry for append-optimized relation \"%s\", relation id %u, relfilenode %lu column #%d, logical segment #%d (physical segment file #%d)",
+			   relname,
+			   aorel->rd_id,
+			   aorel->rd_node.relNode,
+			   col,
+			   segno,
+			   fileSegNo);
+	return physical_size;
 }

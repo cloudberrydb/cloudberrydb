@@ -225,13 +225,16 @@ RelationGetAttributeOptions(Relation rel)
 	Datum *dats;
 	StdRdOptions **opts;
 	int i;
+	int	natts;
+	
+	natts = RelationGetNumberOfAttributes(rel);
 
-	opts = palloc0(RelationGetNumberOfAttributes(rel) * sizeof(StdRdOptions *));
+	opts = palloc0(natts * sizeof(StdRdOptions *));
 
 	dats = get_rel_attoptions(RelationGetRelid(rel),
-							  RelationGetNumberOfAttributes(rel));
+							  natts);
 
-	for (i = 0; i < RelationGetNumberOfAttributes(rel); i++)
+	for (i = 0; i < natts; i++)
 	{
 		if (DatumGetPointer(dats[i]) != NULL)
 		{

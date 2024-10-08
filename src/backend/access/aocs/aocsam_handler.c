@@ -1326,7 +1326,6 @@ heap_truncate_one_relid(Oid relid)
 static void
 aoco_relation_nontransactional_truncate(Relation rel)
 {
-	Oid			ao_base_relid = RelationGetRelid(rel);
 	Oid			aoseg_relid = InvalidOid;
 	Oid			aoblkdir_relid = InvalidOid;
 	Oid			aovisimap_relid = InvalidOid;
@@ -1334,7 +1333,7 @@ aoco_relation_nontransactional_truncate(Relation rel)
 	ao_truncate_one_rel(rel);
 
 	/* Also truncate the aux tables */
-	GetAppendOnlyEntryAuxOids(ao_base_relid, NULL,
+	GetAppendOnlyEntryAuxOids(rel,
 	                          &aoseg_relid,
 	                          &aoblkdir_relid, NULL,
 	                          &aovisimap_relid, NULL);
@@ -1645,6 +1644,7 @@ aoco_index_build_range_scan(Relation heapRelation,
 	int64 total_blockcount = 0; 
 	BlockNumber lastBlock = start_blockno;
 	int64 blockcounts = 0;
+	int64 		previous_blkno = -1;
 
 	/*
 	 * sanity checks
@@ -1742,8 +1742,8 @@ aoco_index_build_range_scan(Relation heapRelation,
 	Oid blkdirrelid;
 	Oid blkidxrelid;
 
-	GetAppendOnlyEntryAuxOids(RelationGetRelid(aocoscan->rs_base.rs_rd), NULL, NULL,
-	                          &blkdirrelid, &blkidxrelid, NULL, NULL);
+	GetAppendOnlyEntryAuxOids(heapRelation, NULL,
+							  &blkdirrelid, &blkidxrelid, NULL, NULL);
 	/*
 	 * Note that block directory is created during creation of the first
 	 * index.  If it is found empty, it means the block directory was created
@@ -1766,12 +1766,37 @@ aoco_index_build_range_scan(Relation heapRelation,
 	}
 	relation_close(blkdir, NoLock);
 
-	/*
-	 * When Parallel index build,there is no additional operation to update the number of tuples
-	 * that supports this logic. Uniform processing is used here. 
-	 */ 
+
+	/* Publish number of blocks to scan */
 	if (progress)
 	{
+
+	/* CBDB_FIXME: fixme after block directory support cherry-picked */ 
+#if 0
+		FileSegTotals	*fileSegTotals;
+		BlockNumber		totalBlocks;
+
+		/* XXX: How can we report for builds with parallel scans? */
+		Assert(!aocoscan->rs_base.rs_parallel);
+
+		/*
+		 * We will need to scan the entire table if we need to create a block
+		 * directory, otherwise we need to scan only the columns projected. So,
+		 * calculate the total blocks accordingly.
+		 */
+
+		if (need_create_blk_directory)
+			fileSegTotals = GetAOCSSSegFilesTotals(heapRelation,
+												   aocoscan->appendOnlyMetaDataSnapshot);
+		else
+			fileSegTotals = GetAOCSSSegFilesTotalsWithProj(heapRelation,
+														   aocoscan->appendOnlyMetaDataSnapshot,
+														   aocoscan->columnScanInfo.proj_atts,
+														   aocoscan->columnScanInfo.num_proj_atts);
+
+		Assert(fileSegTotals->totalbytes >= 0);
+		totalBlocks = RelationGuessNumberOfBlocksFromSize(fileSegTotals->totalbytes);
+#endif
 		seginfo = GetAllAOCSFileSegInfo(heapRelation, NULL, &segfile_count, NULL);
 		for (int seginfo_no = 0; seginfo_no < segfile_count; seginfo_no++)
 			total_blockcount += seginfo[seginfo_no]->varblockcount;
@@ -1836,10 +1861,22 @@ aoco_index_build_range_scan(Relation heapRelation,
 			(numblocks != InvalidBlockNumber && blockno >= numblocks))
 			continue;
 
+		/* Report scan progress, if asked to. */
 		if (progress)
 		{
-			pgstat_progress_update_param(PROGRESS_SCAN_BLOCKS_DONE,
-										blockcounts);
+			int64 current_blkno =
+					  RelationGuessNumberOfBlocksFromSize(aocoscan->totalBytesRead);
+
+			/* XXX: How can we report for builds with parallel scans? */
+			Assert(!aocoscan->rs_base.rs_parallel);
+
+			/* As soon as a new block starts, report it as scanned */
+			if (current_blkno != previous_blkno)
+			{
+				pgstat_progress_update_param(PROGRESS_SCAN_BLOCKS_DONE,
+											 current_blkno);
+				previous_blkno = current_blkno;
+			}
 		}
 
 		aoTupleId = (AOTupleId *) &slot->tts_tid;

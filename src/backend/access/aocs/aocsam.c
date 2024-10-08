@@ -104,14 +104,14 @@ open_datumstreamread_segfile(
  * the block directory.
  */
 static void
-open_all_datumstreamread_segfiles(Relation rel,
-								  AOCSFileSegInfo *segInfo,
-								  DatumStreamRead **ds,
-								  AttrNumber *proj_atts,
-								  AttrNumber num_proj_atts,
-								  AppendOnlyBlockDirectory *blockDirectory)
+open_all_datumstreamread_segfiles(AOCSScanDesc scan, AOCSFileSegInfo *segInfo)
 {
-	char	   *basepath = relpathbackend(rel->rd_node, rel->rd_backend, MAIN_FORKNUM);
+	Relation 		rel = scan->rs_base.rs_rd;
+	DatumStreamRead **ds = scan->columnScanInfo.ds;
+	AttrNumber 		*proj_atts = scan->columnScanInfo.proj_atts;
+	AttrNumber 		num_proj_atts = scan->columnScanInfo.num_proj_atts;
+	AppendOnlyBlockDirectory *blockDirectory = scan->blockDirectory;
+	char *basepath = relpathbackend(rel->rd_node, rel->rd_backend, MAIN_FORKNUM);
 
 	Assert(proj_atts);
 	for (AttrNumber i = 0; i < num_proj_atts; i++)
@@ -120,6 +120,8 @@ open_all_datumstreamread_segfiles(Relation rel,
 
 		open_datumstreamread_segfile(basepath, rel->rd_node, segInfo, ds[attno], attno);
 		datumstreamread_block(ds[attno], blockDirectory, attno);
+		
+		AOCSScanDesc_UpdateTotalBytesRead(scan, attno);
 	}
 
 	pfree(basepath);
@@ -132,7 +134,7 @@ open_all_datumstreamread_segfiles(Relation rel,
 static void
 open_ds_write(Relation rel, DatumStreamWrite **ds, TupleDesc relationTupleDesc, bool checksum)
 {
-	int			nvp = relationTupleDesc->natts;
+	int			natts = RelationGetNumberOfAttributes(rel);
 	StdRdOptions **opts = RelationGetAttributeOptions(rel);
 	RelFileNodeBackend rnode;
 
@@ -140,7 +142,7 @@ open_ds_write(Relation rel, DatumStreamWrite **ds, TupleDesc relationTupleDesc, 
 	rnode.backend = rel->rd_backend;
 
 	/* open datum streams.  It will open segment file underneath */
-	for (int i = 0; i < nvp; ++i)
+	for (int i = 0; i < natts; ++i)
 	{
 		Form_pg_attribute attr = TupleDescAttr(relationTupleDesc, i);
 		char	   *ct;
@@ -339,6 +341,8 @@ initscan_with_colinfo(AOCSScanDesc scan)
 
 	ItemPointerSet(&scan->cdb_fake_ctid, 0, 0);
 
+	scan->totalBytesRead = 0;
+
 	pgstat_count_heap_scan(scan->rs_base.rs_rd);
 }
 
@@ -420,12 +424,7 @@ open_next_scan_seg(AOCSScanDesc scan)
 															true);
 				}
 
-				open_all_datumstreamread_segfiles(scan->rs_base.rs_rd,
-												  curSegInfo,
-												  scan->columnScanInfo.ds,
-												  scan->columnScanInfo.proj_atts,
-												  scan->columnScanInfo.num_proj_atts,
-												  scan->blockDirectory);
+				open_all_datumstreamread_segfiles(scan, curSegInfo);
 
 				return scan->cur_seg;
 			}
@@ -592,8 +591,7 @@ aocs_beginscan_internal(Relation relation,
 								 &scan->checksum,
 								 NULL);
 
-	GetAppendOnlyEntryAuxOids(RelationGetRelid(relation),
-							  scan->appendOnlyMetaDataSnapshot,
+	GetAppendOnlyEntryAuxOids(relation,
 							  NULL, NULL, NULL,
 							  &visimaprelid, &visimapidxid);
 
@@ -829,6 +827,8 @@ ReadNext:
 					goto ReadNext;
 				}
 
+				AOCSScanDesc_UpdateTotalBytesRead(scan, attno);
+
 				err = datumstreamread_advance(scan->columnScanInfo.ds[attno]);
 				Assert(err > 0);
 			}
@@ -1008,8 +1008,7 @@ aocs_insert_init(Relation rel, int segno)
                                  &nd);
     desc->compType = NameStr(nd);
 
-    GetAppendOnlyEntryAuxOids(rel->rd_id,
-                              desc->appendOnlyMetaDataSnapshot,
+    GetAppendOnlyEntryAuxOids(rel,
                               &desc->segrelid, &desc->blkdirrelid, NULL,
                               &desc->visimaprelid, &desc->visimapidxid);
 
@@ -1481,8 +1480,7 @@ aocs_fetch_init(Relation relation,
     bool checksum;
     Oid visimaprelid;
     Oid visimapidxid;
-    GetAppendOnlyEntryAuxOids(relation->rd_id,
-                              appendOnlyMetaDataSnapshot,
+    GetAppendOnlyEntryAuxOids(relation,
                               &aocsFetchDesc->segrelid, NULL, NULL,
                               &visimaprelid, &visimapidxid);
 
@@ -1854,8 +1852,7 @@ aocs_delete_init(Relation rel)
 
     Snapshot snapshot = GetCatalogSnapshot(InvalidOid);
 
-    GetAppendOnlyEntryAuxOids(rel->rd_id,
-                              snapshot,
+    GetAppendOnlyEntryAuxOids(rel,
                               NULL, NULL, NULL,
                               &visimaprelid, &visimapidxid);
 

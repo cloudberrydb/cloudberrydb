@@ -117,6 +117,7 @@ typedef struct AppendOnlyInsertDescData
 	/* flag for insert placeholder in unique index   */
     bool			placeholderInserted;
 
+	Oid segrelid;
 } AppendOnlyInsertDescData;
 
 typedef AppendOnlyInsertDescData *AppendOnlyInsertDesc;
