@@ -158,9 +158,13 @@ CTranslatorQueryToDXL::CTranslatorQueryToDXL(
 	// If this is a subquery, make a copy of the parent's mapping, otherwise
 	// initialize a new, empty, mapping.
 	if (var_colid_mapping)
+	{
 		m_var_to_colid_map = var_colid_mapping->CopyMapColId(m_mp);
+	}
 	else
+	{
 		m_var_to_colid_map = GPOS_NEW(m_mp) CMappingVarColId(m_mp);
+	}
 
 	m_query_level_to_cte_map = GPOS_NEW(m_mp) HMUlCTEListEntry(m_mp);
 	m_dxl_cte_producers = GPOS_NEW(m_mp) CDXLNodeArray(m_mp);
@@ -269,7 +273,9 @@ CTranslatorQueryToDXL::~CTranslatorQueryToDXL()
 	CRefCount::SafeRelease(m_dxl_query_output_cols);
 
 	if (m_query_level == 0)
+	{
 		GPOS_DELETE(m_context);
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -524,13 +530,17 @@ CTranslatorQueryToDXL::TranslateSelectQueryToDXL()
 
 	// RETURNING is not supported yet.
 	if (m_query->returningList)
+	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 				   GPOS_WSZ_LIT("RETURNING clause"));
+	}
 
 	// ON CONFLICT is not supported yet.
 	if (m_query->onConflict)
+	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 				   GPOS_WSZ_LIT("ON CONFLICT clause"));
+	}
 
 	if (m_query->limitOption == LIMIT_OPTION_WITH_TIES)
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
@@ -3343,9 +3353,13 @@ CTranslatorQueryToDXL::NoteDistributionPolicyOpclasses(const RangeTblEntry *rte)
 					gpdb::GetDefaultDistributionOpclassForType(typeoid);
 
 				if (opclasses[i] == default_opclass)
+				{
 					contains_default_hashops = true;
+				}
 				else
+				{
 					contains_nondefault_hashops = true;
+				}
 			}
 		}
 
@@ -3362,10 +3376,12 @@ CTranslatorQueryToDXL::NoteDistributionPolicyOpclasses(const RangeTblEntry *rte)
 		{
 			if (m_context->m_distribution_hashops !=
 				DistrHashOpsNotDeterminedYet)
+			{
 				GPOS_RAISE(
 					gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
 					GPOS_WSZ_LIT(
 						"Query contains relations with a mix of default and legacy hash opclasses"));
+			}
 			m_context->m_distribution_hashops = DistrUseDefaultHashOps;
 		}
 		if (contains_legacy_hashops &&
@@ -3373,10 +3389,12 @@ CTranslatorQueryToDXL::NoteDistributionPolicyOpclasses(const RangeTblEntry *rte)
 		{
 			if (m_context->m_distribution_hashops !=
 				DistrHashOpsNotDeterminedYet)
+			{
 				GPOS_RAISE(
 					gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
 					GPOS_WSZ_LIT(
 						"Query contains relations with a mix of default and legacy hash opclasses"));
+			}
 			m_context->m_distribution_hashops = DistrUseLegacyHashOps;
 		}
 	}
@@ -3669,26 +3687,21 @@ CTranslatorQueryToDXL::TranslateTVFToDXL(const RangeTblEntry *rte,
 				   GPOS_WSZ_LIT("Multi-argument UNNEST() or TABLE()"));
 	}
 	RangeTblFunction *rtfunc = (RangeTblFunction *) linitial(rte->functions);
-	FuncExpr *funcexpr = (FuncExpr *) rtfunc->funcexpr;
-	GPOS_ASSERT(funcexpr);
+
+	BOOL is_composite_const =
+		CTranslatorUtils::IsCompositeConst(m_mp, m_md_accessor, rtfunc);
 
 	// if this is a folded function expression, generate a project over a CTG
-	if (!IsA(funcexpr, FuncExpr))
+	if (!IsA(rtfunc->funcexpr, FuncExpr) && !is_composite_const)
 	{
-		if (gpdb::IsCompositeType(funcexpr->funcid))
-		{
-			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
-					   GPOS_WSZ_LIT("Whole-row variable"));
-		}
-
 		CDXLNode *const_tbl_get_dxlnode = DXLDummyConstTableGet();
 
 		CDXLNode *project_list_dxlnode = GPOS_NEW(m_mp)
 			CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarProjList(m_mp));
 
-		CDXLNode *project_elem_dxlnode =
-			TranslateExprToDXLProject((Expr *) funcexpr, rte->eref->aliasname,
-									  true /* insist_new_colids */);
+		CDXLNode *project_elem_dxlnode = TranslateExprToDXLProject(
+			(Expr *) rtfunc->funcexpr, rte->eref->aliasname,
+			true /* insist_new_colids */);
 		project_list_dxlnode->AddChild(project_elem_dxlnode);
 
 		CDXLNode *project_dxlnode = GPOS_NEW(m_mp)
@@ -3711,6 +3724,19 @@ CTranslatorQueryToDXL::TranslateTVFToDXL(const RangeTblEntry *rte,
 									tvf_dxlop->GetDXLColumnDescrArray());
 
 	BOOL is_subquery_in_args = false;
+
+	// funcexpr evaluates to const and returns composite type
+	if (IsA(rtfunc->funcexpr, Const))
+	{
+		CDXLNode *constValue = m_scalar_translator->TranslateScalarToDXL(
+			(Expr *) (rtfunc->funcexpr), m_var_to_colid_map);
+		tvf_dxlnode->AddChild(constValue);
+		return tvf_dxlnode;
+	}
+
+	GPOS_ASSERT(IsA(rtfunc->funcexpr, FuncExpr));
+
+	FuncExpr *funcexpr = (FuncExpr *) rtfunc->funcexpr;
 
 	// check if arguments contain SIRV functions
 	if (NIL != funcexpr->args && HasSirvFunctions((Node *) funcexpr->args))
@@ -3926,7 +3952,9 @@ CTranslatorQueryToDXL::TranslateJoinExprInFromToDXL(JoinExpr *join_expr)
 		Node *join_alias_node = (Node *) lfirst(lc_node);
 		// rte->joinaliasvars may contain NULL ptrs which indicates dropped columns
 		if (!join_alias_node)
+		{
 			continue;
+		}
 		GPOS_ASSERT(IsA(join_alias_node, Var) ||
 					IsA(join_alias_node, FuncExpr) ||
 					IsA(join_alias_node, CoalesceExpr));

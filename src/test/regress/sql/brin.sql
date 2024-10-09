@@ -310,7 +310,7 @@ BEGIN
 		END IF;
 	END LOOP;
 
-	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers, unnest(op) WITH ORDINALITY AS oper order by colname, typ LOOP
+	FOR r IN SELECT colname, oper, typ, value[ordinality], matches[ordinality] FROM brinopers, unnest(op) WITH ORDINALITY AS oper order by colname, typ, oper LOOP
 
 		-- prepare the condition
 		IF r.value IS NULL THEN
@@ -445,7 +445,7 @@ UPDATE brintest SET textcol = '' WHERE textcol IS NOT NULL;
 -- Tests for brin_summarize_new_values
 SELECT brin_summarize_new_values('brintest'); -- error, not an index
 SELECT brin_summarize_new_values('tenk1_unique1'); -- error, not a BRIN index
-SELECT brin_summarize_new_values('brinidx'); -- ok, no change expected (except for ORCA, which uses split updates)
+SELECT brin_summarize_new_values('brinidx'); -- ok, no change expected
 
 -- Tests for brin_desummarize_range
 SELECT brin_desummarize_range('brinidx', -1); -- error, invalid range

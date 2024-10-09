@@ -365,6 +365,7 @@ enum Edxltoken
 	EdxltokenTupleOidColId,
 	EdxltokenUpdatePreservesOids,
 	EdxltokenInputSorted,
+	EdxltokenSplitUpdate,
 
 	EdxltokenInputSegments,
 	EdxltokenOutputSegments,
@@ -469,6 +470,7 @@ enum Edxltoken
 	EdxltokenRelStorageAppendOnlyRows,
 	EdxltokenRelStorageMixedPartitioned,
 	EdxltokenRelStorageExternal,
+	EdxltokenRelStorageCompositeType,
 
 	EdxltokenPartKeys,
 	EdxltokenPartTypes,
