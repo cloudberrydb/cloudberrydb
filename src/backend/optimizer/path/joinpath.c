@@ -2028,6 +2028,9 @@ consider_parallel_nestloop(PlannerInfo *root,
 
 	if (jointype == JOIN_UNIQUE_INNER)
 		jointype = JOIN_INNER;
+	
+	if (jointype == JOIN_DEDUP_SEMI || jointype == JOIN_DEDUP_SEMI_REVERSE)
+		jointype = JOIN_INNER;
 
 	foreach(lc1, outerrel->partial_pathlist)
 	{
