@@ -1307,14 +1307,19 @@ SetCurrentMotionIPCLayer(int new_type)
 {
 	int type;
 
+	if (IS_SINGLENODE() || Gp_role == GP_ROLE_UTILITY)
+	{
+		Gp_interconnect_type = new_type;
+		return;
+	}
+
 	/* interconnect.so is not loaded currently. */
 	if (CurrentIPCLayerImplNum == 0)
 	{
 		Assert(CurrentMotionIPCLayer == NULL);
 		Gp_interconnect_type = new_type;
 
-		if (!IS_SINGLENODE())
-			elog(DEBUG1, "No any IPCLayer implement loaded.");
+		elog(DEBUG1, "No any IPCLayer implement loaded.");
 
 		return;
 	}
@@ -1326,13 +1331,24 @@ SetCurrentMotionIPCLayer(int new_type)
 	}
 	else
 	{
-		ereport(WARNING,
-				(errcode(ERRCODE_WARNING_GP_INTERCONNECTION),
-				 errmsg("No IPCLayer implement found with type: %d, "
-						"choose one from the loaded implements.",
-						new_type)));
+		if (Gp_role == GP_ROLE_DISPATCH)
+		{
+			ereport(WARNING,
+					(errcode(ERRCODE_WARNING_GP_INTERCONNECTION),
+					 errmsg("No IPCLayer implement found with type: %d, "
+							"choose one from the loaded implements.",
+							new_type)));
 
-		type = TryFindICType();
+			type = TryFindICType();
+		}
+		else
+		{
+			Assert(Gp_role == GP_ROLE_EXECUTE);
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
+					 errmsg("No IPCLayer implement found with type: %d on QE",
+							new_type)));
+		}
 	}
 
 	for (int i = 0; i < CurrentIPCLayerImplNum; ++i)
