@@ -82,6 +82,46 @@ set local enable_parallel_dedup_semi_reverse_join = off;
 explain (costs off)
 select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
 select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+
+-- Parallel Nestloop DEDUP_SEMI
+set local min_parallel_table_scan_size = 0;
+set local enable_parallel_semi_join = off; 
+set local enable_nestloop = on;
+set local enable_hashjoin = off;
+set local enable_mergejoin = off;
+set local enable_parallel_semi_join = off; 
+set local enable_parallel_dedup_semi_reverse_join = off;
+set local enable_parallel_dedup_semi_join = on;
+explain (costs off)
+select sum(bar.b) from bar where exists (select 1 from foo where foo.a = bar.b);
+select sum(bar.b) from bar where exists (select 1 from foo where foo.a = bar.b);
+
+-- Parallel Nestloop DEDUP_SEMI_REVERSE
+set local enable_parallel_dedup_semi_reverse_join = on;
+set local enable_parallel_dedup_semi_join = off;
+explain (costs off)
+select sum(bar.b) from bar where exists (select 1 from foo where foo.a = bar.b);
+select sum(bar.b) from bar where exists (select 1 from foo where foo.a = bar.b);
+
+-- Parallel Mergejoin DEDUP_SEMI
+set local enable_parallel_semi_join = off; 
+set local enable_hashjoin = off;
+set local enable_mergejoin = on;
+set local enable_nestloop = off;
+set local enable_parallel_semi_join = off; 
+set local enable_parallel_dedup_semi_reverse_join = off;
+set local enable_parallel_dedup_semi_join = on;
+explain (costs off)
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+
+-- Parallel Mergejoin DEDUP_SEMI_REVERSE
+set local enable_parallel_dedup_semi_reverse_join = on;
+set local enable_parallel_dedup_semi_join = off;
+explain (costs off)
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+select sum(foo.a) from foo where exists (select 1 from bar where foo.a = bar.b);
+
 abort;
 
 
