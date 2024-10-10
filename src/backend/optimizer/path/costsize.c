@@ -6784,7 +6784,7 @@ get_parallel_divisor(Path *path)
 	 * parallel plan.
 	 */
 	/*
-	 * GPDB parallel: We don't have a leader like upstream.
+	 * CBDB_PARALLEL: We don't have a leader like upstream.
 	 * parallel_divisor is usually used to estimate rows.
 	 * Since we don't have a leader in GP parallel style, set it the same
 	 * as path's parallel_workers which may be 0 sometimes.
