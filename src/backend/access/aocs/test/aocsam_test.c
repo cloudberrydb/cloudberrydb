@@ -5,6 +5,7 @@
 
 #include "postgres.h"
 #include "utils/memutils.h"
+#include "storage/smgr.h"
 
 #include "../aocsam.c"
 
@@ -19,7 +20,10 @@ test__aocs_begin_headerscan(void **state)
 {
 	AOCSHeaderScanDesc desc;
 	RelationData reldata;
+	SMgrRelationData smgrdata;
 	FormData_pg_class pgclass;
+
+	memset(&reldata, 0, sizeof(RelationData));
 
 	reldata.rd_rel = &pgclass;
 	reldata.rd_id = 12345;
@@ -27,6 +31,10 @@ test__aocs_begin_headerscan(void **state)
 
 	opt.blocksize = 8192 * 5;
 	StdRdOptions *opts[1];
+
+	smgrdata.smgr_ao = smgrAOGetDefault();
+	reldata.rd_smgr = &smgrdata;
+	reldata.rd_backend = InvalidBackendId;
 
 	opts[0] = &opt;
 
@@ -63,6 +71,7 @@ test__aocs_addcol_init(void **state)
 {
 	AOCSAddColumnDesc desc;
 	RelationData reldata;
+	SMgrRelationData smgrdata;
 	int			nattr = 5;
 	StdRdOptions **opts =
 	(StdRdOptions **) malloc(sizeof(StdRdOptions *) * nattr);
@@ -98,6 +107,8 @@ test__aocs_addcol_init(void **state)
 	expect_value(create_datumstreamwrite, needsWAL, true);
 	expect_any(create_datumstreamwrite, rnode);
 	expect_any(create_datumstreamwrite, rnode);
+	expect_any(create_datumstreamwrite, smgrAO);
+	expect_any(create_datumstreamwrite, smgrAO);
 	expect_any_count(create_datumstreamwrite, attr, 2);
 	expect_any_count(create_datumstreamwrite, relname, 2);
 	expect_any_count(create_datumstreamwrite, title, 2);
@@ -111,6 +122,9 @@ test__aocs_addcol_init(void **state)
 										(sizeof(Form_pg_attribute *) * nattr));
 	memset(reldata.rd_att->attrs, 0, sizeof(Form_pg_attribute *) * nattr);
 	reldata.rd_att->natts = nattr;
+
+	smgrdata.smgr_ao = smgrAOGetDefault();
+	reldata.rd_smgr = &smgrdata;
 
 	expect_value(GetAppendOnlyEntryAttributes, relid, 12345);
 	expect_any(GetAppendOnlyEntryAttributes, blocksize);

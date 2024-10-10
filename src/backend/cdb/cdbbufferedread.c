@@ -55,14 +55,14 @@ BufferedReadMemoryLen(
  * determine the amount of memory to supply.
  */
 void
-BufferedReadInit(
-				 BufferedRead *bufferedRead,
+BufferedReadInit(BufferedRead *bufferedRead,
 				 uint8 *memory,
 				 int32 memoryLen,
 				 int32 maxBufferLen,
 				 int32 maxLargeReadLen,
 				 char *relationName,
-				 RelFileNode *file_node)
+				 RelFileNode *file_node,
+				 const struct f_smgr_ao *smgr)
 {
 	Assert(bufferedRead != NULL);
 	Assert(memory != NULL);
@@ -113,6 +113,8 @@ BufferedReadInit(
 	 */
 	bufferedRead->haveTemporaryLimitInEffect = false;
 	bufferedRead->temporaryLimitFileLen = 0;
+
+	bufferedRead->smgrAO = smgr;
 }
 
 /*
@@ -178,7 +180,7 @@ BufferedReadIo(
 	offset = 0;
 	while (largeReadLen > 0)
 	{
-		int			actualLen = FileRead(bufferedRead->file,
+		int			actualLen = bufferedRead->smgrAO->smgr_FileRead(bufferedRead->file,
 										 (char *) largeReadMemory,
 										 largeReadLen,
 										 bufferedRead->fileOff,

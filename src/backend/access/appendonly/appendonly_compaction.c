@@ -91,7 +91,7 @@ AppendOnlyCompaction_DropSegmentFile(Relation aorel, int segno)
 	if (fd >= 0)
 	{
 		TruncateAOSegmentFile(fd, aorel, fileSegNo, 0);
-		CloseAOSegmentFile(fd);
+		CloseAOSegmentFile(fd, aorel);
 	}
 	else
 	{
@@ -256,7 +256,7 @@ AppendOnlySegmentFileTruncateToEOF(Relation aorel, int segno, int64 segeof)
 	if (fd >= 0)
 	{
 		TruncateAOSegmentFile(fd, aorel, fileSegNo, segeof);
-		CloseAOSegmentFile(fd);
+		CloseAOSegmentFile(fd, aorel);
 
 		elogif(Debug_appendonly_print_compaction, LOG,
 			   "Successfully truncated AO ROW relation \"%s.%s\", relation id %u, relfilenode %lu (physical segment file #%d, logical EOF " INT64_FORMAT ")",

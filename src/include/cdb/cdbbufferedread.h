@@ -80,6 +80,7 @@ typedef struct BufferedRead
 	bool				haveTemporaryLimitInEffect;
 	int64				temporaryLimitFileLen;
 
+	const struct f_smgr_ao 	*smgrAO;
 } BufferedRead;
 
 /*
@@ -104,7 +105,8 @@ extern void BufferedReadInit(
     int32                maxBufferLen,
     int32                maxLargeReadLen,
     char				 *relationName,
-	RelFileNode 		 *file_node);
+	RelFileNode 		 *file_node,
+	const struct f_smgr_ao       *smgr);
 
 /*
  * Takes an open file handle for the next file.
