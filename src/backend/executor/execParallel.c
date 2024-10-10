@@ -1565,10 +1565,6 @@ InitializeGpParallelWorkers(PlanState *planstate, ParallelWorkerContext *pwcxt)
 {
 	if (planstate == NULL)
 		return false;
-	/*
-	 * CBDB_PARALLEL_FIXME:
-	 * Why we call PG's xxxInitializeWorker functions for some nodes, but not for others?
-	 */
 	switch (nodeTag(planstate))
 	{
 		case T_MotionState:
@@ -1580,10 +1576,18 @@ InitializeGpParallelWorkers(PlanState *planstate, ParallelWorkerContext *pwcxt)
 				return false;
 			break;
 		case T_SeqScanState:
+			if (planstate->plan->parallel_aware)
+				ExecSeqScanInitializeWorker((SeqScanState *) planstate, pwcxt);
 			break;
 		case T_IndexScanState:
+			if (planstate->plan->parallel_aware)
+				ExecIndexScanInitializeWorker((IndexScanState *) planstate,
+											  pwcxt);
 			break;
 		case T_IndexOnlyScanState:
+			if (planstate->plan->parallel_aware)
+				ExecIndexOnlyScanInitializeWorker((IndexOnlyScanState *) planstate,
+												  pwcxt);
 			break;
 		case T_BitmapHeapScanState:
 			if (planstate->plan->parallel_aware)
@@ -1626,57 +1630,18 @@ InitializeGpParallelDSMEntry(PlanState *planstate, ParallelContext *pctx)
 			break;
 		case T_SeqScanState:
 			if (planstate->plan->parallel_aware)
-			{
-				SeqScanState* node = (SeqScanState*) planstate;
-
-				ParallelTableScanDesc pscan;
-
-				pscan = shm_toc_allocate(pctx->toc, node->pscan_len);
-
-				table_parallelscan_initialize(node->ss.ss_currentRelation, pscan,
-									  node->ss.ps.state->es_snapshot);
-
-				Assert(pscan);
-
-				shm_toc_insert(pctx->toc, node->ss.ps.plan->plan_node_id, pscan);
-			}
+				ExecSeqScanInitializeDSM((SeqScanState *) planstate,
+										 pctx);
 			break;
 		case T_IndexScanState:
 			if (planstate->plan->parallel_aware)
-			{
-				IndexScanState* node = (IndexScanState*) planstate;
-
-				ParallelIndexScanDesc piscan;
-
-				piscan = shm_toc_allocate(pctx->toc, node->iss_PscanLen);
-
-				index_parallelscan_initialize(node->ss.ss_currentRelation,
-											  node->iss_RelationDesc,
-											  node->ss.ps.state->es_snapshot,
-											  piscan);
-
-				Assert(piscan);
-
-				shm_toc_insert(pctx->toc, node->ss.ps.plan->plan_node_id, piscan);
-			}
+				ExecIndexScanInitializeDSM((IndexScanState *) planstate,
+										   pctx);
 			break;
 		case T_IndexOnlyScanState:
 			if (planstate->plan->parallel_aware)
-			{
-				IndexOnlyScanState* node = (IndexOnlyScanState*) planstate;
-
-				ParallelIndexScanDesc piscan;
-				piscan = shm_toc_allocate(pctx->toc, node->ioss_PscanLen);
-
-				index_parallelscan_initialize(node->ss.ss_currentRelation,
-											  node->ioss_RelationDesc,
-											  node->ss.ps.state->es_snapshot,
-											  piscan);
-
-				Assert(piscan);
-
-				shm_toc_insert(pctx->toc, node->ss.ps.plan->plan_node_id, piscan);
-			}
+				ExecIndexOnlyScanInitializeDSM((IndexOnlyScanState *) planstate,
+											  pctx);
 			break;
 		case T_BitmapHeapScanState:
 			if (planstate->plan->parallel_aware)

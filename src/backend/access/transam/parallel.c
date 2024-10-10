@@ -1671,36 +1671,6 @@ GpParallelDSMHashSize(void)
 }
 
 
-void *
-GpFetchParallelDSMEntry(ParallelEntryTag tag, int plan_node_id)
-{
-	GpParallelDSMEntry *entry;
-	shm_toc    *toc;
-	bool found = false;
-
-	entry = (GpParallelDSMEntry *)
-		hash_search(GpParallelDSMHash,
-				&tag,
-				HASH_FIND,
-				&found);
-	Assert(found);
-
-	if (entry->pid == MyProcPid)
-	{
-		toc = entry->toc;
-	}
-	else
-	{
-		Assert(ParallelSession->segment);
-		toc = shm_toc_attach(CBDB_PARALLEL_MAGIC, dsm_segment_address(ParallelSession->segment));
-	}
-
-	Assert(toc != NULL);
-
-	return shm_toc_lookup(toc, plan_node_id, true);
-}
-
-
 void GpDestroyParallelDSMEntry()
 {
 	GpParallelDSMEntry *entry;
