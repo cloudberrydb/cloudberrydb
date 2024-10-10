@@ -34,6 +34,7 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbutil.h"
 #include "cdb/memquota.h"
+#include "cdb/ml_ipc.h"
 #include "commands/defrem.h"
 #include "commands/vacuum.h"
 #include "commands/variable.h"
@@ -102,6 +103,8 @@ static void assign_pljava_classpath_insecure(bool newval, void *extra);
 static bool check_gp_resource_group_bypass(bool *newval, void **extra, GucSource source);
 static int guc_array_compare(const void *a, const void *b);
 static bool check_max_running_tasks(int *newval, void **extra, GucSource source);
+
+static void assign_gp_interconnect_type(int newval, void *extra);
 
 int listenerBacklog  = 128;
 
@@ -4932,7 +4935,7 @@ struct config_enum ConfigureNamesEnum_gp[] =
 		},
 		&Gp_interconnect_type,
 		INTERCONNECT_TYPE_UDPIFC, gp_interconnect_types,
-		NULL, NULL, NULL
+		NULL, assign_gp_interconnect_type, NULL
 	},
 
 	{
@@ -5471,4 +5474,10 @@ DispatchSyncPGVariable(struct config_generic * gconfig)
 	}
 
 	CdbDispatchSetCommand(buffer.data, false);
+}
+
+static void
+assign_gp_interconnect_type(int newval, void *extra)
+{
+	SetCurrentMotionIPCLayer(newval);
 }

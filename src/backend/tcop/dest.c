@@ -332,11 +332,7 @@ sendQEDetails(void)
 	StringInfoData msgbuf;
 	char		port_str[11];
 
-	if (CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_TCP || CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_PROXY) {
-		snprintf(port_str, sizeof(port_str), "%u", (0 << 16) | CurrentMotionIPCLayer->GetListenPort());
-	} else if (CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_UDPIFC) {
-		snprintf(port_str, sizeof(port_str), "%u", (CurrentMotionIPCLayer->GetListenPort() << 16) | 0);
-	}
+	snprintf(port_str, sizeof(port_str), "%u", CurrentMotionIPCLayer->GetListenPort());
 
 	pq_beginmessage(&msgbuf, 'S');
 	pq_sendstring(&msgbuf, "qe_listener_port");

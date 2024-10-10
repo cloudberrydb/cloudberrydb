@@ -32,6 +32,10 @@
 
 MotionIPCLayer *CurrentMotionIPCLayer = NULL;
 
+#define IPCLAYER_CANDIDATE_NUM 3
+int CurrentIPCLayerImplNum = 0;
+MotionIPCLayer* IPCLayerImpls[INTERCONNECT_TYPE_NUM];
+
 /*
  * MOTION NODE INFO DATA STRUCTURES
  */
@@ -717,7 +721,7 @@ processIncomingChunks(MotionLayerState *mlStates,
 	}
 
 	/* The chunk list we just processed freed-up our rx-buffer space. */
-	if (numChunks > 0 && CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_UDPIFC)
+	if (numChunks > 0)
 		CurrentMotionIPCLayer->DirectPutRxBuffer(transportStates, motNodeID, srcRoute);
 
 	/* Stats */
@@ -1273,4 +1277,78 @@ UpdateSentRecordCache(int32 *sent_record_typmod)
 	{
 		*sent_record_typmod = NextRecordTypmod;
 	}
+}
+
+/*
+ * try best to find the most appropriate IPC layer implement.
+ */
+static int
+TryFindICType()
+{
+	/* IPCLayerImpls[0]->ic_type is valid at least */
+	Assert(CurrentIPCLayerImplNum);
+
+	int candidate_types_order[IPCLAYER_CANDIDATE_NUM] =
+		{Gp_interconnect_type, INTERCONNECT_TYPE_UDPIFC, IPCLayerImpls[0]->ic_type};
+
+	for (int i = 0; i < IPCLAYER_CANDIDATE_NUM; ++i)
+	{
+		if (IsICTypeExist(candidate_types_order[i]))
+			return candidate_types_order[i];
+	}
+
+	/* never run here, just keep compiler slience */
+	Assert(0);
+	return INTERCONNECT_TYPE_UDPIFC;
+}
+
+void
+SetCurrentMotionIPCLayer(int new_type)
+{
+	int type;
+
+	if (!process_shared_preload_libraries_done)
+	{
+		Gp_interconnect_type = new_type;
+		return;
+	}
+
+	if (IsICTypeExist(new_type))
+	{
+		type = new_type;
+	}
+	else
+	{
+		ereport(WARNING,
+				(errcode(ERRCODE_WARNING_GP_INTERCONNECTION),
+				 errmsg("No IPCLayer implement found with type: %d, "
+						"choose one from the loaded implements.",
+						new_type)));
+
+		type = TryFindICType();
+	}
+
+	for (int i = 0; i < CurrentIPCLayerImplNum; ++i)
+	{
+		if (IPCLayerImpls[i]->ic_type == type)
+		{
+			CurrentMotionIPCLayer = IPCLayerImpls[i];
+			Gp_interconnect_type = CurrentMotionIPCLayer->ic_type;
+			break;
+		}
+	}
+
+	return;
+}
+
+bool
+IsICTypeExist(GpVars_Interconnect_Type type)
+{
+	for (int i = 0; i < CurrentIPCLayerImplNum; ++i)
+	{
+		if (IPCLayerImpls[i]->ic_type == type)
+			return true;
+	}
+
+	return false;
 }

@@ -515,9 +515,8 @@ hasGangsExist(PG_FUNCTION_ARGS)
 PG_FUNCTION_INFO_V1(numActiveMotionConns);
 Datum numActiveMotionConns(PG_FUNCTION_ARGS)
 {
-	uint32 num = 0;
-	if (Gp_interconnect_type == INTERCONNECT_TYPE_UDPIFC)
-		num = CurrentMotionIPCLayer->GetActiveMotionConns();
+	/* Just valid for udpifc implement, always 0 for other implements. */
+	uint32 num = CurrentMotionIPCLayer->GetActiveMotionConns();
 	PG_RETURN_UINT32(num);
 }
 

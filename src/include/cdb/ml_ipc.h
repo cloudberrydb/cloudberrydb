@@ -290,4 +290,12 @@ typedef struct MotionIPCLayer
 /* MotionIPCLayer selected */
 extern MotionIPCLayer *CurrentMotionIPCLayer;
 
+/*
+ * All the available implements of the IPC layers.
+ */
+extern int CurrentIPCLayerImplNum;
+extern MotionIPCLayer* IPCLayerImpls[INTERCONNECT_TYPE_NUM];
+extern void SetCurrentMotionIPCLayer(int type);
+extern bool IsICTypeExist(GpVars_Interconnect_Type type);
+
 #endif   /* ML_IPC_H */

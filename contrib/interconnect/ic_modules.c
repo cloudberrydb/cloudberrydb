@@ -46,10 +46,10 @@ MotionIPCLayer tcp_ipc_layer = {
     .RecvTupleChunkFrom = RecvTupleChunkFromTCP,
     .RecvTupleChunk = RecvTupleChunkTCP,
 
-    .DirectPutRxBuffer = NULL,
+    .DirectPutRxBuffer = DirectPutRxBufferTCP,
 
     .DeregisterReadInterest = DeregisterReadInterestTCP,
-    .GetActiveMotionConns = NULL,
+    .GetActiveMotionConns = GetActiveMotionConnsTCP,
 
     .GetTransportDirectBuffer = GetTransportDirectBuffer,
     .PutTransportDirectBuffer = PutTransportDirectBuffer,
@@ -83,10 +83,10 @@ MotionIPCLayer proxy_ipc_layer = {
     .RecvTupleChunkFrom = RecvTupleChunkFromTCP,
     .RecvTupleChunk = RecvTupleChunkTCP,
 
-    .DirectPutRxBuffer = NULL,
+    .DirectPutRxBuffer = DirectPutRxBufferTCP,
 
     .DeregisterReadInterest = DeregisterReadInterestTCP,
-    .GetActiveMotionConns = NULL,
+    .GetActiveMotionConns = GetActiveMotionConnsTCP,
 
     .GetTransportDirectBuffer = GetTransportDirectBuffer,
     .PutTransportDirectBuffer = PutTransportDirectBuffer,
@@ -137,29 +137,47 @@ MotionIPCLayer udpifc_ipc_layer = {
     .GetMotionConnTupleRemapper = GetMotionConnTupleRemapper,
 };
 
+MotionIPCLayer *ipc_layer_impls[] = {
+	&tcp_ipc_layer,
+	&udpifc_ipc_layer,
+	&proxy_ipc_layer,
+};
+
 void
 _PG_init(void)
 {
+	int elevel, impls_num;
+
 	if (!process_shared_preload_libraries_in_progress) {
         ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not load interconnect outside process shared preload")));
     }
 
-    switch(Gp_interconnect_type) {
-        case INTERCONNECT_TYPE_TCP:
-            CurrentMotionIPCLayer = &tcp_ipc_layer;
-            break;
-        case INTERCONNECT_TYPE_UDPIFC:
-            CurrentMotionIPCLayer = &udpifc_ipc_layer;
-            break;
-        case INTERCONNECT_TYPE_PROXY:
-            CurrentMotionIPCLayer = &proxy_ipc_layer;
-            break;    
-        default:
-            ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not decide interconnect type")));
-    }
-    
+#ifdef USE_ASSERT_CHECKING
+	elevel = WARNING;
+#else
+	elevel = LOG;
+#endif
+
+	impls_num = sizeof(ipc_layer_impls) / sizeof(MotionIPCLayer *);
+	for (int i = 0; i < impls_num; ++i)
+	{
+		if (CurrentIPCLayerImplNum >= INTERCONNECT_TYPE_NUM)
+		{
+			elog(elevel,
+				 "IPCLayerImpls[] is full, can not register more IPC layer implement.");
+			break;
+		}
+
+		if (IsICTypeExist(ipc_layer_impls[i]->ic_type))
+		{
+			elog(elevel,
+				 "ic_type: %d has been registered in IPCLayerImpls[].",
+				 ipc_layer_impls[i]->ic_type);
+			continue;
+		}
+
+		IPCLayerImpls[CurrentIPCLayerImplNum++] = ipc_layer_impls[i];
+	}
 }
