@@ -384,7 +384,7 @@ CreateReplicationSlotOnPromote(const char *name)
 static void
 HandleFtsWalRepPromote(void)
 {
-#if defined(FAULT_INJECTOR) || !defined(USE_INTERNAL_FTS)
+#if !defined(USE_INTERNAL_FTS) || defined(FAULT_INJECTOR)
 	FtsResponse response = {
 		false, /* IsMirrorUp */
 		false, /* IsInSync */
@@ -453,7 +453,7 @@ HandleFtsWalRepPromote(void)
 			 " DBState = %d", state);
 	}
 
-#if defined(FAULT_INJECTOR) || !defined(USE_INTERNAL_FTS)
+#if !defined(USE_INTERNAL_FTS) || defined(FAULT_INJECTOR)
 skip_promote:
 	SendFtsResponse(&response, FTS_MSG_PROMOTE);
 #endif
