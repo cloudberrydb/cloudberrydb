@@ -338,6 +338,20 @@ aoco_dml_finish(Relation relation, CmdType operation)
 			AppendOnlyVisimap_Finish_forUniquenessChecks(state->uniqueCheckDesc->visimap);
 			pfree(state->uniqueCheckDesc->visimap);
 		}
+		else
+		{
+			/*
+			 * Github issue: https://github.com/cloudberrydb/cloudberrydb/issues/557
+			 *
+			 * For partition tables, it's possible to update across partitions.
+			 * And it does have deleteDesc and uniqueCheckDesc if there were.
+			 * Some partitions have visimap but some not, clean them if possible.
+			 */
+			if (state->uniqueCheckDesc->visimap)
+			{
+				AppendOnlyVisimapStore_Finish(&state->uniqueCheckDesc->visimap->visimapStore, AccessShareLock);
+			}
+		}
 		state->uniqueCheckDesc->visimap = NULL;
 		state->uniqueCheckDesc->visiMapDelete = NULL;
 
