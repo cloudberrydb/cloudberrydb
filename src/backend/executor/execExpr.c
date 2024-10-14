@@ -1150,7 +1150,7 @@ ExecInitExprRec(Expr *node, ExprState *state,
 				if (TotalParallelWorkerNumberOfSlice > 0)
 				{
 					int parallel_bits = pg_leftmost_one_pos32(TotalParallelWorkerNumberOfSlice) + 1;
-					int segs = getgpsegmentCount();
+					int segs = cdbcomponent_get_maxdbid();
 					int segs_bits = pg_leftmost_one_pos32(segs) + 1;
 					Assert(segs_bits + parallel_bits <= 16);
 					scratch.d.rowidexpr.rowcounter = ((int64) GpIdentity.dbid) << (48 + parallel_bits);

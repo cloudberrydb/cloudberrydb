@@ -3149,13 +3149,14 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 			 * left 16 bits for segments and parallel workers.
 			 * The formula is:
 			 *  parallel_bits + seg_bits
-			 * while segs is total primary segments.
+			 * while segs is max(dbid) across cluster in case that dbid segments
+			 * are uncontinuous.
 			 * And keep some room to make sure there should not be
 			 * duplicated rows when execution.
 			 */
 			if (outerParallel > 1)
 			{
-				int segs = getgpsegmentCount();
+				int segs = cdbcomponent_get_maxdbid();
 				int parallel_bits = pg_leftmost_one_pos32(outerParallel) + 1;
 				int seg_bits = pg_leftmost_one_pos32(segs) + 1;
 				if (parallel_bits + seg_bits > 16)
@@ -3199,7 +3200,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 			outer.ok_to_replicate = false;
 			if (innerParallel > 1)
 			{
-				int segs = getgpsegmentCount();
+				int segs = cdbcomponent_get_maxdbid();
 				int parallel_bits = pg_leftmost_one_pos32(innerParallel) + 1;
 				int seg_bits = pg_leftmost_one_pos32(segs) + 1;
 				if (parallel_bits + seg_bits > 16)
