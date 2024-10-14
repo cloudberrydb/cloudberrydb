@@ -773,6 +773,17 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
+		{"gp_enable_explain_rows_out", PGC_USERSET, CLIENT_CONN_OTHER,
+			gettext_noop("Experimental feature: print avg, min and max rows out in segments in EXPLAIN ANALYZE."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_enable_explain_rows_out,
+		false,
+		NULL, NULL, NULL
+	},
+
+	{
 		{"gp_enable_explain_allstat", PGC_USERSET, CLIENT_CONN_OTHER,
 			gettext_noop("Experimental feature: dump stats for all segments in EXPLAIN ANALYZE."),
 			NULL,
