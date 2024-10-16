@@ -1327,8 +1327,6 @@ sort_inner_and_outer(PlannerInfo *root,
 	if (joinrel->consider_parallel &&
 		save_jointype != JOIN_UNIQUE_OUTER &&
 		save_jointype != JOIN_FULL &&
-		save_jointype != JOIN_DEDUP_SEMI &&
-		save_jointype != JOIN_DEDUP_SEMI_REVERSE &&
 		save_jointype != JOIN_RIGHT &&
 		outerrel->partial_pathlist != NIL &&
 		bms_is_empty(joinrel->lateral_relids))
@@ -1936,8 +1934,6 @@ match_unsorted_outer(PlannerInfo *root,
 	if (joinrel->consider_parallel &&
 		save_jointype != JOIN_UNIQUE_OUTER &&
 		save_jointype != JOIN_FULL &&
-		save_jointype != JOIN_DEDUP_SEMI &&
-		save_jointype != JOIN_DEDUP_SEMI_REVERSE &&
 		save_jointype != JOIN_RIGHT &&
 		outerrel->partial_pathlist != NIL &&
 		bms_is_empty(joinrel->lateral_relids))
@@ -2031,6 +2027,9 @@ consider_parallel_nestloop(PlannerInfo *root,
 	ListCell   *lc1;
 
 	if (jointype == JOIN_UNIQUE_INNER)
+		jointype = JOIN_INNER;
+	
+	if (jointype == JOIN_DEDUP_SEMI || jointype == JOIN_DEDUP_SEMI_REVERSE)
 		jointype = JOIN_INNER;
 
 	foreach(lc1, outerrel->partial_pathlist)
@@ -2309,8 +2308,6 @@ hash_inner_and_outer(PlannerInfo *root,
 			save_jointype != JOIN_UNIQUE_OUTER &&
 			save_jointype != JOIN_FULL &&
 			save_jointype != JOIN_RIGHT &&
-			save_jointype != JOIN_DEDUP_SEMI &&
-			save_jointype != JOIN_DEDUP_SEMI_REVERSE &&
 			outerrel->partial_pathlist != NIL &&
 			bms_is_empty(joinrel->lateral_relids))
 		{
