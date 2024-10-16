@@ -397,3 +397,30 @@ explain (verbose, costs off) select count(distinct (b)::text) as b, count(distin
 -- column '(a)::integer::varchar' as part of hash-key in Redistribute-Motion.
 select count(distinct (b)::text) as b, count(distinct (a)::int::varchar) as a from dqa_f3;
 explain (verbose, costs off) select count(distinct (b)::text) as b, count(distinct (a)::int::varchar) as a from dqa_f3;
+
+-- Test 3-phase agg for DISTINCT on distribution keys
+-- or DISTINCT when GROUP BY on distribution keys
+create table t_issue_659(a int, b int) using ao_row;
+insert into t_issue_659 select i from generate_series(1, 1000) i;
+insert into t_issue_659 select * from t_issue_659;
+insert into t_issue_659 select * from t_issue_659;
+insert into t_issue_659 select * from t_issue_659;
+insert into t_issue_659 select * from t_issue_659;
+insert into t_issue_659 select * from t_issue_659;
+insert into t_issue_659 select * from t_issue_659;
+insert into t_issue_659 select * from t_issue_659;
+insert into t_issue_659 select * from t_issue_659;
+insert into t_issue_659 select * from t_issue_659;
+insert into t_issue_659 select * from t_issue_659;
+insert into t_issue_659 select * from t_issue_659;
+insert into t_issue_659 select * from t_issue_659;
+analyze t_issue_659;
+explain(costs off)
+select count(distinct a) from t_issue_659;
+select count(distinct a) from t_issue_659;
+set gp_eager_distinct_dedup = on;
+explain(costs off)
+select count(distinct a) from t_issue_659;
+select count(distinct a) from t_issue_659;
+reset gp_eager_distinct_dedup;
+drop table t_issue_659;

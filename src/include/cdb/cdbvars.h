@@ -690,6 +690,8 @@ extern bool		gp_statistics_use_fkeys;
 /* Allow user to force tow stage agg */
 extern bool     gp_eager_two_phase_agg;
 
+extern bool     gp_eager_distinct_dedup;
+
 /* Force redistribution of insert into randomly-distributed table */
 extern bool     gp_force_random_redistribution;
 
