@@ -2115,13 +2115,13 @@ explain (analyze, costs off, summary off, timing off) execute ab_q1 (2, 2, 3);
                             QUERY PLAN                            
 ------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          Subplans Removed: 6
-         ->  Seq Scan on ab_a2_b1 ab_1 (never executed)
+         ->  Seq Scan on ab_a2_b1 ab_1 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b <= $3))
-         ->  Seq Scan on ab_a2_b2 ab_2 (never executed)
+         ->  Seq Scan on ab_a2_b2 ab_2 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b <= $3))
-         ->  Seq Scan on ab_a2_b3 ab_3 (never executed)
+         ->  Seq Scan on ab_a2_b3 ab_3 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b <= $3))
  Optimizer: Postgres query optimizer
 (10 rows)
@@ -2130,19 +2130,19 @@ explain (analyze, costs off, summary off, timing off) execute ab_q1 (1, 2, 3);
                             QUERY PLAN                            
 ------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          Subplans Removed: 3
-         ->  Seq Scan on ab_a1_b1 ab_1 (never executed)
+         ->  Seq Scan on ab_a1_b1 ab_1 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b <= $3))
-         ->  Seq Scan on ab_a1_b2 ab_2 (never executed)
+         ->  Seq Scan on ab_a1_b2 ab_2 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b <= $3))
-         ->  Seq Scan on ab_a1_b3 ab_3 (never executed)
+         ->  Seq Scan on ab_a1_b3 ab_3 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b <= $3))
-         ->  Seq Scan on ab_a2_b1 ab_4 (never executed)
+         ->  Seq Scan on ab_a2_b1 ab_4 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b <= $3))
-         ->  Seq Scan on ab_a2_b2 ab_5 (never executed)
+         ->  Seq Scan on ab_a2_b2 ab_5 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b <= $3))
-         ->  Seq Scan on ab_a2_b3 ab_6 (never executed)
+         ->  Seq Scan on ab_a2_b3 ab_6 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b <= $3))
  Optimizer: Postgres query optimizer
 (16 rows)
@@ -2155,11 +2155,11 @@ explain (analyze, costs off, summary off, timing off) execute ab_q1 (2, 2);
                             QUERY PLAN                            
 ------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          Subplans Removed: 4
-         ->  Seq Scan on ab_a2_b1 ab_1 (never executed)
+         ->  Seq Scan on ab_a2_b1 ab_1 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b < 3))
-         ->  Seq Scan on ab_a2_b2 ab_2 (never executed)
+         ->  Seq Scan on ab_a2_b2 ab_2 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b < 3))
  Optimizer: Postgres query optimizer
 (8 rows)
@@ -2168,15 +2168,15 @@ explain (analyze, costs off, summary off, timing off) execute ab_q1 (2, 4);
                             QUERY PLAN                            
 ------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          Subplans Removed: 2
-         ->  Seq Scan on ab_a2_b1 ab_1 (never executed)
+         ->  Seq Scan on ab_a2_b1 ab_1 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b < 3))
-         ->  Seq Scan on ab_a2_b2 ab_2 (never executed)
+         ->  Seq Scan on ab_a2_b2 ab_2 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b < 3))
-         ->  Seq Scan on ab_a3_b1 ab_3 (never executed)
+         ->  Seq Scan on ab_a3_b1 ab_3 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b < 3))
-         ->  Seq Scan on ab_a3_b2 ab_4 (never executed)
+         ->  Seq Scan on ab_a3_b2 ab_4 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b < 3))
  Optimizer: Postgres query optimizer
 (12 rows)
@@ -2191,11 +2191,11 @@ explain (analyze, costs off, summary off, timing off) execute ab_q2 (2, 2);
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
    InitPlan 1 (returns $0)  (slice2)
      ->  Result (actual rows=1 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          Subplans Removed: 6
-         ->  Seq Scan on ab_a2_b1 ab_1 (never executed)
+         ->  Seq Scan on ab_a2_b1 ab_1 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b < $0))
-         ->  Seq Scan on ab_a2_b2 ab_2 (never executed)
+         ->  Seq Scan on ab_a2_b2 ab_2 (actual rows=0 loops=1)
                Filter: ((a >= $1) AND (a <= $2) AND (b < $0))
          ->  Seq Scan on ab_a2_b3 ab_3 (never executed)
                Filter: ((a >= $1) AND (a <= $2) AND (b < $0))
@@ -2211,11 +2211,11 @@ explain (analyze, costs off, summary off, timing off) execute ab_q3 (2, 2);
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
    InitPlan 1 (returns $0)  (slice2)
      ->  Result (actual rows=1 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          Subplans Removed: 6
-         ->  Seq Scan on ab_a1_b2 ab_1 (never executed)
+         ->  Seq Scan on ab_a1_b2 ab_1 (actual rows=0 loops=1)
                Filter: ((b >= $1) AND (b <= $2) AND (a < $0))
-         ->  Seq Scan on ab_a2_b2 ab_2 (never executed)
+         ->  Seq Scan on ab_a2_b2 ab_2 (actual rows=0 loops=1)
                Filter: ((b >= $1) AND (b <= $2) AND (a < $0))
          ->  Seq Scan on ab_a3_b2 ab_3 (never executed)
                Filter: ((b >= $1) AND (b <= $2) AND (a < $0))
@@ -2275,17 +2275,20 @@ explain (analyze, costs off, summary off, timing off) select * from list_part wh
                             QUERY PLAN                            
 ------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
-         ->  Seq Scan on list_part1 (never executed)
+   ->  Append (actual rows=0 loops=1)
+         ->  Seq Scan on list_part1 (actual rows=0 loops=1)
                Filter: (a = (1 + a))
-         ->  Seq Scan on list_part2 (never executed)
+         ->  Seq Scan on list_part2 (actual rows=0 loops=1)
                Filter: (a = (1 + a))
-         ->  Seq Scan on list_part3 (never executed)
+               Rows Removed by Filter: 1
+         ->  Seq Scan on list_part3 (actual rows=0 loops=1)
                Filter: (a = (1 + a))
-         ->  Seq Scan on list_part4 (never executed)
+               Rows Removed by Filter: 1
+         ->  Seq Scan on list_part4 (actual rows=0 loops=1)
                Filter: (a = (1 + a))
+               Rows Removed by Filter: 1
  Optimizer: Pivotal Optimizer (GPORCA)
-(11 rows)
+(14 rows)
 
 rollback;
 drop table list_part;
@@ -2325,18 +2328,18 @@ set parallel_tuple_cost = 0;
 set min_parallel_table_scan_size = 0;
 set max_parallel_workers_per_gather = 2;
 select explain_parallel_append('execute ab_q4 (2, 2)');
-                         explain_parallel_append                         
--------------------------------------------------------------------------
+                          explain_parallel_append                          
+---------------------------------------------------------------------------
  Finalize Aggregate (actual rows=N loops=N)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=N loops=N)
          ->  Partial Aggregate (actual rows=N loops=N)
-               ->  Append (never executed)
+               ->  Append (actual rows=N loops=N)
                      Subplans Removed: 6
-                     ->  Seq Scan on ab_a2_b1 ab_1 (never executed)
+                     ->  Seq Scan on ab_a2_b1 ab_1 (actual rows=N loops=N)
                            Filter: ((a >= $1) AND (a <= $2) AND (b < 4))
-                     ->  Seq Scan on ab_a2_b2 ab_2 (never executed)
+                     ->  Seq Scan on ab_a2_b2 ab_2 (actual rows=N loops=N)
                            Filter: ((a >= $1) AND (a <= $2) AND (b < 4))
-                     ->  Seq Scan on ab_a2_b3 ab_3 (never executed)
+                     ->  Seq Scan on ab_a2_b3 ab_3 (actual rows=N loops=N)
                            Filter: ((a >= $1) AND (a <= $2) AND (b < 4))
  Optimizer: Postgres query optimizer
 (12 rows)
@@ -2350,13 +2353,13 @@ select explain_parallel_append('execute ab_q5 (1, 1, 1)');
  Finalize Aggregate (actual rows=N loops=N)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=N loops=N)
          ->  Partial Aggregate (actual rows=N loops=N)
-               ->  Append (never executed)
+               ->  Append (actual rows=N loops=N)
                      Subplans Removed: 6
-                     ->  Seq Scan on ab_a1_b1 ab_1 (never executed)
+                     ->  Seq Scan on ab_a1_b1 ab_1 (actual rows=N loops=N)
                            Filter: ((b < 4) AND (a = ANY (ARRAY[$1, $2, $3])))
-                     ->  Seq Scan on ab_a1_b2 ab_2 (never executed)
+                     ->  Seq Scan on ab_a1_b2 ab_2 (actual rows=N loops=N)
                            Filter: ((b < 4) AND (a = ANY (ARRAY[$1, $2, $3])))
-                     ->  Seq Scan on ab_a1_b3 ab_3 (never executed)
+                     ->  Seq Scan on ab_a1_b3 ab_3 (actual rows=N loops=N)
                            Filter: ((b < 4) AND (a = ANY (ARRAY[$1, $2, $3])))
  Optimizer: Postgres query optimizer
 (12 rows)
@@ -2367,19 +2370,19 @@ select explain_parallel_append('execute ab_q5 (2, 3, 3)');
  Finalize Aggregate (actual rows=N loops=N)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=N loops=N)
          ->  Partial Aggregate (actual rows=N loops=N)
-               ->  Append (never executed)
+               ->  Append (actual rows=N loops=N)
                      Subplans Removed: 3
-                     ->  Seq Scan on ab_a2_b1 ab_1 (never executed)
+                     ->  Seq Scan on ab_a2_b1 ab_1 (actual rows=N loops=N)
                            Filter: ((b < 4) AND (a = ANY (ARRAY[$1, $2, $3])))
-                     ->  Seq Scan on ab_a2_b2 ab_2 (never executed)
+                     ->  Seq Scan on ab_a2_b2 ab_2 (actual rows=N loops=N)
                            Filter: ((b < 4) AND (a = ANY (ARRAY[$1, $2, $3])))
-                     ->  Seq Scan on ab_a2_b3 ab_3 (never executed)
+                     ->  Seq Scan on ab_a2_b3 ab_3 (actual rows=N loops=N)
                            Filter: ((b < 4) AND (a = ANY (ARRAY[$1, $2, $3])))
-                     ->  Seq Scan on ab_a3_b1 ab_4 (never executed)
+                     ->  Seq Scan on ab_a3_b1 ab_4 (actual rows=N loops=N)
                            Filter: ((b < 4) AND (a = ANY (ARRAY[$1, $2, $3])))
-                     ->  Seq Scan on ab_a3_b2 ab_5 (never executed)
+                     ->  Seq Scan on ab_a3_b2 ab_5 (actual rows=N loops=N)
                            Filter: ((b < 4) AND (a = ANY (ARRAY[$1, $2, $3])))
-                     ->  Seq Scan on ab_a3_b3 ab_6 (never executed)
+                     ->  Seq Scan on ab_a3_b3 ab_6 (actual rows=N loops=N)
                            Filter: ((b < 4) AND (a = ANY (ARRAY[$1, $2, $3])))
  Optimizer: Postgres query optimizer
 (18 rows)
@@ -2391,15 +2394,15 @@ select explain_parallel_append('execute ab_q5 (33, 44, 55)');
  Finalize Aggregate (actual rows=N loops=N)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=N loops=N)
          ->  Partial Aggregate (actual rows=N loops=N)
-               ->  Append (never executed)
+               ->  Append (actual rows=N loops=N)
                      Subplans Removed: 9
  Optimizer: Postgres query optimizer
 (6 rows)
 
 -- Test Parallel Append with PARAM_EXEC Params
 select explain_parallel_append('select count(*) from ab where (a = (select 1) or a = (select 3)) and b = 2');
-                        explain_parallel_append                         
-------------------------------------------------------------------------
+                          explain_parallel_append                          
+---------------------------------------------------------------------------
  Finalize Aggregate (actual rows=N loops=N)
    InitPlan 1 (returns $0)  (slice2)
      ->  Result (actual rows=N loops=N)
@@ -2407,12 +2410,12 @@ select explain_parallel_append('select count(*) from ab where (a = (select 1) or
      ->  Result (actual rows=N loops=N)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=N loops=N)
          ->  Partial Aggregate (actual rows=N loops=N)
-               ->  Append (never executed)
-                     ->  Seq Scan on ab_a1_b2 ab_1 (never executed)
+               ->  Append (actual rows=N loops=N)
+                     ->  Seq Scan on ab_a1_b2 ab_1 (actual rows=N loops=N)
                            Filter: ((b = 2) AND ((a = $0) OR (a = $1)))
                      ->  Seq Scan on ab_a2_b2 ab_2 (never executed)
                            Filter: ((b = 2) AND ((a = $0) OR (a = $1)))
-                     ->  Seq Scan on ab_a3_b2 ab_3 (never executed)
+                     ->  Seq Scan on ab_a3_b2 ab_3 (actual rows=N loops=N)
                            Filter: ((b = 2) AND ((a = $0) OR (a = $1)))
  Optimizer: Postgres query optimizer
 (15 rows)
@@ -2437,29 +2440,29 @@ set enable_hashjoin = 0;
 set enable_mergejoin = 0;
 set enable_memoize = 0;
 select explain_parallel_append('select avg(ab.a) from ab inner join lprt_a a on ab.a = a.a where a.a in(0, 0, 1)');
-                                    explain_parallel_append                                     
-------------------------------------------------------------------------------------------------
+                                        explain_parallel_append                                        
+-------------------------------------------------------------------------------------------------------
  Finalize Aggregate (actual rows=N loops=N)
    ->  Gather Motion 1:1  (slice1; segments: 1) (actual rows=N loops=N)
          ->  Partial Aggregate (actual rows=N loops=N)
-               ->  Merge Join (never executed)
+               ->  Merge Join (actual rows=N loops=N)
                      Merge Cond: (ab.a = a.a)
-                     ->  Sort (never executed)
+                     ->  Sort (actual rows=N loops=N)
                            Sort Key: ab.a
-                           Sort Method:  quicksort  Memory: 50kB
-                           ->  Append (never executed)
+                           Sort Method:  quicksort  Memory: 25kB
+                           ->  Append (actual rows=N loops=N)
                                  Partition Selectors: $0
-                                 ->  Bitmap Heap Scan on ab_a1_b1 ab_1 (never executed)
+                                 ->  Bitmap Heap Scan on ab_a1_b1 ab_1 (actual rows=N loops=N)
                                        Recheck Cond: (a = ANY ('{0,0,1}'::integer[]))
-                                       ->  Bitmap Index Scan on ab_a1_b1_a_idx (never executed)
+                                       ->  Bitmap Index Scan on ab_a1_b1_a_idx (actual rows=N loops=N)
                                              Index Cond: (a = ANY ('{0,0,1}'::integer[]))
-                                 ->  Bitmap Heap Scan on ab_a1_b2 ab_2 (never executed)
+                                 ->  Bitmap Heap Scan on ab_a1_b2 ab_2 (actual rows=N loops=N)
                                        Recheck Cond: (a = ANY ('{0,0,1}'::integer[]))
-                                       ->  Bitmap Index Scan on ab_a1_b2_a_idx (never executed)
+                                       ->  Bitmap Index Scan on ab_a1_b2_a_idx (actual rows=N loops=N)
                                              Index Cond: (a = ANY ('{0,0,1}'::integer[]))
-                                 ->  Bitmap Heap Scan on ab_a1_b3 ab_3 (never executed)
+                                 ->  Bitmap Heap Scan on ab_a1_b3 ab_3 (actual rows=N loops=N)
                                        Recheck Cond: (a = ANY ('{0,0,1}'::integer[]))
-                                       ->  Bitmap Index Scan on ab_a1_b3_a_idx (never executed)
+                                       ->  Bitmap Index Scan on ab_a1_b3_a_idx (actual rows=N loops=N)
                                              Index Cond: (a = ANY ('{0,0,1}'::integer[]))
                      ->  Sort (actual rows=N loops=N)
                            Sort Key: a.a
@@ -2473,22 +2476,22 @@ select explain_parallel_append('select avg(ab.a) from ab inner join lprt_a a on 
 -- Ensure the same partitions are pruned when we make the nested loop
 -- parameter an Expr rather than a plain Param.
 select explain_parallel_append('select avg(ab.a) from ab inner join lprt_a a on ab.a = a.a + 0 where a.a in(0, 0, 1)');
-                                     explain_parallel_append                                     
--------------------------------------------------------------------------------------------------
+                                        explain_parallel_append                                         
+--------------------------------------------------------------------------------------------------------
  Finalize Aggregate (actual rows=N loops=N)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=N loops=N)
          ->  Partial Aggregate (actual rows=N loops=N)
-               ->  Nested Loop (never executed)
+               ->  Nested Loop (actual rows=N loops=N)
                      ->  Redistribute Motion 1:3  (slice2; segments: 1) (actual rows=N loops=N)
                            Hash Key: (a.a + 0)
                            ->  Seq Scan on lprt_a a (actual rows=N loops=N)
                                  Filter: (a = ANY ('{0,0,1}'::integer[]))
-                     ->  Append (never executed)
-                           ->  Index Scan using ab_a1_b1_a_idx on ab_a1_b1 ab_1 (never executed)
+                     ->  Append (actual rows=N loops=N)
+                           ->  Index Scan using ab_a1_b1_a_idx on ab_a1_b1 ab_1 (actual rows=N loops=N)
                                  Index Cond: (a = (a.a + 0))
-                           ->  Index Scan using ab_a1_b2_a_idx on ab_a1_b2 ab_2 (never executed)
+                           ->  Index Scan using ab_a1_b2_a_idx on ab_a1_b2 ab_2 (actual rows=N loops=N)
                                  Index Cond: (a = (a.a + 0))
-                           ->  Index Scan using ab_a1_b3_a_idx on ab_a1_b3 ab_3 (never executed)
+                           ->  Index Scan using ab_a1_b3_a_idx on ab_a1_b3 ab_3 (actual rows=N loops=N)
                                  Index Cond: (a = (a.a + 0))
                            ->  Index Scan using ab_a2_b1_a_idx on ab_a2_b1 ab_4 (never executed)
                                  Index Cond: (a = (a.a + 0))
@@ -2507,41 +2510,41 @@ select explain_parallel_append('select avg(ab.a) from ab inner join lprt_a a on 
 
 insert into lprt_a values(3),(3);
 select explain_parallel_append('select avg(ab.a) from ab inner join lprt_a a on ab.a = a.a where a.a in(1, 0, 3)');
-                                    explain_parallel_append                                     
-------------------------------------------------------------------------------------------------
+                                        explain_parallel_append                                        
+-------------------------------------------------------------------------------------------------------
  Finalize Aggregate (actual rows=N loops=N)
    ->  Gather Motion 2:1  (slice1; segments: 2) (actual rows=N loops=N)
          ->  Partial Aggregate (actual rows=N loops=N)
-               ->  Merge Join (never executed)
+               ->  Merge Join (actual rows=N loops=N)
                      Merge Cond: (ab.a = a.a)
-                     ->  Sort (never executed)
+                     ->  Sort (actual rows=N loops=N)
                            Sort Key: ab.a
-                           Sort Method:  quicksort  Memory: 100kB
-                           ->  Append (never executed)
+                           Sort Method:  quicksort  Memory: 50kB
+                           ->  Append (actual rows=N loops=N)
                                  Partition Selectors: $0
-                                 ->  Bitmap Heap Scan on ab_a1_b1 ab_1 (never executed)
+                                 ->  Bitmap Heap Scan on ab_a1_b1 ab_1 (actual rows=N loops=N)
                                        Recheck Cond: (a = ANY ('{1,0,3}'::integer[]))
-                                       ->  Bitmap Index Scan on ab_a1_b1_a_idx (never executed)
+                                       ->  Bitmap Index Scan on ab_a1_b1_a_idx (actual rows=N loops=N)
                                              Index Cond: (a = ANY ('{1,0,3}'::integer[]))
-                                 ->  Bitmap Heap Scan on ab_a1_b2 ab_2 (never executed)
+                                 ->  Bitmap Heap Scan on ab_a1_b2 ab_2 (actual rows=N loops=N)
                                        Recheck Cond: (a = ANY ('{1,0,3}'::integer[]))
-                                       ->  Bitmap Index Scan on ab_a1_b2_a_idx (never executed)
+                                       ->  Bitmap Index Scan on ab_a1_b2_a_idx (actual rows=N loops=N)
                                              Index Cond: (a = ANY ('{1,0,3}'::integer[]))
-                                 ->  Bitmap Heap Scan on ab_a1_b3 ab_3 (never executed)
+                                 ->  Bitmap Heap Scan on ab_a1_b3 ab_3 (actual rows=N loops=N)
                                        Recheck Cond: (a = ANY ('{1,0,3}'::integer[]))
-                                       ->  Bitmap Index Scan on ab_a1_b3_a_idx (never executed)
+                                       ->  Bitmap Index Scan on ab_a1_b3_a_idx (actual rows=N loops=N)
                                              Index Cond: (a = ANY ('{1,0,3}'::integer[]))
-                                 ->  Bitmap Heap Scan on ab_a3_b1 ab_4 (never executed)
+                                 ->  Bitmap Heap Scan on ab_a3_b1 ab_4 (actual rows=N loops=N)
                                        Recheck Cond: (a = ANY ('{1,0,3}'::integer[]))
-                                       ->  Bitmap Index Scan on ab_a3_b1_a_idx (never executed)
+                                       ->  Bitmap Index Scan on ab_a3_b1_a_idx (actual rows=N loops=N)
                                              Index Cond: (a = ANY ('{1,0,3}'::integer[]))
-                                 ->  Bitmap Heap Scan on ab_a3_b2 ab_5 (never executed)
+                                 ->  Bitmap Heap Scan on ab_a3_b2 ab_5 (actual rows=N loops=N)
                                        Recheck Cond: (a = ANY ('{1,0,3}'::integer[]))
-                                       ->  Bitmap Index Scan on ab_a3_b2_a_idx (never executed)
+                                       ->  Bitmap Index Scan on ab_a3_b2_a_idx (actual rows=N loops=N)
                                              Index Cond: (a = ANY ('{1,0,3}'::integer[]))
-                                 ->  Bitmap Heap Scan on ab_a3_b3 ab_6 (never executed)
+                                 ->  Bitmap Heap Scan on ab_a3_b3 ab_6 (actual rows=N loops=N)
                                        Recheck Cond: (a = ANY ('{1,0,3}'::integer[]))
-                                       ->  Bitmap Index Scan on ab_a3_b3_a_idx (never executed)
+                                       ->  Bitmap Index Scan on ab_a3_b3_a_idx (actual rows=N loops=N)
                                              Index Cond: (a = ANY ('{1,0,3}'::integer[]))
                      ->  Sort (actual rows=N loops=N)
                            Sort Key: a.a
@@ -2553,29 +2556,29 @@ select explain_parallel_append('select avg(ab.a) from ab inner join lprt_a a on 
 (41 rows)
 
 select explain_parallel_append('select avg(ab.a) from ab inner join lprt_a a on ab.a = a.a where a.a in(1, 0, 0)');
-                                    explain_parallel_append                                     
-------------------------------------------------------------------------------------------------
+                                        explain_parallel_append                                        
+-------------------------------------------------------------------------------------------------------
  Finalize Aggregate (actual rows=N loops=N)
    ->  Gather Motion 1:1  (slice1; segments: 1) (actual rows=N loops=N)
          ->  Partial Aggregate (actual rows=N loops=N)
-               ->  Merge Join (never executed)
+               ->  Merge Join (actual rows=N loops=N)
                      Merge Cond: (ab.a = a.a)
-                     ->  Sort (never executed)
+                     ->  Sort (actual rows=N loops=N)
                            Sort Key: ab.a
-                           Sort Method:  quicksort  Memory: 50kB
-                           ->  Append (never executed)
+                           Sort Method:  quicksort  Memory: 25kB
+                           ->  Append (actual rows=N loops=N)
                                  Partition Selectors: $0
-                                 ->  Bitmap Heap Scan on ab_a1_b1 ab_1 (never executed)
+                                 ->  Bitmap Heap Scan on ab_a1_b1 ab_1 (actual rows=N loops=N)
                                        Recheck Cond: (a = ANY ('{1,0,0}'::integer[]))
-                                       ->  Bitmap Index Scan on ab_a1_b1_a_idx (never executed)
+                                       ->  Bitmap Index Scan on ab_a1_b1_a_idx (actual rows=N loops=N)
                                              Index Cond: (a = ANY ('{1,0,0}'::integer[]))
-                                 ->  Bitmap Heap Scan on ab_a1_b2 ab_2 (never executed)
+                                 ->  Bitmap Heap Scan on ab_a1_b2 ab_2 (actual rows=N loops=N)
                                        Recheck Cond: (a = ANY ('{1,0,0}'::integer[]))
-                                       ->  Bitmap Index Scan on ab_a1_b2_a_idx (never executed)
+                                       ->  Bitmap Index Scan on ab_a1_b2_a_idx (actual rows=N loops=N)
                                              Index Cond: (a = ANY ('{1,0,0}'::integer[]))
-                                 ->  Bitmap Heap Scan on ab_a1_b3 ab_3 (never executed)
+                                 ->  Bitmap Heap Scan on ab_a1_b3 ab_3 (actual rows=N loops=N)
                                        Recheck Cond: (a = ANY ('{1,0,0}'::integer[]))
-                                       ->  Bitmap Index Scan on ab_a1_b3_a_idx (never executed)
+                                       ->  Bitmap Index Scan on ab_a1_b3_a_idx (actual rows=N loops=N)
                                              Index Cond: (a = ANY ('{1,0,0}'::integer[]))
                      ->  Sort (actual rows=N loops=N)
                            Sort Key: a.a
@@ -2593,12 +2596,12 @@ select explain_parallel_append('select avg(ab.a) from ab inner join lprt_a a on 
  Finalize Aggregate (actual rows=N loops=N)
    ->  Gather Motion 1:1  (slice1; segments: 1) (actual rows=N loops=N)
          ->  Partial Aggregate (actual rows=N loops=N)
-               ->  Merge Join (never executed)
+               ->  Merge Join (actual rows=N loops=N)
                      Merge Cond: (ab.a = a.a)
-                     ->  Sort (never executed)
+                     ->  Sort (actual rows=N loops=N)
                            Sort Key: ab.a
-                           Sort Method:  quicksort  Memory: 50kB
-                           ->  Append (never executed)
+                           Sort Method:  quicksort  Memory: 25kB
+                           ->  Append (actual rows=N loops=N)
                                  Partition Selectors: $0
                                  ->  Bitmap Heap Scan on ab_a1_b1 ab_1 (never executed)
                                        Recheck Cond: (a = ANY ('{1,0,0}'::integer[]))
@@ -2644,7 +2647,7 @@ select * from ab where a = (select max(a) from lprt_a) and b = (select max(a)-1 
            ->  Gather Motion 3:1  (slice5; segments: 3) (actual rows=3 loops=1)
                  ->  Partial Aggregate (actual rows=1 loops=1)
                        ->  Seq Scan on lprt_a lprt_a_1 (actual rows=100 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          ->  Bitmap Heap Scan on ab_a1_b1 ab_1 (never executed)
                Recheck Cond: (a = $0)
                Filter: (b = $1)
@@ -2680,10 +2683,10 @@ select * from ab where a = (select max(a) from lprt_a) and b = (select max(a)-1 
                Filter: (b = $1)
                ->  Bitmap Index Scan on ab_a3_b1_a_idx (never executed)
                      Index Cond: (a = $0)
-         ->  Bitmap Heap Scan on ab_a3_b2 ab_8 (never executed)
+         ->  Bitmap Heap Scan on ab_a3_b2 ab_8 (actual rows=0 loops=1)
                Recheck Cond: (a = $0)
                Filter: (b = $1)
-               ->  Bitmap Index Scan on ab_a3_b2_a_idx (never executed)
+               ->  Bitmap Index Scan on ab_a3_b2_a_idx (actual rows=0 loops=1)
                      Index Cond: (a = $0)
          ->  Bitmap Heap Scan on ab_a3_b3 ab_9 (never executed)
                Recheck Cond: (a = $0)
@@ -2701,12 +2704,12 @@ select * from (select * from ab where a = 1 union all select * from ab) ab where
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
    InitPlan 1 (returns $0)  (slice2)
      ->  Result (actual rows=1 loops=1)
-   ->  Append (never executed)
-         ->  Append (never executed)
-               ->  Bitmap Heap Scan on ab_a1_b1 ab_11 (never executed)
+   ->  Append (actual rows=0 loops=1)
+         ->  Append (actual rows=0 loops=1)
+               ->  Bitmap Heap Scan on ab_a1_b1 ab_11 (actual rows=0 loops=1)
                      Recheck Cond: (a = 1)
                      Filter: (b = $0)
-                     ->  Bitmap Index Scan on ab_a1_b1_a_idx (never executed)
+                     ->  Bitmap Index Scan on ab_a1_b1_a_idx (actual rows=0 loops=1)
                            Index Cond: (a = 1)
                ->  Bitmap Heap Scan on ab_a1_b2 ab_12 (never executed)
                      Recheck Cond: (a = 1)
@@ -2718,19 +2721,19 @@ select * from (select * from ab where a = 1 union all select * from ab) ab where
                      Filter: (b = $0)
                      ->  Bitmap Index Scan on ab_a1_b3_a_idx (never executed)
                            Index Cond: (a = 1)
-         ->  Seq Scan on ab_a1_b1 ab_1 (never executed)
+         ->  Seq Scan on ab_a1_b1 ab_1 (actual rows=0 loops=1)
                Filter: (b = $0)
          ->  Seq Scan on ab_a1_b2 ab_2 (never executed)
                Filter: (b = $0)
          ->  Seq Scan on ab_a1_b3 ab_3 (never executed)
                Filter: (b = $0)
-         ->  Seq Scan on ab_a2_b1 ab_4 (never executed)
+         ->  Seq Scan on ab_a2_b1 ab_4 (actual rows=0 loops=1)
                Filter: (b = $0)
          ->  Seq Scan on ab_a2_b2 ab_5 (never executed)
                Filter: (b = $0)
          ->  Seq Scan on ab_a2_b3 ab_6 (never executed)
                Filter: (b = $0)
-         ->  Seq Scan on ab_a3_b1 ab_7 (never executed)
+         ->  Seq Scan on ab_a3_b1 ab_7 (actual rows=0 loops=1)
                Filter: (b = $0)
          ->  Seq Scan on ab_a3_b2 ab_8 (never executed)
                Filter: (b = $0)
@@ -2747,12 +2750,12 @@ select * from (select * from ab where a = 1 union all (values(10,5)) union all s
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
    InitPlan 1 (returns $0)  (slice2)
      ->  Result (actual rows=1 loops=1)
-   ->  Append (never executed)
-         ->  Append (never executed)
-               ->  Bitmap Heap Scan on ab_a1_b1 ab_11 (never executed)
+   ->  Append (actual rows=0 loops=1)
+         ->  Append (actual rows=0 loops=1)
+               ->  Bitmap Heap Scan on ab_a1_b1 ab_11 (actual rows=0 loops=1)
                      Recheck Cond: (a = 1)
                      Filter: (b = $0)
-                     ->  Bitmap Index Scan on ab_a1_b1_a_idx (never executed)
+                     ->  Bitmap Index Scan on ab_a1_b1_a_idx (actual rows=0 loops=1)
                            Index Cond: (a = 1)
                ->  Bitmap Heap Scan on ab_a1_b2 ab_12 (never executed)
                      Recheck Cond: (a = 1)
@@ -2764,23 +2767,23 @@ select * from (select * from ab where a = 1 union all (values(10,5)) union all s
                      Filter: (b = $0)
                      ->  Bitmap Index Scan on ab_a1_b3_a_idx (never executed)
                            Index Cond: (a = 1)
-         ->  Result (never executed)
-               One-Time Filter: (gp_execution_segment() = 1)
-               ->  Result (never executed)
+         ->  Result (actual rows=0 loops=1)
+               One-Time Filter: (gp_execution_segment() = 0)
+               ->  Result (actual rows=0 loops=1)
                      One-Time Filter: (5 = $0)
-         ->  Seq Scan on ab_a1_b1 ab_1 (never executed)
+         ->  Seq Scan on ab_a1_b1 ab_1 (actual rows=0 loops=1)
                Filter: (b = $0)
          ->  Seq Scan on ab_a1_b2 ab_2 (never executed)
                Filter: (b = $0)
          ->  Seq Scan on ab_a1_b3 ab_3 (never executed)
                Filter: (b = $0)
-         ->  Seq Scan on ab_a2_b1 ab_4 (never executed)
+         ->  Seq Scan on ab_a2_b1 ab_4 (actual rows=0 loops=1)
                Filter: (b = $0)
          ->  Seq Scan on ab_a2_b2 ab_5 (never executed)
                Filter: (b = $0)
          ->  Seq Scan on ab_a2_b3 ab_6 (never executed)
                Filter: (b = $0)
-         ->  Seq Scan on ab_a3_b1 ab_7 (never executed)
+         ->  Seq Scan on ab_a3_b1 ab_7 (actual rows=0 loops=1)
                Filter: (b = $0)
          ->  Seq Scan on ab_a3_b2 ab_8 (never executed)
                Filter: (b = $0)
@@ -2809,7 +2812,7 @@ explain (analyze, costs off, summary off, timing off) execute ab_q6(1);
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
    InitPlan 1 (returns $0)  (slice2)
      ->  Result (actual rows=1 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          Subplans Removed: 12
          ->  Seq Scan on ab_a1_b1 ab_1 (never executed)
                Filter: ((a = $1) AND (b = $0))
@@ -2817,7 +2820,7 @@ explain (analyze, costs off, summary off, timing off) execute ab_q6(1);
                Filter: ((a = $1) AND (b = $0))
          ->  Seq Scan on ab_a1_b3 ab_3 (never executed)
                Filter: ((a = $1) AND (b = $0))
-         ->  Seq Scan on xy_1 (never executed)
+         ->  Seq Scan on xy_1 (actual rows=0 loops=1)
                Filter: ((x = $1) AND (y = $0))
          ->  Seq Scan on ab_a1_b1 ab_4 (never executed)
                Filter: ((a = $1) AND (b = $0))
@@ -2849,35 +2852,35 @@ explain (analyze, costs off, summary off, timing off)
 update ab_a1 set b = 3 from ab where ab.a = 1 and ab.a = ab_a1.a;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
- Update on ab_a1 (never executed)
+ Update on ab_a1 (actual rows=0 loops=1)
    Update on ab_a1_b1 ab_a1_1
    Update on ab_a1_b2 ab_a1_2
    Update on ab_a1_b3 ab_a1_3
    ->  Nested Loop (actual rows=1 loops=1)
          ->  Append (actual rows=1 loops=1)
-               ->  Bitmap Heap Scan on ab_a1_b1 ab_a1_1 (never executed)
+               ->  Bitmap Heap Scan on ab_a1_b1 ab_a1_1 (actual rows=0 loops=1)
                      Recheck Cond: (a = 1)
-                     ->  Bitmap Index Scan on ab_a1_b1_a_idx (never executed)
+                     ->  Bitmap Index Scan on ab_a1_b1_a_idx (actual rows=0 loops=1)
                            Index Cond: (a = 1)
                ->  Bitmap Heap Scan on ab_a1_b2 ab_a1_2 (actual rows=1 loops=1)
                      Recheck Cond: (a = 1)
                      ->  Bitmap Index Scan on ab_a1_b2_a_idx (actual rows=1 loops=1)
                            Index Cond: (a = 1)
-               ->  Bitmap Heap Scan on ab_a1_b3 ab_a1_3 (never executed)
+               ->  Bitmap Heap Scan on ab_a1_b3 ab_a1_3 (actual rows=0 loops=1)
                      Recheck Cond: (a = 1)
                      ->  Bitmap Index Scan on ab_a1_b3_a_idx (actual rows=1 loops=1)
                            Index Cond: (a = 1)
          ->  Materialize (actual rows=1 loops=1)
                ->  Append (actual rows=1 loops=1)
-                     ->  Bitmap Heap Scan on ab_a1_b1 ab_1 (never executed)
+                     ->  Bitmap Heap Scan on ab_a1_b1 ab_1 (actual rows=0 loops=1)
                            Recheck Cond: (a = 1)
-                           ->  Bitmap Index Scan on ab_a1_b1_a_idx (never executed)
+                           ->  Bitmap Index Scan on ab_a1_b1_a_idx (actual rows=0 loops=1)
                                  Index Cond: (a = 1)
                      ->  Bitmap Heap Scan on ab_a1_b2 ab_2 (actual rows=1 loops=1)
                            Recheck Cond: (a = 1)
                            ->  Bitmap Index Scan on ab_a1_b2_a_idx (actual rows=1 loops=1)
                                  Index Cond: (a = 1)
-                     ->  Bitmap Heap Scan on ab_a1_b3 ab_3 (never executed)
+                     ->  Bitmap Heap Scan on ab_a1_b3 ab_3 (actual rows=0 loops=1)
                            Recheck Cond: (a = 1)
                            ->  Bitmap Index Scan on ab_a1_b3_a_idx (actual rows=1 loops=1)
                                  Index Cond: (a = 1)
@@ -2897,7 +2900,7 @@ explain (analyze, costs off, summary off, timing off)
 update ab_a1 set b = 3 from ab_a2 where ab_a2.b = (select 1);
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Update on ab_a1 (never executed)
+ Update on ab_a1 (actual rows=0 loops=1)
    Update on ab_a1_b1 ab_a1_1
    Update on ab_a1_b2 ab_a1_2
    Update on ab_a1_b3 ab_a1_3
@@ -2965,8 +2968,8 @@ select * from tbl1 join tprt on tbl1.col1 > tprt.col1;
                      ->  Seq Scan on tprt_1 (actual rows=1 loops=1)
                      ->  Seq Scan on tprt_2 (actual rows=2 loops=1)
                      ->  Seq Scan on tprt_3 (actual rows=1 loops=1)
-                     ->  Seq Scan on tprt_4 (never executed)
-                     ->  Seq Scan on tprt_5 (never executed)
+                     ->  Seq Scan on tprt_4 (actual rows=0 loops=1)
+                     ->  Seq Scan on tprt_5 (actual rows=0 loops=1)
                      ->  Seq Scan on tprt_6 (actual rows=1 loops=1)
          ->  Seq Scan on tbl1 (actual rows=1 loops=8)
  Optimizer: Pivotal Optimizer (GPORCA)
@@ -2987,11 +2990,11 @@ select * from tbl1 join tprt on tbl1.col1 = tprt.col1;
                      ->  Seq Scan on tprt_1 (actual rows=1 loops=1)
                      ->  Seq Scan on tprt_2 (actual rows=2 loops=1)
                      ->  Seq Scan on tprt_3 (actual rows=1 loops=1)
-                     ->  Seq Scan on tprt_4 (never executed)
-                     ->  Seq Scan on tprt_5 (never executed)
+                     ->  Seq Scan on tprt_4 (actual rows=0 loops=1)
+                     ->  Seq Scan on tprt_5 (actual rows=0 loops=1)
                      ->  Seq Scan on tprt_6 (actual rows=1 loops=1)
  Optimizer: Pivotal Optimizer (GPORCA)
-(14 rows)
+(15 rows)
 
 select tbl1.col1, tprt.col1 from tbl1
 inner join tprt on tbl1.col1 > tprt.col1
@@ -3030,8 +3033,8 @@ select * from tbl1 inner join tprt on tbl1.col1 > tprt.col1;
                      ->  Seq Scan on tprt_1 (actual rows=1 loops=1)
                      ->  Seq Scan on tprt_2 (actual rows=2 loops=1)
                      ->  Seq Scan on tprt_3 (actual rows=1 loops=1)
-                     ->  Seq Scan on tprt_4 (never executed)
-                     ->  Seq Scan on tprt_5 (never executed)
+                     ->  Seq Scan on tprt_4 (actual rows=0 loops=1)
+                     ->  Seq Scan on tprt_5 (actual rows=0 loops=1)
                      ->  Seq Scan on tprt_6 (actual rows=1 loops=1)
          ->  Seq Scan on tbl1 (actual rows=3 loops=8)
  Optimizer: Pivotal Optimizer (GPORCA)
@@ -3052,11 +3055,11 @@ select * from tbl1 inner join tprt on tbl1.col1 = tprt.col1;
                      ->  Seq Scan on tprt_1 (actual rows=1 loops=1)
                      ->  Seq Scan on tprt_2 (actual rows=2 loops=1)
                      ->  Seq Scan on tprt_3 (actual rows=1 loops=1)
-                     ->  Seq Scan on tprt_4 (never executed)
-                     ->  Seq Scan on tprt_5 (never executed)
+                     ->  Seq Scan on tprt_4 (actual rows=0 loops=1)
+                     ->  Seq Scan on tprt_5 (actual rows=0 loops=1)
                      ->  Seq Scan on tprt_6 (actual rows=1 loops=1)
  Optimizer: Pivotal Optimizer (GPORCA)
-(14 rows)
+(15 rows)
 
 select tbl1.col1, tprt.col1 from tbl1
 inner join tprt on tbl1.col1 > tprt.col1
@@ -3114,8 +3117,8 @@ select * from tbl1 join tprt on tbl1.col1 < tprt.col1;
                      ->  Seq Scan on tprt_1 (actual rows=1 loops=1)
                      ->  Seq Scan on tprt_2 (actual rows=2 loops=1)
                      ->  Seq Scan on tprt_3 (actual rows=1 loops=1)
-                     ->  Seq Scan on tprt_4 (never executed)
-                     ->  Seq Scan on tprt_5 (never executed)
+                     ->  Seq Scan on tprt_4 (actual rows=0 loops=1)
+                     ->  Seq Scan on tprt_5 (actual rows=0 loops=1)
                      ->  Seq Scan on tprt_6 (actual rows=1 loops=1)
          ->  Seq Scan on tbl1 (actual rows=1 loops=8)
  Optimizer: Pivotal Optimizer (GPORCA)
@@ -3138,7 +3141,7 @@ select * from tbl1 join tprt on tbl1.col1 = tprt.col1;
                              QUERY PLAN                             
 --------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Hash Join (never executed)
+   ->  Hash Join (actual rows=0 loops=1)
          Hash Cond: (tbl1.col1 = tprt_1.col1)
          ->  Seq Scan on tbl1 (actual rows=1 loops=1)
          ->  Hash (actual rows=3 loops=1)
@@ -3147,8 +3150,8 @@ select * from tbl1 join tprt on tbl1.col1 = tprt.col1;
                      ->  Seq Scan on tprt_1 (actual rows=1 loops=1)
                      ->  Seq Scan on tprt_2 (actual rows=2 loops=1)
                      ->  Seq Scan on tprt_3 (actual rows=1 loops=1)
-                     ->  Seq Scan on tprt_4 (never executed)
-                     ->  Seq Scan on tprt_5 (never executed)
+                     ->  Seq Scan on tprt_4 (actual rows=0 loops=1)
+                     ->  Seq Scan on tprt_5 (actual rows=0 loops=1)
                      ->  Seq Scan on tprt_6 (actual rows=1 loops=1)
  Optimizer: Pivotal Optimizer (GPORCA)
 (14 rows)
@@ -3180,7 +3183,7 @@ explain (analyze, costs off, summary off, timing off) execute part_abc_q1 (1, 2,
                             QUERY PLAN                            
 ------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Seq Scan on part_abc_p1 part_abc (never executed)
+   ->  Seq Scan on part_abc_p1 part_abc (actual rows=0 loops=1)
          Filter: ((a = $1) AND (b = $2) AND (c = $3))
  Optimizer: Postgres query optimizer
 (4 rows)
@@ -3207,9 +3210,9 @@ explain (analyze, costs off, summary off, timing off)  execute q1 (1,1);
                             QUERY PLAN                            
 ------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          Subplans Removed: 1
-         ->  Seq Scan on listp_1_1 listp_1 (never executed)
+         ->  Seq Scan on listp_1_1 listp_1 (actual rows=0 loops=1)
                Filter: (b = ANY (ARRAY[$1, $2]))
  Optimizer: Postgres query optimizer
 (6 rows)
@@ -3218,9 +3221,9 @@ explain (analyze, costs off, summary off, timing off)  execute q1 (2,2);
                             QUERY PLAN                            
 ------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          Subplans Removed: 1
-         ->  Seq Scan on listp_2_1 listp_1 (never executed)
+         ->  Seq Scan on listp_2_1 listp_1 (actual rows=0 loops=1)
                Filter: (b = ANY (ARRAY[$1, $2]))
  Optimizer: Postgres query optimizer
 (6 rows)
@@ -3230,7 +3233,7 @@ explain (analyze, costs off, summary off, timing off)  execute q1 (0,0);
                             QUERY PLAN                            
 ------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          Subplans Removed: 2
  Optimizer: Postgres query optimizer
 (4 rows)
@@ -3243,9 +3246,9 @@ explain (analyze, costs off, summary off, timing off)  execute q1 (1,2,2,0);
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          Subplans Removed: 1
-         ->  Seq Scan on listp_1_1 listp_1 (never executed)
+         ->  Seq Scan on listp_1_1 listp_1 (actual rows=0 loops=1)
                Filter: ((b = ANY (ARRAY[$1, $2])) AND ($3 <> b) AND ($4 <> b))
  Optimizer: Postgres query optimizer
 (6 rows)
@@ -3255,7 +3258,7 @@ explain (analyze, costs off, summary off, timing off)  execute q1 (1,2,2,1);
                             QUERY PLAN                            
 ------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          Subplans Removed: 2
  Optimizer: Postgres query optimizer
 (4 rows)
@@ -3268,7 +3271,7 @@ select * from listp where a = (select null::int);
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
    InitPlan 1 (returns $0)  (slice2)
      ->  Result (actual rows=1 loops=1)
-   ->  Append (never executed)
+   ->  Append (actual rows=0 loops=1)
          ->  Seq Scan on listp_1_1 listp_1 (never executed)
                Filter: (a = $0)
          ->  Seq Scan on listp_2_1 listp_2 (never executed)
@@ -3295,11 +3298,11 @@ select * from stable_qual_pruning where a < localtimestamp;
                                          QUERY PLAN                                         
 --------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
-         ->  Seq Scan on stable_qual_pruning1 (never executed)
-               Filter: (a < 'Tue Mar 16 06:49:12.723026 2021'::timestamp without time zone)
-         ->  Seq Scan on stable_qual_pruning2 (never executed)
-               Filter: (a < 'Tue Mar 16 06:49:12.723026 2021'::timestamp without time zone)
+   ->  Append (actual rows=0 loops=1)
+         ->  Seq Scan on stable_qual_pruning1 (actual rows=0 loops=1)
+               Filter: (a < 'Sun Oct 13 19:26:30.492983 2024'::timestamp without time zone)
+         ->  Seq Scan on stable_qual_pruning2 (actual rows=0 loops=1)
+               Filter: (a < 'Sun Oct 13 19:26:30.492983 2024'::timestamp without time zone)
  Optimizer: Pivotal Optimizer (GPORCA)
 (7 rows)
 
@@ -3309,8 +3312,8 @@ select * from stable_qual_pruning where a < '2000-02-01'::timestamptz;
                                       QUERY PLAN                                      
 --------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
-         ->  Seq Scan on stable_qual_pruning1 (never executed)
+   ->  Append (actual rows=0 loops=1)
+         ->  Seq Scan on stable_qual_pruning1 (actual rows=0 loops=1)
                Filter: (a < 'Tue Feb 01 00:00:00 2000 PST'::timestamp with time zone)
  Optimizer: Pivotal Optimizer (GPORCA)
 (5 rows)
@@ -3332,8 +3335,8 @@ select * from stable_qual_pruning
                                                          QUERY PLAN                                                         
 ----------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
-         ->  Seq Scan on stable_qual_pruning2 (never executed)
+   ->  Append (actual rows=0 loops=1)
+         ->  Seq Scan on stable_qual_pruning2 (actual rows=0 loops=1)
                Filter: (a = ANY ('{"Tue Feb 01 00:00:00 2000","Fri Jan 01 00:00:00 2010"}'::timestamp without time zone[]))
  Optimizer: Pivotal Optimizer (GPORCA)
 (5 rows)
@@ -3344,9 +3347,9 @@ select * from stable_qual_pruning
                                                             QUERY PLAN                                                            
 ----------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
-         ->  Seq Scan on stable_qual_pruning2 (never executed)
-               Filter: (a = ANY ('{"Tue Feb 01 00:00:00 2000","Tue Mar 16 06:49:12.74736 2021"}'::timestamp without time zone[]))
+   ->  Append (actual rows=0 loops=1)
+         ->  Seq Scan on stable_qual_pruning2 (actual rows=0 loops=1)
+               Filter: (a = ANY ('{"Tue Feb 01 00:00:00 2000","Sun Oct 13 19:26:30.555441 2024"}'::timestamp without time zone[]))
  Optimizer: Pivotal Optimizer (GPORCA)
 (5 rows)
 
@@ -3366,8 +3369,8 @@ select * from stable_qual_pruning
                                                            QUERY PLAN                                                            
 ---------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
-         ->  Seq Scan on stable_qual_pruning2 (never executed)
+   ->  Append (actual rows=0 loops=1)
+         ->  Seq Scan on stable_qual_pruning2 (actual rows=0 loops=1)
                Filter: (a = ANY ('{"Tue Feb 01 00:00:00 2000 PST","Fri Jan 01 00:00:00 2010 PST"}'::timestamp with time zone[]))
  Optimizer: Pivotal Optimizer (GPORCA)
 (5 rows)
@@ -3378,12 +3381,12 @@ select * from stable_qual_pruning
                              QUERY PLAN                             
 --------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Append (never executed)
-         ->  Seq Scan on stable_qual_pruning1 (never executed)
+   ->  Append (actual rows=0 loops=1)
+         ->  Seq Scan on stable_qual_pruning1 (actual rows=0 loops=1)
                Filter: (a = ANY (NULL::timestamp with time zone[]))
-         ->  Seq Scan on stable_qual_pruning2 (never executed)
+         ->  Seq Scan on stable_qual_pruning2 (actual rows=0 loops=1)
                Filter: (a = ANY (NULL::timestamp with time zone[]))
-         ->  Seq Scan on stable_qual_pruning3 (never executed)
+         ->  Seq Scan on stable_qual_pruning3 (actual rows=0 loops=1)
                Filter: (a = ANY (NULL::timestamp with time zone[]))
  Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
@@ -3470,7 +3473,7 @@ select * from boolp where a = (select value from boolvalues where value);
                                            QUERY PLAN                                           
 ------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Hash Join (never executed)
+   ->  Hash Join (actual rows=0 loops=1)
          Hash Cond: (boolvalues.value = boolp_f.a)
          ->  Redistribute Motion 1:3  (slice2) (never executed)
                ->  Assert (actual rows=1 loops=1)
@@ -3480,12 +3483,12 @@ select * from boolp where a = (select value from boolvalues where value);
                                  ->  Seq Scan on boolvalues (actual rows=1 loops=1)
                                        Filter: value
                                        Rows Removed by Filter: 1
-         ->  Hash (never executed)
+         ->  Hash (actual rows=0 loops=1)
                Buckets: 262144  Batches: 1  Memory Usage: 2048kB
-               ->  Broadcast Motion 3:3  (slice4; segments: 3) (never executed)
-                     ->  Append (never executed)
-                           ->  Seq Scan on boolp_f (never executed)
-                           ->  Seq Scan on boolp_t (never executed)
+               ->  Broadcast Motion 3:3  (slice4; segments: 3) (actual rows=0 loops=1)
+                     ->  Append (actual rows=0 loops=1)
+                           ->  Seq Scan on boolp_f (actual rows=0 loops=1)
+                           ->  Seq Scan on boolp_t (actual rows=0 loops=1)
  Optimizer: Pivotal Optimizer (GPORCA)
 (18 rows)
 
@@ -3494,7 +3497,7 @@ select * from boolp where a = (select value from boolvalues where not value);
                                            QUERY PLAN                                           
 ------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
-   ->  Hash Join (never executed)
+   ->  Hash Join (actual rows=0 loops=1)
          Hash Cond: (boolvalues.value = boolp_f.a)
          ->  Redistribute Motion 1:3  (slice2) (never executed)
                ->  Assert (actual rows=1 loops=1)
@@ -3504,12 +3507,12 @@ select * from boolp where a = (select value from boolvalues where not value);
                                  ->  Seq Scan on boolvalues (actual rows=1 loops=1)
                                        Filter: (NOT value)
                                        Rows Removed by Filter: 1
-         ->  Hash (never executed)
+         ->  Hash (actual rows=0 loops=1)
                Buckets: 262144  Batches: 1  Memory Usage: 2048kB
-               ->  Broadcast Motion 3:3  (slice4; segments: 3) (never executed)
-                     ->  Append (never executed)
-                           ->  Seq Scan on boolp_f (never executed)
-                           ->  Seq Scan on boolp_t (never executed)
+               ->  Broadcast Motion 3:3  (slice4; segments: 3) (actual rows=0 loops=1)
+                     ->  Append (actual rows=0 loops=1)
+                           ->  Seq Scan on boolp_f (actual rows=0 loops=1)
+                           ->  Seq Scan on boolp_t (actual rows=0 loops=1)
  Optimizer: Pivotal Optimizer (GPORCA)
 (18 rows)
 
@@ -3577,7 +3580,7 @@ explain (analyze, costs off, summary off, timing off) execute mt_q1(35);
 ------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
    Merge Key: ma_test.b
-   ->  Merge Append (never executed)
+   ->  Merge Append (actual rows=0 loops=1)
          Sort Key: ma_test.b
          Subplans Removed: 3
  Optimizer: Postgres query optimizer
@@ -3599,9 +3602,9 @@ explain (analyze, verbose, costs off, summary off, timing off) execute mt_q2 (35
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
          Output: ma_test.a, ma_test.b
          Merge Key: ma_test.b
-         ->  Limit (never executed)
+         ->  Limit (actual rows=0 loops=1)
                Output: ma_test.a, ma_test.b
-               ->  Merge Append (never executed)
+               ->  Merge Append (actual rows=0 loops=1)
                      Sort Key: ma_test.b
                      Subplans Removed: 3
  Settings: enable_hashjoin = 'off', enable_indexonlyscan = 'off', enable_mergejoin = 'off', enable_seqscan = 'off', enable_sort = 'off', optimizer = 'on', plan_cache_mode = 'force_generic_plan'
@@ -4134,7 +4137,7 @@ select * from listp where a = (select 2) and b <> 10;
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=0 loops=1)
    InitPlan 1 (returns $0)  (slice2)
      ->  Result (actual rows=1 loops=1)
-   ->  Seq Scan on listp1 listp (never executed)
+   ->  Seq Scan on listp1 listp (actual rows=0 loops=1)
          Filter: ((b <> 10) AND (a = $0))
  Optimizer: Postgres query optimizer
 (6 rows)
@@ -4214,13 +4217,13 @@ alter table listp_12_1 set (parallel_workers = 0);
 -- Ensure that listp_12_2 is not scanned.  (The nested Append is not seen in
 -- the plan as it's pulled in setref.c due to having just a single subnode).
 select explain_parallel_append('select * from listp where a = (select 1);');
-                     explain_parallel_append                      
-------------------------------------------------------------------
+                      explain_parallel_append                       
+--------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=N loops=N)
    InitPlan 1 (returns $0)  (slice2)
      ->  Result (actual rows=N loops=N)
-   ->  Append (never executed)
-         ->  Seq Scan on listp_12_1 listp_1 (never executed)
+   ->  Append (actual rows=N loops=N)
+         ->  Seq Scan on listp_12_1 listp_1 (actual rows=N loops=N)
                Filter: (a = $0)
          ->  Seq Scan on listp_12_2 listp_2 (never executed)
                Filter: (a = $0)
@@ -4234,23 +4237,23 @@ select explain_parallel_append(
 'select * from listp where a = (select 1)
   union all
 select * from listp where a = (select 2);');
-                      explain_parallel_append                      
--------------------------------------------------------------------
+                         explain_parallel_append                          
+--------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=N loops=N)
-   ->  Append (never executed)
-         ->  Append (never executed)
+   ->  Append (actual rows=N loops=N)
+         ->  Append (actual rows=N loops=N)
                InitPlan 1 (returns $0)  (slice2)
                  ->  Result (actual rows=N loops=N)
-               ->  Seq Scan on listp_12_1 listp_1 (never executed)
+               ->  Seq Scan on listp_12_1 listp_1 (actual rows=N loops=N)
                      Filter: (a = $0)
                ->  Seq Scan on listp_12_2 listp_2 (never executed)
                      Filter: (a = $0)
-         ->  Append (never executed)
+         ->  Append (actual rows=N loops=N)
                InitPlan 2 (returns $1)  (slice3)
                  ->  Result (actual rows=N loops=N)
                ->  Seq Scan on listp_12_1 listp_4 (never executed)
                      Filter: (a = $1)
-               ->  Seq Scan on listp_12_2 listp_5 (never executed)
+               ->  Seq Scan on listp_12_2 listp_5 (actual rows=N loops=N)
                      Filter: (a = $1)
  Optimizer: Postgres query optimizer
 (17 rows)
@@ -4280,16 +4283,16 @@ select * from rangep where b IN((select 1),(select 2)) order by a;
      ->  Result (actual rows=1 loops=1)
    InitPlan 2 (returns $1)  (slice3)
      ->  Result (actual rows=1 loops=1)
-   ->  Append (never executed)
-         ->  Merge Append (never executed)
+   ->  Append (actual rows=0 loops=1)
+         ->  Merge Append (actual rows=0 loops=1)
                Sort Key: rangep_2.a
-               ->  Index Scan using rangep_0_to_100_1_a_idx on rangep_0_to_100_1 rangep_2 (never executed)
+               ->  Index Scan using rangep_0_to_100_1_a_idx on rangep_0_to_100_1 rangep_2 (actual rows=0 loops=1)
                      Filter: (b = ANY (ARRAY[$0, $1]))
-               ->  Index Scan using rangep_0_to_100_2_a_idx on rangep_0_to_100_2 rangep_3 (never executed)
+               ->  Index Scan using rangep_0_to_100_2_a_idx on rangep_0_to_100_2 rangep_3 (actual rows=0 loops=1)
                      Filter: (b = ANY (ARRAY[$0, $1]))
                ->  Index Scan using rangep_0_to_100_3_a_idx on rangep_0_to_100_3 rangep_4 (never executed)
                      Filter: (b = ANY (ARRAY[$0, $1]))
-         ->  Index Scan using rangep_100_to_200_a_idx on rangep_100_to_200 rangep_5 (never executed)
+         ->  Index Scan using rangep_100_to_200_a_idx on rangep_100_to_200 rangep_5 (actual rows=0 loops=1)
                Filter: (b = ANY (ARRAY[$0, $1]))
  Optimizer: Postgres query optimizer
 (18 rows)
