@@ -3052,9 +3052,9 @@ appendonly_insert(AppendOnlyInsertDesc aoInsertDesc,
 		int64 firstSequence PG_USED_FOR_ASSERTS_ONLY;
 
 		firstSequence = GetFastSequences(aoInsertDesc->segrelid,
-										aoInsertDesc->cur_segno,
-										aoInsertDesc->lastSequence + 1,
-										NUM_FAST_SEQUENCES);
+										 aoInsertDesc->cur_segno,
+										 aoInsertDesc->lastSequence + 1,
+										 NUM_FAST_SEQUENCES);
 
 		/* fast sequence could be inconsecutive when insert multiple segfiles */
 		AssertImply(gp_appendonly_insert_files <= 1, firstSequence == aoInsertDesc->lastSequence + 1);
