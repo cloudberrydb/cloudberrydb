@@ -847,7 +847,7 @@ CTranslatorUtils::GetSystemColType(CMemoryPool *mp, AttrNumber attno)
 
 // Returns the length for the system column with given attno number
 // GPDB_12_MERGE_FIXME: Can we get rid of this function? We should be able to get this info from pg_attribute
-const ULONG
+ULONG
 CTranslatorUtils::GetSystemColLength(AttrNumber attno)
 {
 	GPOS_ASSERT(FirstLowInvalidHeapAttributeNumber < attno && 0 > attno);

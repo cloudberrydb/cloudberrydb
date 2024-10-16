@@ -1656,7 +1656,7 @@ CTranslatorQueryToDXL::TranslateWindowSpecToDXL(
 CDXLNode *
 CTranslatorQueryToDXL::TranslateWindowToDXL(
 	CDXLNode *child_dxlnode, List *target_list, List *window_clause,
-	List *sort_clause, IntToUlongMap *sort_col_attno_to_colid_mapping,
+	List * /*sort_clause*/, IntToUlongMap *sort_col_attno_to_colid_mapping,
 	IntToUlongMap *output_attno_to_colid_mapping)
 {
 	if (0 == gpdb::ListLength(window_clause))
@@ -3393,7 +3393,7 @@ CTranslatorQueryToDXL::NoteDistributionPolicyOpclasses(const RangeTblEntry *rte)
 CDXLNode *
 CTranslatorQueryToDXL::TranslateValueScanRTEToDXL(const RangeTblEntry *rte,
 												  ULONG rt_index,
-												  ULONG current_query_level)
+												  ULONG /*current_query_level*/)
 {
 	List *tuples_list = rte->values_lists;
 	GPOS_ASSERT(nullptr != tuples_list);

@@ -3054,6 +3054,7 @@ appendonly_insert(AppendOnlyInsertDesc aoInsertDesc,
 											   aoInsertDesc->lastSequence + 1,
 											   NUM_FAST_SEQUENCES);
 
+		(void)firstSequence;
 		/* fast sequence could be inconsecutive when insert multiple segfiles */
 		AssertImply(gp_appendonly_insert_files <= 1, firstSequence == aoInsertDesc->lastSequence + 1);
 		aoInsertDesc->numSequences = NUM_FAST_SEQUENCES;

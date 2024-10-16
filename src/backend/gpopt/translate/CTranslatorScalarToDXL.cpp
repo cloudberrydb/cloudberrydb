@@ -2055,7 +2055,7 @@ CTranslatorScalarToDXL::TranslateArrayRefToDXL(
 
 CDXLNode *
 CTranslatorScalarToDXL::TranslateSortGroupClauseToDXL(
-	const Expr *expr, const CMappingVarColId *var_colid_mapping)
+	const Expr *expr, const CMappingVarColId * /*var_colid_mapping*/)
 {
 	GPOS_ASSERT(IsA(expr, SortGroupClause));
 	const SortGroupClause *sgc = (SortGroupClause *) expr;
