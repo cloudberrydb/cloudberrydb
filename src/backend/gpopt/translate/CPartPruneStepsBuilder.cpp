@@ -86,7 +86,7 @@ CPartPruneStepsBuilder::CreatePartPruneInfoForOneLevel(CDXLNode *filterNode)
 	{
 		pinfo->subpart_map[i] = -1;
 		if (part_ptr < m_part_indexes->Size() &&
-			i == (int)(*(*m_part_indexes)[part_ptr]))
+			i == (*(*m_part_indexes)[part_ptr]))
 		{
 			// partition did survive pruning
 			pinfo->subplan_map[i] = part_ptr;

@@ -142,7 +142,7 @@ public:
 	static const CWStringConst *GetSystemColName(AttrNumber attno);
 
 	// returns the length for the system column with given attno number
-	static const ULONG GetSystemColLength(AttrNumber attno);
+	static ULONG GetSystemColLength(AttrNumber attno);
 
 	// translate the join type from its GPDB representation into the DXL one
 	static EdxlJoinType ConvertToDXLJoinType(JoinType jt);
