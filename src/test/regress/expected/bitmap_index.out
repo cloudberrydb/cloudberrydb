@@ -972,3 +972,29 @@ select * from foo where a = 1 or a = any(null::int[]);
 (1 row)
 
 drop table foo;
+-- test for compressed bitmap index ; see https://github.com/cloudberrydb/cloudberrydb/pull/679
+SET enable_seqscan = OFF;
+SET enable_indexscan = ON;
+SET enable_bitmapscan = OFF;
+create table bm_test_ao (i int, j int, k int) WITH (appendonly=true) distributed by (k) ;
+create index bm_test_ao_i_idx on bm_test_ao using bitmap(i);
+insert into bm_test_ao select i, 1, 1 from
+generate_series(1, 65535) g, generate_series(1, 4) i;
+explain select count(*) from bm_test_ao where i =2;
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=80.97..80.98 rows=1 width=8)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=80.91..80.96 rows=3 width=8)
+         ->  Partial Aggregate  (cost=80.91..80.92 rows=1 width=8)
+               ->  Index Scan using bm_test_ao_i_idx on bm_test_ao  (cost=0.00..80.84 rows=26 width=0)
+                     Index Cond: (i = 2)
+ Optimizer: Postgres query optimizer
+(6 rows)
+
+select count(*) from bm_test_ao where i = 2;
+ count 
+-------
+ 65535
+(1 row)
+
+DROP TABLE bm_test_ao;
