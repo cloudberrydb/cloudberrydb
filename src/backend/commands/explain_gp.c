@@ -1195,11 +1195,10 @@ cdbexplain_depositStatsToNode(PlanState *planstate, CdbExplain_RecvStatCtx *ctx)
 	 *
 	 * We don't print those "Rows Removed by Filter" rows in GPDB, because
 	 * they don't come from the "winner" QE.
+	 *
+	 * Alough the ntuples is 0, the nloops may be not, as the node
+	 * may has been executed without returning any data.
 	 */
-	 /*
-	  * Alough the ntuples is 0, the nloops may be not, as the node
-	  * may has been executed without retruning any data
-	  */
 
 	if (ntuples.agg.vcnt > 0)
 		nodeAcc = &ntuples;
