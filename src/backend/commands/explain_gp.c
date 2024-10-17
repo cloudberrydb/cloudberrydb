@@ -1704,6 +1704,66 @@ cdbexplain_showExecStats(struct PlanState *planstate, ExplainState *es)
 	pfree(extraData.data);
 
 	/*
+	 * Print "Rows out"
+	 */
+
+	if (gp_enable_explain_rows_out && es->analyze && ns->ninst > 0) {
+		double alltuples = 0;
+		double maxtuples = ns->insts[0].ntuples;
+		int maxseg = 0;
+		double mintuples = ns->insts[0].ntuples;
+		int minseg = 0;
+
+		for (i = 0; i < ns->ninst; i++)
+		{
+			CdbExplain_StatInst *nsi = &ns->insts[i];
+
+			alltuples += nsi->ntuples;
+
+			if (nsi->ntuples > maxtuples) {
+				maxtuples = nsi->ntuples;
+				maxseg = ns->segindex0 + i;
+			}
+
+			if (nsi->ntuples < mintuples) {
+				mintuples = nsi->ntuples;
+				minseg = ns->segindex0 + i;
+			}
+		}
+
+		double avgtuples = alltuples / ns->ninst;
+
+		if (es->format == EXPLAIN_FORMAT_TEXT)
+		{
+			/*
+			 * create a header for all stats: separate each individual stat by an
+			 * underscore, separate the grouped stats for each node by a slash
+			 */
+			appendStringInfoSpaces(es->str, es->indent * 2);
+			appendStringInfoString(es->str, "Rows out: ");
+
+			appendStringInfo(es->str,
+								 "%0.2f rows avg x %d workers, %0.f rows max (seg%d), %0.f rows min (seg%d).\n",
+								 avgtuples,
+								 ns->ninst,
+								 maxtuples,
+								 maxseg,
+								 mintuples,
+								 minseg);
+		}
+		else {
+			// ExplainOpenGroup("Rows Out", NULL, false, es);
+			ExplainPropertyInteger("Workers", ns->ninst, es);
+			ExplainPropertyFloat("Average Rows", avgtuples, 1, es);
+			ExplainPropertyFloat("Max Rows", maxtuples, 0, es);
+			ExplainPropertyInteger("Max Rows Segment", maxseg, es);
+			ExplainPropertyFloat("Min Rows", mintuples, 0, es);
+			ExplainPropertyInteger("Min Rows Segment", minseg, es);
+			// ExplainCloseGroup("Rows out", NULL, false, es);
+		}
+	}
+
+	/*
 	 * Dump stats for all workers.
 	 */
 	if (gp_enable_explain_allstat && ns->segindex0 >= 0 && ns->ninst > 0)
