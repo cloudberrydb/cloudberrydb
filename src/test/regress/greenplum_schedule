@@ -104,6 +104,8 @@ test: dtm_retry
 # serializable transactions (may conflict with AO vacuum operations).
 test: rangefuncs_cdb gp_dqa subselect_gp subselect_gp2 gp_transactions olap_group olap_window_seq sirv_functions appendonly create_table_distpol alter_distpol_dropped query_finish partial_table subselect_gp_indexes
 
+test: gp_distinct_plans
+
 # 'partition' runs for a long time, so try to keep it together with other
 # long-running tests.
 test: partition partition1 partition_indexing partition_storage partition_ddl partition_with_user_defined_function partition_unlogged partition_subquery partition_with_user_defined_function_that_truncates
