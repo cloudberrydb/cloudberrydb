@@ -322,3 +322,22 @@ EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
   CREATE MATERIALIZED VIEW IF NOT EXISTS matview_ine_tab AS
     SELECT 1 / 0 WITH NO DATA; -- ok
 DROP MATERIALIZED VIEW matview_ine_tab;
+
+-- test REFRESH fast path
+create materialized view mv_fast as select * from mvtest_t;
+set gp_enable_refresh_fast_path = off;
+select relfilenode into temp mv_fast_relfilenode_0 from pg_class where oid = 'mv_fast'::regclass::oid;
+refresh materialized view mv_fast;
+select relfilenode into temp mv_fast_relfilenode_1 from pg_class where oid = 'mv_fast'::regclass::oid;
+-- shoule be 0
+select count(*) from mv_fast_relfilenode_0 natural join mv_fast_relfilenode_1;
+
+-- relfilenode should not be changed then.
+set gp_enable_refresh_fast_path = on;
+refresh materialized view mv_fast;
+select relfilenode into temp mv_fast_relfilenode_2 from pg_class where oid = 'mv_fast'::regclass::oid;
+-- shoule be 1
+select count(*) from mv_fast_relfilenode_1 natural join mv_fast_relfilenode_2;
+
+reset gp_enable_refresh_fast_path;
+drop materialized view mv_fast;
