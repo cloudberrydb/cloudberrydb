@@ -33,7 +33,8 @@ try:
     from gppylib.system import configurationInterface, configurationImplGpdb
     from gppylib.system.environment import GpCoordinatorEnvironment
     from pgdb import DatabaseError
-    from gppylib.gpcatalog import COORDINATOR_ONLY_TABLES
+    from gppylib.gpcatalog import COORDINATOR_ONLY_TABLES_MAPPED
+    from gppylib.gpcatalog import COORDINATOR_ONLY_TABLES_NON_MAPPED
     from gppylib.operations.package import SyncPackages
     from gppylib.operations.utils import ParallelOperation
     from gppylib.parseutils import line_reader, check_values, canonicalize_address
@@ -1416,11 +1417,13 @@ class gpexpand:
 
 
         """
-        Build the list of delete statements based on the COORDINATOR_ONLY_TABLES
-        defined in gpcatalog.py
+        Build the list of DELETE and TRUNCATE statements based on the subset of
+        COORDINATOR_ONLY_TABLES defined in gpcatalog.py. Mapped tables cannot
+        be TRUNCATEd, and we will have DELETE from them.
         """
-        statements = ["delete from pg_catalog.%s" % tab for tab in COORDINATOR_ONLY_TABLES]
-
+        delete_statements = ["delete from pg_catalog.%s" % tab for tab in COORDINATOR_ONLY_TABLES_MAPPED]
+        truncate_statements = ["truncate pg_catalog.%s" % tab for tab in COORDINATOR_ONLY_TABLES_NON_MAPPED]
+        statements = delete_statements + truncate_statements
         """
           Connect to each database in the new segments, and clean up the catalog tables.
         """
