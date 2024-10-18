@@ -86,7 +86,7 @@ AOCSCompaction_DropSegmentFile(Relation aorel, int segno, AOVacuumRelStats *vacr
 		if (fd >= 0)
 		{
 			TruncateAOSegmentFile(fd, aorel, pseudoSegNo, 0, vacrelstats);
-			CloseAOSegmentFile(fd);
+			CloseAOSegmentFile(fd, aorel);
 		}
 		else
 		{
@@ -149,7 +149,7 @@ AOCSSegmentFileTruncateToEOF(Relation aorel, int segno, AOCSVPInfo *vpinfo, AOVa
 		if (fd >= 0)
 		{
 			TruncateAOSegmentFile(fd, aorel, fileSegNo, segeof, vacrelstats);
-			CloseAOSegmentFile(fd);
+			CloseAOSegmentFile(fd, aorel);
 
 			elogif(Debug_appendonly_print_compaction, LOG,
 				   "Successfully truncated AO COL relation \"%s.%s\", relation id %u, relfilenode %lu column #%d, logical segment #%d (physical segment file #%d, logical EOF " INT64_FORMAT ")",

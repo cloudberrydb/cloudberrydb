@@ -100,6 +100,21 @@ static const f_smgr smgrsw[] = {
 	}
 };
 
+static const f_smgr_ao smgrswao[] = {
+	/* regular file */
+	{
+		.smgr_FileClose = FileClose,
+		.smgr_FileDiskSize = FileDiskSize,
+		.smgr_FileTruncate = FileTruncate,
+		.smgr_AORelOpenSegFile = PathNameOpenFile,
+		.smgr_FileWrite = FileWrite,
+		.smgr_FileRead = FileRead,
+		.smgr_FileSize = FileSize,
+		.smgr_FileSync = FileSync,
+	},
+};
+
+
 static const int NSmgr = lengthof(smgrsw);
 
 /*
@@ -155,6 +170,11 @@ smgrshutdown(int code, Datum arg)
 	}
 }
 
+const struct f_smgr_ao *
+smgrAOGetDefault(void) {
+	return &smgrswao[0];
+}
+
 /*
  *	smgropen() -- Return an SMgrRelation object, creating it if need be.
  *
@@ -204,6 +224,8 @@ smgropen(RelFileNode rnode, BackendId backend, SMgrImpl which, Relation rel)
 		dlist_push_tail(&unowned_relns, &reln->node);
 		reln->smgr = &smgrsw[reln->smgr_which];
 
+		reln->smgr_ao = &smgrswao[0];
+
 		/*
 		 * hook for other storage managers.
 		 */
@@ -211,6 +233,7 @@ smgropen(RelFileNode rnode, BackendId backend, SMgrImpl which, Relation rel)
 			(*smgr_hook) (reln, backend, which, rel);
 
 		Assert(reln->smgr);
+		Assert(reln->smgr_ao);
 
 		(*reln->smgr).smgr_open(reln);
 	}

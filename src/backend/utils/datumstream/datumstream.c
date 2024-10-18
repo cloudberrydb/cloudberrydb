@@ -500,7 +500,8 @@ create_datumstreamwrite(
 						char *relname,
 						char *title,
 						bool needsWAL,
-						RelFileNodeBackend *rnode)
+						RelFileNodeBackend *rnode,
+						const struct f_smgr_ao *smgrAO)
 {
 	DatumStreamWrite *acc = palloc0(sizeof(DatumStreamWrite));
 
@@ -569,7 +570,8 @@ create_datumstreamwrite(
 								relname,
 								title,
 								&acc->ao_attr,
-								needsWAL);
+								needsWAL,
+								smgrAO);
 
 	acc->ao_write.compression_functions = compressionFunctions;
 	acc->ao_write.compressionState = compressionState;
@@ -645,7 +647,7 @@ create_datumstreamread(
 					   Form_pg_attribute attr,
 					   char *relname,
 					   char *title,
-					   RelFileNode *relFileNode)
+					   RelFileNode *relFileNode, const struct f_smgr_ao *smgrAO)
 {
 	DatumStreamRead *acc = palloc0(sizeof(DatumStreamRead));
 
@@ -702,7 +704,8 @@ create_datumstreamread(
 							   relname,
 							   title,
 							   &acc->ao_attr,
-							   relFileNode);
+							   relFileNode,
+							   smgrAO);
 
 	acc->ao_read.compression_functions = compressionFunctions;
 	acc->ao_read.compressionState = compressionState;

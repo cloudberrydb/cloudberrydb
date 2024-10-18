@@ -156,7 +156,10 @@ OpenAOSegmentFile(Relation rel,
 	File		fd;
 
 	errno = 0;
-	fd = PathNameOpenFile(filepathname, fileFlags);
+
+	RelationOpenSmgr(rel);
+
+	fd = rel->rd_smgr->smgr_ao->smgr_AORelOpenSegFile(filepathname, fileFlags);
 	if (fd < 0)
 	{
 		if (logicalEof == 0 && errno == ENOENT)
@@ -175,9 +178,12 @@ OpenAOSegmentFile(Relation rel,
  * Close an Append Only relation file segment
  */
 void
-CloseAOSegmentFile(File fd)
+CloseAOSegmentFile(File fd, Relation rel)
 {
-	FileClose(fd);
+	Assert(fd > 0);
+	RelationOpenSmgr(rel);
+
+	rel->rd_smgr->smgr_ao->smgr_FileClose(fd);
 }
 
 /*
@@ -192,7 +198,9 @@ TruncateAOSegmentFile(File fd, Relation rel, int32 segFileNum, int64 offset, AOV
 	Assert(fd > 0);
 	Assert(offset >= 0);
 
-	filesize_before = FileSize(fd);
+	RelationOpenSmgr(rel);
+
+	filesize_before = rel->rd_smgr->smgr_ao->smgr_FileSize(fd);
 	if (filesize_before < offset)
 		ereport(ERROR,
 				(errmsg("\"%s\": file size smaller than logical eof: %m",
@@ -202,7 +210,7 @@ TruncateAOSegmentFile(File fd, Relation rel, int32 segFileNum, int64 offset, AOV
 	 * Call the 'fd' module with a 64-bit length since AO segment files
 	 * can be multi-gigabyte to the terabytes...
 	 */
-	if (FileTruncate(fd, offset, WAIT_EVENT_DATA_FILE_TRUNCATE) != 0)
+	if (rel->rd_smgr->smgr_ao->smgr_FileTruncate(fd, offset, WAIT_EVENT_DATA_FILE_TRUNCATE) != 0)
 		ereport(ERROR,
 				(errmsg("\"%s\": failed to truncate data after eof: %m",
 					    relname)));
@@ -387,7 +395,8 @@ mdunlink_ao_perFile(const int segno, void *ctx)
 
 static void
 copy_file(char *srcsegpath, char *dstsegpath,
-		  RelFileNode dst, int segfilenum, bool use_wal)
+		  RelFileNode dst, SMgrRelation srcSMGR, SMgrRelation dstSMGR,
+		  int segfilenum, bool use_wal)
 {
 	File		srcFile;
 	File		dstFile;
@@ -396,7 +405,7 @@ copy_file(char *srcsegpath, char *dstsegpath,
 	char       *buffer = palloc(BLCKSZ);
 	int dstflags;
 
-	srcFile = PathNameOpenFile(srcsegpath, O_RDONLY | PG_BINARY);
+	srcFile = srcSMGR->smgr_ao->smgr_AORelOpenSegFile(srcsegpath, O_RDONLY | PG_BINARY);
 	if (srcFile < 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -411,13 +420,13 @@ copy_file(char *srcsegpath, char *dstsegpath,
 	if (segfilenum)
 		dstflags |= O_CREAT;
 
-	dstFile = PathNameOpenFile(dstsegpath, dstflags);
+	dstFile = dstSMGR->smgr_ao->smgr_AORelOpenSegFile(dstsegpath, dstflags);
 	if (dstFile < 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 (errmsg("could not create destination file %s: %m", dstsegpath))));
 
-	left = FileDiskSize(srcFile);
+	left = srcSMGR->smgr_ao->smgr_FileDiskSize(srcFile);
 	if (left < 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -431,13 +440,13 @@ copy_file(char *srcsegpath, char *dstsegpath,
 		CHECK_FOR_INTERRUPTS();
 
 		len = Min(left, BLCKSZ);
-		if (FileRead(srcFile, buffer, len, offset, WAIT_EVENT_DATA_FILE_READ) != len)
+		if (srcSMGR->smgr_ao->smgr_FileRead(srcFile, buffer, len, offset, WAIT_EVENT_DATA_FILE_READ) != len)
 			ereport(ERROR,
 					(errcode_for_file_access(),
 					 errmsg("could not read %d bytes from file \"%s\": %m",
 							len, srcsegpath)));
 
-		if (FileWrite(dstFile, buffer, len, offset, WAIT_EVENT_DATA_FILE_WRITE) != len)
+		if (dstSMGR->smgr_ao->smgr_FileWrite(dstFile, buffer, len, offset, WAIT_EVENT_DATA_FILE_WRITE) != len)
 			ereport(ERROR,
 					(errcode_for_file_access(),
 					 errmsg("could not write %d bytes to file \"%s\": %m",
@@ -449,19 +458,21 @@ copy_file(char *srcsegpath, char *dstsegpath,
 		left -= len;
 	}
 
-	if (FileSync(dstFile, WAIT_EVENT_DATA_FILE_IMMEDIATE_SYNC) != 0)
+	if (dstSMGR->smgr_ao->smgr_FileSync(dstFile, WAIT_EVENT_DATA_FILE_IMMEDIATE_SYNC) != 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not fsync file \"%s\": %m",
 						dstsegpath)));
-	FileClose(srcFile);
-	FileClose(dstFile);
+	srcSMGR->smgr_ao->smgr_FileClose(srcFile);
+	dstSMGR->smgr_ao->smgr_FileClose(dstFile);
 	pfree(buffer);
 }
 
 struct copy_append_only_data_callback_ctx {
 	char *srcPath;
 	char *dstPath;
+	SMgrRelation srcSMGR;
+	SMgrRelation dstSMGR;
 	RelFileNode src;
 	RelFileNode dst;
 	bool useWal;
@@ -473,6 +484,7 @@ struct copy_append_only_data_callback_ctx {
  */
 void
 copy_append_only_data(RelFileNode src, RelFileNode dst,
+		SMgrRelation srcSMGR, SMgrRelation dstSMGR,
         BackendId backendid, char relpersistence)
 {
 	char *srcPath;
@@ -488,10 +500,12 @@ copy_append_only_data(RelFileNode src, RelFileNode dst,
 	srcPath = relpathbackend(src, backendid, MAIN_FORKNUM);
 	dstPath = relpathbackend(dst, backendid, MAIN_FORKNUM);
 
-	copy_file(srcPath, dstPath, dst, 0, useWal);
+	copy_file(srcPath, dstPath, dst, srcSMGR, dstSMGR, 0, useWal);
 
 	copyFiles.srcPath = srcPath;
 	copyFiles.dstPath = dstPath;
+	copyFiles.srcSMGR = srcSMGR;
+	copyFiles.dstSMGR = dstSMGR;
 	copyFiles.src = src;
 	copyFiles.dst = dst;
 	copyFiles.useWal = useWal;
@@ -526,7 +540,7 @@ copy_append_only_data_perFile(const int segno, void *ctx)
 		return false;
 	}
 	sprintf(dstSegPath, "%s.%u", copyFiles->dstPath, segno);
-	copy_file(srcSegPath, dstSegPath, copyFiles->dst, segno, copyFiles->useWal);
+	copy_file(srcSegPath, dstSegPath, copyFiles->dst, copyFiles->srcSMGR, copyFiles->dstSMGR, segno, copyFiles->useWal);
 
 	return true;
 }
@@ -595,7 +609,7 @@ truncate_ao_perFile(const int segno, void *ctx)
 	if (fd >= 0)
 	{
 		TruncateAOSegmentFile(fd, aorel, segno, 0, NULL);
-		CloseAOSegmentFile(fd);
+		CloseAOSegmentFile(fd, aorel);
 	}
 	else
 	{
