@@ -388,6 +388,27 @@ ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 	relowner = matviewRel->rd_rel->relowner;
 
 	/*
+	 * Fastpath to REFRESH a view:
+	 * avoid do the real REFRESH if the data of view
+	 * is up to date. The data should be the logically same as after
+	 * REFRESH when there is data changed since latest REFRESH.
+	 * In that case we may save a lot, ex: a cron task REFRESH view periodically
+	 * or manually executed by users each time.
+	 *
+	 * Set this feature default to true, but let uesrs decide if they intend
+	 * to do a real REFRESH.
+	 */
+	if (gp_enable_refresh_fast_path &&
+		!RelationIsIVM(matviewRel) &&
+		!stmt->skipData &&
+		MatviewIsGeneralyUpToDate(matviewOid))
+	{
+		ObjectAddressSet(address, RelationRelationId, matviewOid);
+		table_close(matviewRel, NoLock);
+		return address;
+	}
+
+	/*
 	 * Switch to the owner's userid, so that any functions are run as that
 	 * user.  Also lock down security-restricted operations and arrange to
 	 * make GUC variable changes local to this command.
