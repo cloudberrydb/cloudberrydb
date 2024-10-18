@@ -3121,25 +3121,25 @@ from nt3 as nt3
     ) as ss2
     on ss2.id = nt3.nt2_id
 where nt3.id = 1 and ss2.b3;
-                                     QUERY PLAN                                     
-------------------------------------------------------------------------------------
+                               QUERY PLAN                               
+------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Hash Join
-         Hash Cond: (nt3.nt2_id = nt2.id)
-         ->  Index Scan using nt3_pkey on nt3
-               Index Cond: (id = 1)
+         Hash Cond: (nt2.id = nt3.nt2_id)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)
+               Hash Key: 1
+               ->  Hash Join
+                     Hash Cond: (nt2.nt1_id = nt1.id)
+                     Join Filter: (nt2.b1 AND ((nt1.id IS NOT NULL)))
+                     ->  Redistribute Motion 3:3  (slice3; segments: 3)
+                           Hash Key: nt2.nt1_id
+                           ->  Seq Scan on nt2
+                     ->  Hash
+                           ->  Seq Scan on nt1
          ->  Hash
-               ->  Broadcast Motion 3:3  (slice2; segments: 3)
-                     ->  Result
-                           Filter: ((nt2.b1 AND ((NOT (nt1.id IS NULL)))))
-                           ->  Nested Loop Left Join
-                                 Join Filter: true
-                                 ->  Redistribute Motion 3:3  (slice3; segments: 3)
-                                       Hash Key: nt2.nt1_id
-                                       ->  Seq Scan on nt2
-                                 ->  Index Scan using nt1_pkey on nt1
-                                       Index Cond: (id = nt2.nt1_id)
- Optimizer: Pivotal Optimizer (GPORCA)
+               ->  Seq Scan on nt3
+                     Filter: (id = 1)
+ Optimizer: Postgres query optimizer
 (17 rows)
 
 select nt3.id
@@ -3454,34 +3454,39 @@ where t1.unique2 < 42 and t1.stringu1 > t2.stringu2;
                                               QUERY PLAN                                              
 ------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Nested Loop
-         ->  Broadcast Motion 1:3  (slice2; segments: 1)
-               ->  Seq Scan on int4_tbl i1
-                     Filter: (f1 = 0)
-         ->  Materialize
-               ->  Hash Join
-                     Hash Cond: ((11) = t1.unique2)
-                     Join Filter: (t1.stringu1 > t2.stringu2)
-                     ->  Broadcast Motion 3:3  (slice3; segments: 3)
-                           ->  Nested Loop
-                                 Join Filter: (11 < 42)
-                                 ->  Broadcast Motion 3:3  (slice4; segments: 3)
-                                       ->  Seq Scan on onerow
-                                 ->  Materialize
-                                       ->  Hash Join
-                                             Hash Cond: (t2.unique1 = (3))
-                                             ->  Seq Scan on tenk1 t2
-                                             ->  Hash
-                                                   ->  Redistribute Motion 3:3  (slice5; segments: 3)
-                                                         Hash Key: (3)
-                                                         ->  Seq Scan on onerow onerow_1
-                     ->  Hash
-                           ->  Bitmap Heap Scan on tenk1 t1
-                                 Recheck Cond: (unique2 < 42)
-                                 ->  Bitmap Index Scan on tenk1_unique2
-                                       Index Cond: (unique2 < 42)
- Optimizer: Postgres query optimizer
-(28 rows)
+   ->  Hash Join
+         Hash Cond: (tenk1.unique1 = (3))
+         Join Filter: (tenk1_1.stringu1 > tenk1.stringu2)
+         ->  Seq Scan on tenk1
+         ->  Hash
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                     Hash Key: (3)
+                     ->  Hash Join
+                           Hash Cond: ((0) = int4_tbl.f1)
+                           ->  Hash Join
+                                 Hash Cond: (tenk1_1.unique2 = (11))
+                                 ->  Index Scan using tenk1_unique2 on tenk1 tenk1_1
+                                       Index Cond: ((unique2 < 42) AND (unique2 = 11))
+                                 ->  Hash
+                                       ->  Broadcast Motion 3:3  (slice3; segments: 3)
+                                             ->  Result
+                                                   Filter: (((11) < 42) AND ((11) = 11))
+                                                   ->  Hash Left Join
+                                                         Hash Cond: ((1) = (1))
+                                                         ->  Result
+                                                               Filter: ((0) = 0)
+                                                               ->  Seq Scan on onerow
+                                                         ->  Hash
+                                                               ->  Broadcast Motion 3:3  (slice4; segments: 3)
+                                                                     ->  Result
+                                                                           Filter: ((1) = 1)
+                                                                           ->  Seq Scan on onerow onerow_1
+                           ->  Hash
+                                 ->  Broadcast Motion 3:3  (slice5; segments: 3)
+                                       ->  Seq Scan on int4_tbl
+                                             Filter: (f1 = 0)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(33 rows)
 
 --end_ignore
 select t1.unique2, t1.stringu1, t2.unique1, t2.stringu2 from
@@ -3786,24 +3791,26 @@ from nt3 as nt3
     ) as ss2
     on ss2.id = nt3.nt2_id
 where nt3.id = 1 and ss2.b3;
-                            QUERY PLAN                            
-------------------------------------------------------------------
- Hash Join
-   Hash Cond: (nt3.nt2_id = nt2.id)
-   ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Index Scan using nt3_pkey on nt3
-               Index Cond: (id = 1)
-   ->  Hash
-         ->  Result
-               Filter: ((nt2.b1 OR ((0) = 42)))
-               ->  Hash Left Join
-                     Hash Cond: (nt2.nt1_id = (0))
-                     ->  Gather Motion 3:1  (slice2; segments: 3)
-                           ->  Seq Scan on nt2
-                     ->  Hash
-                           ->  Result
+                               QUERY PLAN                               
+------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Hash Join
+         Hash Cond: (nt2.id = nt3.nt2_id)
+         ->  Redistribute Motion 1:3  (slice2)
+               ->  Result
+                     Filter: (nt2.b1 OR ((0) = 42))
+                     ->  Hash Left Join
+                           Hash Cond: (nt2.nt1_id = (0))
+                           ->  Gather Motion 3:1  (slice3; segments: 3)
+                                 ->  Seq Scan on nt2
+                           ->  Hash
+                                 ->  Result
+         ->  Hash
+               ->  Broadcast Motion 3:3  (slice4; segments: 3)
+                     ->  Index Scan using nt3_pkey on nt3
+                           Index Cond: (id = 1)
  Optimizer: Pivotal Optimizer (GPORCA)
-(15 rows)
+(17 rows)
 
 drop function f_immutable_int4(int);
 -- test inlining when function returns composite
@@ -3813,18 +3820,14 @@ create function mki4(int) returns int4_tbl as
 $$select row($1)::int4_tbl$$ language sql;
 explain (verbose, costs off)
 select * from mki8(1,2);
-                    QUERY PLAN                    
---------------------------------------------------
- Subquery Scan on sirvf_sq
-   Output: (sirvf_sq.mki8).q1, (sirvf_sq.mki8).q2
-   ->  Result
-         Output: $0
-         InitPlan 1 (returns $0)
-           ->  Result
-                 Output: '(1,2)'::int8_tbl
+              QUERY PLAN               
+---------------------------------------
+ Function Scan on mki8
+   Output: q1, q2
+   Function Call: '(1,2)'::int8_tbl
  Settings: optimizer = 'on'
- Optimizer: Postgres query optimizer
-(9 rows)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(5 rows)
 
 select * from mki8(1,2);
  q1 | q2 
@@ -3834,18 +3837,14 @@ select * from mki8(1,2);
 
 explain (verbose, costs off)
 select * from mki4(42);
-                QUERY PLAN                
-------------------------------------------
- Subquery Scan on sirvf_sq
-   Output: (sirvf_sq.mki4).f1
-   ->  Result
-         Output: $0
-         InitPlan 1 (returns $0)
-           ->  Result
-                 Output: '(42)'::int4_tbl
+              QUERY PLAN               
+---------------------------------------
+ Function Scan on mki4
+   Output: f1
+   Function Call: '(42)'::int4_tbl
  Settings: optimizer = 'on'
- Optimizer: Postgres query optimizer
-(9 rows)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(5 rows)
 
 select * from mki4(42);
  f1 
@@ -4116,7 +4115,7 @@ order by fault;
    ->  Sort
          Sort Key: ((COALESCE(tenk1.unique1, '-1'::integer) + int8_tbl.q1))
          ->  Result
-               Filter: (((COALESCE(tenk1.unique1, '-1'::integer) + int8_tbl.q1)) = 122)
+               Filter: ((COALESCE(tenk1.unique1, '-1'::integer) + int8_tbl.q1) = 122)
                ->  Hash Right Join
                      Hash Cond: ((tenk1.unique2)::bigint = int8_tbl.q2)
                      ->  Redistribute Motion 3:3  (slice2; segments: 3)

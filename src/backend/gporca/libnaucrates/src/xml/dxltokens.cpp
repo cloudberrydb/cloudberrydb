@@ -414,6 +414,7 @@ CDXLTokens::Init(CMemoryPool *mp)
 		{EdxltokenTupleOidColId, GPOS_WSZ_LIT("TupleOidCol")},
 		{EdxltokenUpdatePreservesOids, GPOS_WSZ_LIT("PreserveOids")},
 		{EdxltokenInputSorted, GPOS_WSZ_LIT("InputSorted")},
+		{EdxltokenSplitUpdate, GPOS_WSZ_LIT("IsSplitUpdate")},
 
 		{EdxltokenInputSegments, GPOS_WSZ_LIT("InputSegments")},
 		{EdxltokenOutputSegments, GPOS_WSZ_LIT("OutputSegments")},
@@ -520,6 +521,7 @@ CDXLTokens::Init(CMemoryPool *mp)
 		 GPOS_WSZ_LIT("AppendOnly, Row-oriented")},
 		{EdxltokenRelStorageMixedPartitioned, GPOS_WSZ_LIT("MixedPartitioned")},
 		{EdxltokenRelStorageExternal, GPOS_WSZ_LIT("External")},
+		{EdxltokenRelStorageCompositeType, GPOS_WSZ_LIT("Composite")},
 
 		{EdxltokenRelDistrPolicy, GPOS_WSZ_LIT("DistributionPolicy")},
 		{EdxltokenRelDistrMasterOnly, GPOS_WSZ_LIT("MasterOnly")},
