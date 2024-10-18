@@ -381,5 +381,7 @@ DROP DIRECTORY TABLE dir_table2;
 DROP
 DROP DIRECTORY TABLE dir_table3;
 DROP
+! rm -rf '@testtablespace@/local_directory_table_mixed/';
+
 DROP TABLESPACE directory_tblspc;
 DROP
