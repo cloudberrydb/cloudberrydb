@@ -740,7 +740,6 @@ group by
 f1,f2,f3
 ) Q ) P;
 INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  DXL-to-PlStmt Translation: Assert not supported
      test_name_part     | pass_ind 
 ------------------------+----------
  SubqueryInAggregate_p1 |        1
@@ -748,7 +747,7 @@ DETAIL:  DXL-to-PlStmt Translation: Assert not supported
 
 -- SubqueryInCase_p1
 -- test expected to fail until function supported in GPDB
--- GPDB Limitation ERROR:  Greenplum Database does not yet support that query.  DETAIL:  The query contains a multi-row subquery.
+-- GPDB Limitation ERROR:  Cloudberry Database does not yet support that query.  DETAIL:  The query contains a multi-row subquery.
 select 'SubqueryInCase_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
 select f1,f2,f3, count(*) c  from (
@@ -851,7 +850,7 @@ f1,f2,f3
 
 -- SubqueryPredicateNotIn_p1
 -- test expected to fail until function supported in GPDB
--- GPDB Limitation ERROR:  Greenplum Database does not yet support that query.  DETAIL:  The query contains a multi-row subquery.
+-- GPDB Limitation ERROR:  Cloudberry Database does not yet support that query.  DETAIL:  The query contains a multi-row subquery.
 select 'SubqueryPredicateNotIn_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
 select f1,f2,f3, count(*) c  from (
@@ -926,7 +925,7 @@ f1,f2,f3
 
 -- SubqueryQuantifiedPredicateEmpty_p1
 -- test expected to fail until GPDB support this function
--- GPDB Limitation ERROR:  Greenplum Database does not yet support this query.  DETAIL:  The query contains a multi-row subquery.
+-- GPDB Limitation ERROR:  Cloudberry Database does not yet support this query.  DETAIL:  The query contains a multi-row subquery.
 select 'SubqueryQuantifiedPredicateEmpty_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
 select f1,f2,f3, count(*) c  from (
@@ -946,7 +945,7 @@ f1,f2,f3
 
 -- SubqueryQuantifiedPredicateLarge_p1
 -- test expected to fail until GPDB supports this function
--- GPDB Limitation ERROR:  Greenplum Database does not yet support that query.  DETAIL:  The query contains a multi-row subquery.
+-- GPDB Limitation ERROR:  Cloudberry Database does not yet support that query.  DETAIL:  The query contains a multi-row subquery.
 select 'SubqueryQuantifiedPredicateLarge_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
 select f1,f2,f3, count(*) c  from (
@@ -2735,7 +2734,7 @@ f1
 
 -- SubqueryQuantifiedPredicateNull_gp_p1
 -- test expected to fail until GPDB support function
--- GPDB Limitation ERROR:  Greenplum Database does not yet support this query.  DETAIL:  The query contains a multi-row subquery.
+-- GPDB Limitation ERROR:  Cloudberry Database does not yet support this query.  DETAIL:  The query contains a multi-row subquery.
 select 'SubqueryQuantifiedPredicateNull_gp_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
 select f1, count(*) c  from (
@@ -2752,7 +2751,7 @@ f1
 
 -- SubqueryQuantifiedPredicateSmall_gp_p1
 -- test expected to fail until GPDB supports function
--- GPDB Limitation ERROR:  Greenplum Database does not yet support this query.  DETAIL:  The query contains a multi-row subquery.
+-- GPDB Limitation ERROR:  Cloudberry Database does not yet support this query.  DETAIL:  The query contains a multi-row subquery.
 select 'SubqueryQuantifiedPredicateSmall_gp_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
 select f1, count(*) c  from (
@@ -17080,6 +17079,7 @@ f1,f2
  SelectThaiColumnLower_p1 |        1
 (1 row)
 
+set max_parallel_workers_per_gather=0;
 -- SelectThaiColumnOrderByLocal_p1
 select 'SelectThaiColumnOrderByLocal_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
@@ -17168,6 +17168,7 @@ f1,f2
  SelectThaiColumnOrderByLocal_p1 |        1
 (1 row)
 
+reset max_parallel_workers_per_gather;
 -- SelectThaiColumnWhere_p1
 select 'SelectThaiColumnWhere_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
