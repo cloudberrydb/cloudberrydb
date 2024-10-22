@@ -1378,7 +1378,7 @@ aoco_relation_copy_data(Relation rel, const RelFileNode *newrnode)
 	 */
 	RelationCreateStorage(*newrnode, rel->rd_rel->relpersistence, SMGR_AO, rel);
 
-	copy_append_only_data(rel->rd_node, *newrnode, rel->rd_backend, rel->rd_rel->relpersistence);
+	copy_append_only_data(rel->rd_node, *newrnode, rel->rd_smgr, dstrel, rel->rd_backend, rel->rd_rel->relpersistence);
 
 	/*
 	 * For append-optimized tables, no forks other than the main fork should

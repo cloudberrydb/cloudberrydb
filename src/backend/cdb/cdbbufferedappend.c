@@ -58,7 +58,8 @@ BufferedAppendInit(BufferedAppend *bufferedAppend,
 				   int32 memoryLen,
 				   int32 maxBufferWithCompressionOverrrunLen,
 				   int32 maxLargeWriteLen,
-				   char *relationName)
+				   char *relationName,
+				   const struct f_smgr_ao *smgrAO)
 {
 	Assert(bufferedAppend != NULL);
 	Assert(memory != NULL);
@@ -100,6 +101,8 @@ BufferedAppendInit(BufferedAppend *bufferedAppend,
 	bufferedAppend->file = -1;
 	bufferedAppend->filePathName = NULL;
 	bufferedAppend->fileLen = 0;
+
+	bufferedAppend->smgrAO = smgrAO;
 }
 
 /*
@@ -158,7 +161,7 @@ BufferedAppendWrite(BufferedAppend *bufferedAppend, bool needsWAL)
 	{
 		int32		byteswritten;
 
-		byteswritten = FileWrite(bufferedAppend->file,
+		byteswritten = bufferedAppend->smgrAO->smgr_FileWrite(bufferedAppend->file,
 								 (char *) largeWriteMemory + bytestotal,
 								 bytesleft,
 								 bufferedAppend->largeWritePosition + bytestotal,

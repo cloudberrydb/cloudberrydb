@@ -75,7 +75,9 @@ aocs_delete_hook_type aocs_delete_hook = NULL;
  */
 static void
 open_datumstreamread_segfile(
-							 char *basepath, RelFileNode node,
+							 char *basepath, 
+							 const struct f_smgr_ao *smgrAO,
+							 RelFileNode node,
 							 AOCSFileSegInfo *segInfo,
 							 DatumStreamRead *ds,
 							 int colNo)
@@ -118,7 +120,7 @@ open_all_datumstreamread_segfiles(AOCSScanDesc scan, AOCSFileSegInfo *segInfo)
 	{
 		AttrNumber	attno = proj_atts[i];
 
-		open_datumstreamread_segfile(basepath, rel->rd_node, segInfo, ds[attno], attno);
+		open_datumstreamread_segfile(basepath, rel->rd_smgr->smgr_ao, rel->rd_node, segInfo, ds[attno], attno);
 		datumstreamread_block(ds[attno], blockDirectory, attno);
 		
 		AOCSScanDesc_UpdateTotalBytesRead(scan, attno);
@@ -140,6 +142,8 @@ open_ds_write(Relation rel, DatumStreamWrite **ds, TupleDesc relationTupleDesc, 
 
 	rnode.node = rel->rd_node;
 	rnode.backend = rel->rd_backend;
+
+	RelationOpenSmgr(rel);
 
 	/* open datum streams.  It will open segment file underneath */
 	for (int i = 0; i < natts; ++i)
@@ -181,7 +185,8 @@ open_ds_write(Relation rel, DatumStreamWrite **ds, TupleDesc relationTupleDesc, 
 										RelationGetRelationName(rel),
 										/* title */ titleBuf.data,
 										XLogIsNeeded() && RelationNeedsWAL(rel),
-										&rnode);
+										&rnode,
+										rel->rd_smgr->smgr_ao);
 
 	}
 }
@@ -231,6 +236,8 @@ open_ds_read(Relation rel, DatumStreamRead **ds, TupleDesc relationTupleDesc,
 	for (AttrNumber attno = 0; attno < relationTupleDesc->natts; attno++)
 		ds[attno] = NULL;
 
+	RelationOpenSmgr(rel);
+
 	/* And then initialize the data streams for those columns we need */
 	for (AttrNumber i = 0; i < num_proj_atts; i++)
 	{
@@ -272,7 +279,8 @@ open_ds_read(Relation rel, DatumStreamRead **ds, TupleDesc relationTupleDesc,
 										   attr,
 										   RelationGetRelationName(rel),
 										    /* title */ titleBuf.data,
-										   &rel->rd_node);
+										   &rel->rd_node,
+										   rel->rd_smgr->smgr_ao);
 	}
 }
 
@@ -1409,7 +1417,7 @@ openFetchSegmentFile(AOCSFetchDesc aocsFetchDesc,
 	if (logicalEof == 0)
 		return false;
 
-	open_datumstreamread_segfile(aocsFetchDesc->basepath, aocsFetchDesc->relation->rd_node,
+	open_datumstreamread_segfile(aocsFetchDesc->basepath, aocsFetchDesc->relation->rd_smgr->smgr_ao, aocsFetchDesc->relation->rd_node,
 								 fsInfo,
 								 datumStreamFetchDesc->datumStream,
 								 colNo);
@@ -1523,6 +1531,8 @@ aocs_fetch_init(Relation relation,
 	aocsFetchDesc->datumStreamFetchDesc = (DatumStreamFetchDesc *)
 		palloc0(relation->rd_att->natts * sizeof(DatumStreamFetchDesc));
 
+	RelationOpenSmgr(relation);
+
 	for (colno = 0; colno < relation->rd_att->natts; colno++)
 	{
 
@@ -1566,7 +1576,7 @@ aocs_fetch_init(Relation relation,
 									   TupleDescAttr(tupleDesc, colno),
 									   relation->rd_rel->relname.data,
 									    /* title */ titleBuf.data,
-									   &relation->rd_node);
+									   &relation->rd_node, relation->rd_smgr->smgr_ao);
 
 		}
 		if (opts[colno])
@@ -1941,13 +1951,16 @@ aocs_begin_headerscan(Relation rel, int colno)
 	ao_attr.overflowSize = 0;
 	ao_attr.safeFSWriteSize = 0;
 	hdesc = palloc(sizeof(AOCSHeaderScanDescData));
+	
+	RelationOpenSmgr(rel);
+
 	AppendOnlyStorageRead_Init(&hdesc->ao_read,
 							   NULL, //current memory context
 							   opts[colno]->blocksize,
 							   RelationGetRelationName(rel),
 							   "ALTER TABLE ADD COLUMN scan",
 							   &ao_attr,
-							   &rel->rd_node);
+							   &rel->rd_node, rel->rd_smgr->smgr_ao);
 	hdesc->colno = colno;
 	return hdesc;
 }
@@ -2032,6 +2045,9 @@ aocs_addcol_init(Relation rel,
                                  NULL);
 
 	iattr = rel->rd_att->natts - num_newcols;
+
+	RelationOpenSmgr(rel);
+
 	for (i = 0; i < num_newcols; ++i, ++iattr)
 	{
 		Form_pg_attribute attr = TupleDescAttr(rel->rd_att, iattr);
@@ -2047,7 +2063,8 @@ aocs_addcol_init(Relation rel,
 											   attr, RelationGetRelationName(rel),
 											   titleBuf.data,
 											   XLogIsNeeded() && RelationNeedsWAL(rel),
-											   &rnode);
+											   &rnode,
+											   rel->rd_smgr->smgr_ao);
 	}
 	return desc;
 }
