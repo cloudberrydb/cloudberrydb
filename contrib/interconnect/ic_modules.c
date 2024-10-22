@@ -27,6 +27,7 @@ PG_MODULE_MAGIC;
 
 MotionIPCLayer tcp_ipc_layer = {
     .ic_type = INTERCONNECT_TYPE_TCP,
+    .type_name = "tcp",
 
     .GetMaxTupleChunkSize = GetMaxTupleChunkSizeTCP,
     .GetListenPort = GetListenPortTCP,
@@ -46,10 +47,10 @@ MotionIPCLayer tcp_ipc_layer = {
     .RecvTupleChunkFrom = RecvTupleChunkFromTCP,
     .RecvTupleChunk = RecvTupleChunkTCP,
 
-    .DirectPutRxBuffer = NULL,
+    .DirectPutRxBuffer = DirectPutRxBufferTCP,
 
     .DeregisterReadInterest = DeregisterReadInterestTCP,
-    .GetActiveMotionConns = NULL,
+    .GetActiveMotionConns = GetActiveMotionConnsTCP,
 
     .GetTransportDirectBuffer = GetTransportDirectBuffer,
     .PutTransportDirectBuffer = PutTransportDirectBuffer,
@@ -64,6 +65,7 @@ MotionIPCLayer tcp_ipc_layer = {
 
 MotionIPCLayer proxy_ipc_layer = {
     .ic_type = INTERCONNECT_TYPE_PROXY,
+    .type_name = "proxy",
 
     .GetMaxTupleChunkSize = GetMaxTupleChunkSizeTCP,
     .GetListenPort = GetListenPortTCP,
@@ -83,10 +85,10 @@ MotionIPCLayer proxy_ipc_layer = {
     .RecvTupleChunkFrom = RecvTupleChunkFromTCP,
     .RecvTupleChunk = RecvTupleChunkTCP,
 
-    .DirectPutRxBuffer = NULL,
+    .DirectPutRxBuffer = DirectPutRxBufferTCP,
 
     .DeregisterReadInterest = DeregisterReadInterestTCP,
-    .GetActiveMotionConns = NULL,
+    .GetActiveMotionConns = GetActiveMotionConnsTCP,
 
     .GetTransportDirectBuffer = GetTransportDirectBuffer,
     .PutTransportDirectBuffer = PutTransportDirectBuffer,
@@ -102,6 +104,7 @@ MotionIPCLayer proxy_ipc_layer = {
 
 MotionIPCLayer udpifc_ipc_layer = {
     .ic_type = INTERCONNECT_TYPE_UDPIFC,
+    .type_name = "udpifc",
 
     .GetMaxTupleChunkSize = GetMaxTupleChunkSizeUDP,
     .GetListenPort = GetListenPortUDP,
@@ -146,20 +149,7 @@ _PG_init(void)
 				 errmsg("could not load interconnect outside process shared preload")));
     }
 
-    switch(Gp_interconnect_type) {
-        case INTERCONNECT_TYPE_TCP:
-            CurrentMotionIPCLayer = &tcp_ipc_layer;
-            break;
-        case INTERCONNECT_TYPE_UDPIFC:
-            CurrentMotionIPCLayer = &udpifc_ipc_layer;
-            break;
-        case INTERCONNECT_TYPE_PROXY:
-            CurrentMotionIPCLayer = &proxy_ipc_layer;
-            break;    
-        default:
-            ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not decide interconnect type")));
-    }
-    
+	RegisterIPCLayerImpl(&tcp_ipc_layer);
+	RegisterIPCLayerImpl(&udpifc_ipc_layer);
+	RegisterIPCLayerImpl(&proxy_ipc_layer);
 }
