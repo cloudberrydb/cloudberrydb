@@ -145,6 +145,8 @@ char *task_timezone = "GMT";
 int max_running_tasks = 5;
 char *task_host_addr = "127.0.0.1";
 
+static pg_tz *task_timezone_tz = NULL;
+
 /* flags set by signal handlers */
 static volatile sig_atomic_t got_sigterm = false;
 
@@ -296,6 +298,25 @@ bgw_generate_returned_message(StringInfoData *display_msg, ErrorData edata)
 
 	if (edata.context != NULL)
 		appendStringInfo(display_msg, "\nCONTEXT: %s", edata.context);
+}
+
+void
+assign_task_timezone(const char *newval, void *extra)
+{
+	task_timezone_tz = *((pg_tz **) extra);
+}
+
+const char *show_task_timezone(void)
+{
+	const char *tzn;
+
+	/* Always show the zone's canonical name */
+	tzn = pg_get_timezone_name(task_timezone_tz);
+
+	if (tzn != NULL)
+		return tzn;
+
+	return "unknown";
 }
 
 bool PgCronStartRule(Datum main_arg)
