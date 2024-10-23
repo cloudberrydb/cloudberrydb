@@ -145,7 +145,7 @@ char *task_timezone = "GMT";
 int max_running_tasks = 5;
 char *task_host_addr = "127.0.0.1";
 
-static pg_tz *task_timezone_tz = NULL;
+static pg_tz *task_timezone_tz;
 
 /* flags set by signal handlers */
 static volatile sig_atomic_t got_sigterm = false;
