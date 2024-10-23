@@ -196,6 +196,7 @@
 		"gp_enable_predicate_pushdown",
 		"gp_enable_preunique",
 		"gp_enable_query_metrics",
+		"gp_enable_refresh_fast_path",
 		"gp_enable_relsize_collection",
 		"gp_enable_slow_writer_testmode",
 		"gp_enable_sort_distinct",
