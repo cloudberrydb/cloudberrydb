@@ -630,6 +630,13 @@ extern bool gp_enable_agg_pushdown;
  */
 extern bool gp_enable_preunique;
 
+/* May Cloudberry print statistics as average, minimum and maximum rows out
+ * during EXPLAIN ANALYZE?
+ *
+ */
+
+extern bool gp_enable_explain_rows_out;
+
 /* May Cloudberry dump statistics for all segments as a huge ugly string
  * during EXPLAIN ANALYZE?
  *
