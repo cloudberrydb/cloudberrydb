@@ -4733,7 +4733,7 @@ struct config_string ConfigureNamesString_gp[] =
 		},
 		&task_timezone,
 		"GMT",
-		check_timezone, assign_timezone, show_timezone
+		check_timezone, assign_task_timezone, show_task_timezone
 	},
 
 	{
