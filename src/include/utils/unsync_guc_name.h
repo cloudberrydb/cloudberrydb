@@ -10,6 +10,7 @@
 */
 /* items in this file should be ordered */
 		"enable_answer_query_using_materialized_views",
+		"allow_dml_directory_table",
 		"application_name",
 		"archive_cleanup_command",
 		"archive_command",
