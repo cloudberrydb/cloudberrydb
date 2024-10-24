@@ -1503,6 +1503,9 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 
 	if (!distinct_need_redistribute || !group_need_redistribute)
 	{
+		Path *orig_path = path;
+		double		input_rows = path->rows;
+
 		/*
 		 * 1. If the input's locus matches the DISTINCT, but not GROUP BY:
 		 *
@@ -1525,7 +1528,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 		 */
 		path = (Path *) create_agg_path(root,
 										output_rel,
-										path,
+										orig_path,
 										input_target,
 										AGG_HASHED,
 										AGGSPLIT_SIMPLE,
@@ -1550,6 +1553,66 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										ctx->havingQual,
 										ctx->agg_final_costs,
 										dNumGroups);
+		add_path(output_rel, path, root);
+
+		/*
+		 *  Finalize Aggregate
+		 *     -> Gather Motion
+		 *          -> Partial Aggregate
+		 *              -> HashAggregate, to remove duplicates
+		 *                          -> input
+		 */
+		path = (Path *) create_agg_path(root,
+										output_rel,
+										orig_path,
+										input_target,
+										AGG_HASHED,
+										AGGSPLIT_SIMPLE,
+										false, /* streaming */
+										dqa_group_clause,
+										NIL,
+										ctx->agg_partial_costs, /* FIXME */
+										clamp_row_est(dNumDistinctGroups / CdbPathLocus_NumSegments(distinct_locus)));
+
+		path = (Path *) create_agg_path(root,
+										output_rel,
+										path,
+										strip_aggdistinct(ctx->partial_grouping_target),
+										ctx->groupClause ? AGG_HASHED : AGG_PLAIN,
+										AGGSPLIT_INITIAL_SERIAL | AGGSPLITOP_DEDUPLICATED,
+										false, /* streaming */
+										ctx->groupClause,
+										NIL,
+										ctx->agg_partial_costs,
+										estimate_num_groups_on_segment(ctx->dNumGroupsTotal, input_rows, path->locus));
+		if (group_need_redistribute)
+			path = cdbpath_create_motion_path(root, path, NIL, false,
+										  group_locus);
+
+		path = (Path *) create_agg_path(root,
+										output_rel,
+										path,
+										ctx->target,
+										ctx->groupClause ? AGG_HASHED : AGG_PLAIN,
+										AGGSPLIT_FINAL_DESERIAL | AGGSPLITOP_DEDUPLICATED,
+										false, /* streaming */
+										ctx->groupClause,
+										ctx->havingQual,
+										ctx->agg_final_costs,
+										dNumGroups);
+
+		/*
+		 * Try disable other paths if users are eager this one.
+		 */
+		if (gp_eager_distinct_dedup)
+		{
+			ListCell *lc;
+			foreach(lc, output_rel->pathlist)
+			{
+				Path *oldpath = (Path *) lfirst(lc);
+				oldpath->total_cost += disable_cost;
+			}
+		}
 		add_path(output_rel, path, root);
 	}
 	else if (CdbPathLocus_IsHashed(group_locus))

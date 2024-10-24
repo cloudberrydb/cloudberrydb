@@ -34,6 +34,7 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbutil.h"
 #include "cdb/memquota.h"
+#include "cdb/ml_ipc.h"
 #include "commands/defrem.h"
 #include "commands/vacuum.h"
 #include "commands/variable.h"
@@ -103,6 +104,10 @@ static bool check_gp_resource_group_bypass(bool *newval, void **extra, GucSource
 static int guc_array_compare(const void *a, const void *b);
 static bool check_max_running_tasks(int *newval, void **extra, GucSource source);
 
+static bool check_gp_interconnect_type(char **newval, void **extra, GucSource source);
+static void assign_gp_interconnect_type(const char *newval, void *extra);
+static const char *show_gp_interconnect_type(void);
+
 int listenerBacklog  = 128;
 
 /* For synchornized GUC value is cache in HashTable,
@@ -144,6 +149,9 @@ bool		gp_appendonly_verify_write_block = false;
 bool		gp_appendonly_compaction = true;
 int			gp_appendonly_compaction_threshold = 0;
 bool		enable_parallel = false;
+bool		enable_parallel_semi_join = true;
+bool		enable_parallel_dedup_semi_join = true;
+bool		enable_parallel_dedup_semi_reverse_join = true;
 int			gp_appendonly_insert_files = 0;
 int			gp_appendonly_insert_files_tuples_range = 0;
 int			gp_random_insert_segments = 0;
@@ -270,6 +278,7 @@ bool		gp_cte_sharing = false;
 bool		gp_enable_relsize_collection = false;
 bool		gp_recursive_cte = true;
 bool		gp_eager_two_phase_agg = false;
+bool		gp_eager_distinct_dedup = false;
 bool		gp_force_random_redistribution = false;
 
 /* Optimizer related gucs */
@@ -444,6 +453,9 @@ bool		gp_log_endpoints = false;
 /* optional reject to  parse ambigous 5-digits date in YYYMMDD format */
 bool		gp_allow_date_field_width_5digits = false;
 
+/* Avoid do a real REFRESH materialized view if possibile. */
+bool		gp_enable_refresh_fast_path = true;
+
 static const struct config_enum_entry gp_log_format_options[] = {
 	{"text", 0},
 	{"csv", 1},
@@ -522,15 +534,6 @@ static const struct config_enum_entry gp_autostats_modes[] = {
 static const struct config_enum_entry gp_interconnect_fc_methods[] = {
 	{"loss", INTERCONNECT_FC_METHOD_LOSS},
 	{"capacity", INTERCONNECT_FC_METHOD_CAPACITY},
-	{NULL, 0}
-};
-
-static const struct config_enum_entry gp_interconnect_types[] = {
-	{"udpifc", INTERCONNECT_TYPE_UDPIFC},
-	{"tcp", INTERCONNECT_TYPE_TCP},
-#ifdef ENABLE_IC_PROXY
-	{"proxy", INTERCONNECT_TYPE_PROXY},
-#endif  /* ENABLE_IC_PROXY */
 	{NULL, 0}
 };
 
@@ -1841,6 +1844,16 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
+		{"gp_eager_distinct_dedup", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Eager a 3-phase agg with deduplication for DISTINCT aggregations."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_eager_distinct_dedup,
+		false, NULL, NULL
+	},
+
+	{
 		{"gp_force_random_redistribution", PGC_USERSET, CUSTOM_OPTIONS,
 			gettext_noop("Force redistribution of insert for randomly-distributed."),
 			NULL,
@@ -3053,6 +3066,36 @@ struct config_bool ConfigureNamesBool_gp[] =
 		NULL, NULL, NULL
 	},
 	{
+		{"enable_parallel_semi_join", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("allow to use of parallel semi join."),
+			NULL,
+			GUC_EXPLAIN
+		},
+		&enable_parallel_semi_join,
+		true,
+		NULL, NULL, NULL
+	},
+	{
+		{"enable_parallel_dedup_semi_join", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("allow to use of parallel dedup semi join."),
+			NULL,
+			GUC_EXPLAIN
+		},
+		&enable_parallel_dedup_semi_join,
+		true,
+		NULL, NULL, NULL
+	},
+	{
+		{"enable_parallel_dedup_semi_reverse_join", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("allow to use of parallel dedup semi reverse join."),
+			NULL,
+			GUC_EXPLAIN
+		},
+		&enable_parallel_dedup_semi_reverse_join,
+		true,
+		NULL, NULL, NULL
+	},
+	{
 		{"gp_internal_is_singlenode", PGC_POSTMASTER, UNGROUPED,
 			 gettext_noop("Is in SingleNode mode (no segments). WARNING: user SHOULD NOT set this by any means."),
 			 NULL,
@@ -3093,6 +3136,17 @@ struct config_bool ConfigureNamesBool_gp[] =
 		 false,
 		 NULL, NULL, NULL
 	},
+
+	{
+		{"gp_enable_refresh_fast_path", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Avoid do a real REFRESH materialized view if possibile."),
+			NULL
+		},
+		&gp_enable_refresh_fast_path,
+		true,
+		NULL, NULL, NULL
+	},
+
 	{
 		{"gp_detect_data_correctness", PGC_USERSET, UNGROUPED,
 		gettext_noop("Detect if the current partitioning of the table or data distribution is correct."),
@@ -4781,6 +4835,20 @@ struct config_string ConfigureNamesString_gp[] =
 	},
 #endif  /* ENABLE_IC_PROXY */
 
+	{
+		{"gp_interconnect_type", PGC_BACKEND, GP_ARRAY_TUNING,
+			gettext_noop("Sets the protocol used for inter-node communication."),
+			gettext_noop("Valid values are \"tcp\", \"udpifc\""
+#ifdef ENABLE_IC_PROXY
+						 " and \"proxy\""
+#endif  /* ENABLE_IC_PROXY */
+						 ".")
+		},
+		&Gp_interconnect_type_str,
+		"udpifc",
+		check_gp_interconnect_type, assign_gp_interconnect_type, show_gp_interconnect_type
+	},
+
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, NULL, NULL, NULL
@@ -4929,20 +4997,6 @@ struct config_enum ConfigureNamesEnum_gp[] =
 		},
 		&Gp_interconnect_fc_method,
 		INTERCONNECT_FC_METHOD_LOSS, gp_interconnect_fc_methods,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"gp_interconnect_type", PGC_BACKEND, GP_ARRAY_TUNING,
-			gettext_noop("Sets the protocol used for inter-node communication."),
-			gettext_noop("Valid values are \"tcp\", \"udpifc\""
-#ifdef ENABLE_IC_PROXY
-						 " and \"proxy\""
-#endif  /* ENABLE_IC_PROXY */
-						 ".")
-		},
-		&Gp_interconnect_type,
-		INTERCONNECT_TYPE_UDPIFC, gp_interconnect_types,
 		NULL, NULL, NULL
 	},
 
@@ -5482,4 +5536,27 @@ DispatchSyncPGVariable(struct config_generic * gconfig)
 	}
 
 	CdbDispatchSetCommand(buffer.data, false);
+}
+
+
+static bool
+check_gp_interconnect_type(char **newval, void **extra, GucSource source)
+{
+	return CheckGpInterconnectTypeStr(newval);
+}
+
+static void
+assign_gp_interconnect_type(const char *newval, void *extra)
+{
+	SetCurrentMotionIPCLayer(newval);
+}
+
+static const char *
+show_gp_interconnect_type(void)
+{
+	if (CurrentMotionIPCLayer)
+		return CurrentMotionIPCLayer->type_name;
+
+	/* singlenode or GP_ROLE_UTILITY */
+	return "unknown";
 }

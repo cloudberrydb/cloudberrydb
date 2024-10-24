@@ -142,6 +142,8 @@ typedef struct FixedParallelState
  * worker will get a different parallel worker number.
  */
 int			ParallelWorkerNumber = -1;
+int			ParallelWorkerNumberOfSlice = -1;
+int			TotalParallelWorkerNumberOfSlice = 0;
 
 /* Is there a parallel message pending which we need to receive? */
 volatile bool ParallelMessagePending = false;
@@ -1671,36 +1673,6 @@ GpParallelDSMHashSize(void)
 }
 
 
-void *
-GpFetchParallelDSMEntry(ParallelEntryTag tag, int plan_node_id)
-{
-	GpParallelDSMEntry *entry;
-	shm_toc    *toc;
-	bool found = false;
-
-	entry = (GpParallelDSMEntry *)
-		hash_search(GpParallelDSMHash,
-				&tag,
-				HASH_FIND,
-				&found);
-	Assert(found);
-
-	if (entry->pid == MyProcPid)
-	{
-		toc = entry->toc;
-	}
-	else
-	{
-		Assert(ParallelSession->segment);
-		toc = shm_toc_attach(CBDB_PARALLEL_MAGIC, dsm_segment_address(ParallelSession->segment));
-	}
-
-	Assert(toc != NULL);
-
-	return shm_toc_lookup(toc, plan_node_id, true);
-}
-
-
 void GpDestroyParallelDSMEntry()
 {
 	GpParallelDSMEntry *entry;
@@ -1746,6 +1718,8 @@ void GpDestroyParallelDSMEntry()
 		ParallelSession->area = NULL;
 	}
 	LWLockRelease(GpParallelDSMHashLock);
+	ParallelWorkerNumberOfSlice = -1;
+	TotalParallelWorkerNumberOfSlice = 0;
 }
 
 void
@@ -1835,6 +1809,8 @@ GpInsertParallelDSMHash(PlanState *planstate)
 		entry->tolaunch = parallel_workers - 1;
 		entry->parallel_workers = parallel_workers;
 		entry->temp_worker_id = 0;
+		ParallelWorkerNumberOfSlice = 0; /* The first worker. */
+		Assert(TotalParallelWorkerNumberOfSlice == parallel_workers);
 
 		/* Create a DSA area that can be used by the leader and all workers. */
 		char	   *area_space = shm_toc_allocate(entry->toc, dsa_minsize);
@@ -1894,7 +1870,7 @@ GpInsertParallelDSMHash(PlanState *planstate)
 			.nworkers = parallel_workers,
 			.worker_id = entry->temp_worker_id,
 		};
-
+		ParallelWorkerNumberOfSlice = ctx.worker_id;
 		InitializeGpParallelWorkers(planstate, &ctx);
 	}
 

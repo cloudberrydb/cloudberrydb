@@ -2434,7 +2434,7 @@ gpdb::EvaluateExpr(Expr *expr, Oid result_type, int32 typmod)
 // interpret the value of "With oids" option from a list of defelems
 // GPDB_12_MERGE_FIXME: this leaves dead code in CMDRelationGPDB
 bool
-gpdb::InterpretOidsOption(List *options, bool allowOids)
+gpdb::InterpretOidsOption(List * /*options*/, bool /*allowOids*/)
 {
 	GP_WRAP_START;
 	{
@@ -2549,14 +2549,14 @@ static int64 mdcache_invalidation_counter = 0;
 static int64 last_mdcache_invalidation_counter = 0;
 
 static void
-mdsyscache_invalidation_counter_callback(Datum arg, int cacheid,
-										 uint32 hashvalue)
+mdsyscache_invalidation_counter_callback(Datum /*arg*/, int /*cacheid*/,
+										 uint32 /*hashvalue*/)
 {
 	mdcache_invalidation_counter++;
 }
 
 static void
-mdrelcache_invalidation_counter_callback(Datum arg, Oid relid)
+mdrelcache_invalidation_counter_callback(Datum /*arg*/, Oid /*relid*/)
 {
 	mdcache_invalidation_counter++;
 }

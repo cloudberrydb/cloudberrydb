@@ -309,9 +309,13 @@ typedef enum GpVars_Interconnect_Type
 	INTERCONNECT_TYPE_TCP = 0,
 	INTERCONNECT_TYPE_UDPIFC,
 	INTERCONNECT_TYPE_PROXY,
+	INTERCONNECT_TYPE_UDP2,
+
+	MAX_NUMBER_TYPES, /* it must be the last one */
 } GpVars_Interconnect_Type;
 
 extern int Gp_interconnect_type;
+extern char *Gp_interconnect_type_str;
 
 /*
  * We support different strategies for address binding for sockets used for
@@ -696,6 +700,8 @@ extern bool		gp_statistics_use_fkeys;
 
 /* Allow user to force tow stage agg */
 extern bool     gp_eager_two_phase_agg;
+
+extern bool     gp_eager_distinct_dedup;
 
 /* Force redistribution of insert into randomly-distributed table */
 extern bool     gp_force_random_redistribution;

@@ -1140,7 +1140,7 @@ aocs_insert_values(AOCSInsertDesc idesc, Datum *d, bool *null, AOTupleId *aoTupl
 	 */
 	if (idesc->numSequences == 0)
 	{
-		int64		firstSequence;
+		int64		firstSequence PG_USED_FOR_ASSERTS_ONLY;
 
 		firstSequence =
 			GetFastSequences(idesc->segrelid,

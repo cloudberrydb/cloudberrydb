@@ -151,7 +151,7 @@ CTranslatorRelcacheToDXL::RetrieveObjectGPDB(CMemoryPool *mp,
 
 	OID oid = CMDIdGPDB::CastMdid(mdid)->Oid();
 
-	GPOS_ASSERT(0 != oid);
+	GPOS_RTL_ASSERT(0 != oid);
 
 	// find out what type of object this oid stands for
 
@@ -744,7 +744,7 @@ CTranslatorRelcacheToDXL::RetrieveRelDistributionOpFamilies(CMemoryPool *mp,
 void
 CTranslatorRelcacheToDXL::AddSystemColumns(CMemoryPool *mp,
 										   CMDColumnArray *mdcol_array,
-										   Relation rel)
+										   Relation /*rel*/)
 {
 	for (INT i = SelfItemPointerAttributeNumber;
 		 i > FirstLowInvalidHeapAttributeNumber; i--)

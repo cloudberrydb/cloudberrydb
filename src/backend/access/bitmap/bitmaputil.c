@@ -284,6 +284,7 @@ _bitmap_findnexttids(BMBatchWords *words, BMIterateResult *result,
 			result->nextTid += fillLength * BM_HRL_WORD_SIZE;
 			result->lastScanWordNo++;
 			words->nwords--;
+			words->firstTid += fillLength * BM_HRL_WORD_SIZE;
 			result->lastScanPos = 0;
 			continue;
 		}
@@ -303,6 +304,7 @@ _bitmap_findnexttids(BMBatchWords *words, BMIterateResult *result,
 				nfillwords--;
 				/* update fill word to reflect expansion */
 				words->cwords[result->lastScanWordNo]--;
+				words->firstTid += BM_HRL_WORD_SIZE;
 			}
 
 			if (nfillwords == 0)
@@ -342,6 +344,7 @@ _bitmap_findnexttids(BMBatchWords *words, BMIterateResult *result,
 				else
 				{
 					result->nextTid += BM_HRL_WORD_SIZE;
+					words->firstTid += BM_HRL_WORD_SIZE;
 					/* start scanning a new word */
 					words->nwords--;
 					result->lastScanWordNo++;

@@ -391,3 +391,31 @@ SET enable_bitmapscan = OFF;
 explain (analyze, verbose) select * from test_bmsparse where type > 500;
 
 DROP TABLE test_bmsparse;
+
+-- test bitmap index scan when using NULL array-condition as index key
+create table foo(a int);
+create index foo_i on foo using bitmap(a);
+explain (verbose on, costs off) select * from foo where a = any(null::int[]);
+select * from foo where a = any(null::int[]);
+
+insert into foo values(1);
+select * from foo where a = 1 and a = any(null::int[]);
+select * from foo where a = 1 or a = any(null::int[]);
+
+drop table foo;
+
+-- test for compressed bitmap index ; see https://github.com/cloudberrydb/cloudberrydb/pull/679
+SET enable_seqscan = OFF;
+SET enable_indexscan = ON;
+SET enable_bitmapscan = OFF;
+
+create table bm_test_ao (i int, j int, k int) WITH (appendonly=true) distributed by (k) ;
+create index bm_test_ao_i_idx on bm_test_ao using bitmap(i);
+insert into bm_test_ao select i, 1, 1 from
+generate_series(1, 65535) g, generate_series(1, 4) i;
+
+explain select count(*) from bm_test_ao where i =2;
+
+select count(*) from bm_test_ao where i = 2;
+
+DROP TABLE bm_test_ao;

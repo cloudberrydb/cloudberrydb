@@ -290,6 +290,9 @@ extern bool gp_appendonly_verify_block_checksums;
 extern bool gp_appendonly_verify_write_block;
 extern bool gp_appendonly_compaction;
 extern bool enable_parallel;
+extern bool enable_parallel_semi_join;
+extern bool enable_parallel_dedup_semi_join;
+extern bool enable_parallel_dedup_semi_reverse_join;
 extern int  gp_appendonly_insert_files;
 extern int  gp_appendonly_insert_files_tuples_range;
 extern int  gp_random_insert_segments;
@@ -619,6 +622,8 @@ extern bool gp_external_enable_filter_pushdown;
 
 /* Enable the Global Deadlock Detector */
 extern bool gp_enable_global_deadlock_detector;
+
+extern bool	gp_enable_refresh_fast_path;
 
 extern bool gp_enable_predicate_pushdown;
 extern int  gp_predicate_pushdown_sample_rows;

@@ -28,6 +28,7 @@
  *		index_fetch_heap		- get the scan's next heap tuple
  *		index_getnext_slot	- get the next tuple from a scan
  *		index_getbitmap - get all tuples from a scan
+ *		index_initbitmap - get an empty bitmap
  *		index_bulk_delete	- bulk deletion of index tuples
  *		index_vacuum_cleanup	- post-deletion cleanup of an index
  *		index_can_return	- does index support index-only scans?
@@ -50,6 +51,7 @@
 #include "access/tableam.h"
 #include "access/transam.h"
 #include "access/xlog.h"
+#include "access/bitmap_private.h"
 #include "catalog/index.h"
 #include "catalog/pg_amproc.h"
 #include "catalog/pg_type.h"
@@ -62,7 +64,7 @@
 #include "utils/ruleutils.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
-
+#include "utils/fmgroids.h"
 
 /* ----------------------------------------------------------------
  *					macros used in index_ routines
@@ -642,6 +644,31 @@ index_getnext_slot(IndexScanDesc scan, ScanDirection direction, TupleTableSlot *
 	}
 
 	return false;
+}
+
+/*
+ * index_initbitmap -- get an empty bitmap
+ * */
+void
+index_initbitmap(IndexScanDesc scan, Node **bitmapP)
+{
+    Relation relation = scan->indexRelation;
+
+    if (relation->rd_amhandler == F_BMHANDLER)
+    {
+        bminitbitmap(bitmapP);
+    }
+    else if (relation->rd_amhandler == F_BTHANDLER)
+    {
+        *bitmapP = (Node *)tbm_create(work_mem * 1024L, NULL);
+    }
+    else
+    {
+        elog(ERROR, "Not support rd_amhandler %u to initbitmap under bitmapscan",
+            relation->rd_amhandler);
+    }
+
+    return;
 }
 
 /* ----------------

@@ -545,3 +545,21 @@ GetMotionConnTupleRemapper(ChunkTransportState * transportStates,
 
 	return conn->remapper;
 }
+
+/*
+ * do nothing for tcp/proxy implement.
+ */
+void
+DirectPutRxBufferTCP(ChunkTransportState *transportStates, int motNodeID, int route)
+{
+	return;
+}
+
+/*
+ * do nothing for tcp/proxy implement.
+ */
+uint32
+GetActiveMotionConnsTCP(void)
+{
+	return 0;
+}

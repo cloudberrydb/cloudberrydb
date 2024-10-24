@@ -1115,7 +1115,7 @@ CQueryMutators::MakeTopLevelTargetEntry(TargetEntry *old_target_entry,
 //		Return the column name of the target list entry
 //---------------------------------------------------------------------------
 CHAR *
-CQueryMutators::GetTargetEntryColName(TargetEntry *target_entry, Query *query)
+CQueryMutators::GetTargetEntryColName(TargetEntry *target_entry, Query * /*query*/)
 {
 	if (nullptr != target_entry->resname)
 	{
