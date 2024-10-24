@@ -1338,6 +1338,65 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 	 */
 	if (hasResultRTEs)
 		remove_useless_result_rtes(root);
+	
+	/*
+	 * DISTINCT optimization.
+	 * Remove DISTINCT clause if possibile, ex:
+	 * select DISTINCT count(a) from t; to
+	 * select count(a) from t;
+	 * There is one row returned at most, DISTINCT is pointless then.
+	 * The same with ORDER BY clause;
+	 */
+	if (parse->hasAggs &&
+		parse->groupClause == NIL &&
+		!contain_mutable_functions((Node *) parse))
+	{
+		List	   *useless_tlist = NIL;
+		List	   *tles;
+		List	   *sortops;
+		List	   *eqops;
+		ListCell   *lc;
+
+		if (parse->distinctClause != NIL)
+		{
+			get_sortgroupclauses_tles(parse->distinctClause, parse->targetList,
+									  &tles, &sortops, &eqops);
+			foreach(lc, tles)
+			{
+				TargetEntry *tle = lfirst(lc);
+				if (tle->resjunk)
+					useless_tlist = lappend(useless_tlist, tle);
+			}
+			parse->distinctClause = NIL;
+			if (parse->hasDistinctOn)
+				parse->hasDistinctOn = false;
+		}
+
+		if (parse->sortClause != NIL)
+		{
+
+			get_sortgroupclauses_tles(parse->sortClause, parse->targetList,
+									  &tles, &sortops, &eqops);
+			foreach(lc, tles)
+			{
+				TargetEntry *tle = lfirst(lc);
+				/*
+				 * For SELECT DISTINCT, ORDER BY expressions must appear in select list,
+				 * Some tles may be already in the list.
+				 */ 
+				if (tle->resjunk)
+					useless_tlist = list_append_unique(useless_tlist, tle);
+			}
+			parse->sortClause = NIL;
+		}
+
+		/*
+		 * There is no groupClause, sortClause and distinctClause now .
+		 * The junk TargetEntrys with ressortgroupref index are safe to be removed.
+		 */
+		if (useless_tlist != NIL)
+			parse->targetList = list_difference(parse->targetList, useless_tlist);
+	}
 
 	/*
 	 * Do the main planning.
