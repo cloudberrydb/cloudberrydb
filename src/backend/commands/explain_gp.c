@@ -1723,9 +1723,9 @@ cdbexplain_showExecStats(struct PlanState *planstate, ExplainState *es)
 	if (gp_enable_explain_rows_out && es->analyze && ns->ninst > 0) {
         double ntuples_max = ns->ntuples.vmax;
         int ntuples_imax = ns->ntuples.imax;
-        double ntuples_min = ns->ntuples.vmax; /// TODO
-        int ntuples_imin = ns->ntuples.imax; /// TODO
-        double ntuples_avg = ns->ntuples.vsum / ns->ntuples.vcnt;
+        double ntuples_min = ns->ntuples.vmin;
+        int ntuples_imin = ns->ntuples.imin;
+        double ntuples_avg = cdbexplain_agg_avg(&ns->ntuples);
         int ntuples_cnt = ns->ntuples.vcnt;
 
         if (es->format == EXPLAIN_FORMAT_TEXT)
