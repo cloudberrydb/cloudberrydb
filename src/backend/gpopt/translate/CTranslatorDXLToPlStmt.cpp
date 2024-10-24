@@ -17,6 +17,7 @@
 extern "C" {
 #include "postgres.h"
 
+#include "access/sysattr.h"
 #include "catalog/gp_distribution_policy.h"
 #include "catalog/pg_collation.h"
 #include "cdb/cdbutil.h"
@@ -54,6 +55,7 @@ extern "C" {
 #include "gpopt/translate/CPartPruneStepsBuilder.h"
 #include "gpopt/translate/CTranslatorDXLToPlStmt.h"
 #include "gpopt/translate/CTranslatorUtils.h"
+#include "naucrates/dxl/operators/CDXLDatumGeneric.h"
 #include "naucrates/dxl/operators/CDXLDirectDispatchInfo.h"
 #include "naucrates/dxl/operators/CDXLNode.h"
 #include "naucrates/dxl/operators/CDXLPhysicalAgg.h"
@@ -601,6 +603,10 @@ CTranslatorDXLToPlStmt::TranslateDXLTblScan(
 		plan->qual = qual;
 	}
 
+	if (md_rel->IsAORowOrColTable())
+	{
+		CheckSafeTargetListForAOTables(plan->targetlist);
+	}
 
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
 
@@ -768,6 +774,11 @@ CTranslatorDXLToPlStmt::TranslateDXLIndexScan(
 
 	index_scan->indexorderdir = CTranslatorUtils::GetScanDirection(
 		physical_idx_scan_dxlop->GetIndexScanDir());
+
+	if (md_rel->IsAORowOrColTable())
+	{
+		CheckSafeTargetListForAOTables(plan->targetlist);
+	}
 
 	// translate index condition list
 	List *index_cond = NIL;
@@ -1579,19 +1590,9 @@ CTranslatorDXLToPlStmt::TranslateDXLTvfToRangeTblEntry(
 	RangeTblEntry *rte = MakeNode(RangeTblEntry);
 	rte->rtekind = RTE_FUNCTION;
 
-	FuncExpr *func_expr = MakeNode(FuncExpr);
-
-	func_expr->funcid = CMDIdGPDB::CastMdid(dxlop->FuncMdId())->Oid();
-	func_expr->funcretset = gpdb::GetFuncRetset(func_expr->funcid);
-	// this is a function call, as opposed to a cast
-	func_expr->funcformat = COERCE_EXPLICIT_CALL;
-	func_expr->funcresulttype =
-		CMDIdGPDB::CastMdid(dxlop->ReturnTypeMdId())->Oid();
-
+	// get function alias
 	Alias *alias = MakeNode(Alias);
 	alias->colnames = NIL;
-
-	// get function alias
 	alias->aliasname = CTranslatorUtils::CreateMultiByteCharStringFromWCString(
 		dxlop->Pstr()->GetBuffer());
 
@@ -1618,47 +1619,91 @@ CTranslatorDXLToPlStmt::TranslateDXLTvfToRangeTblEntry(
 												 ul + 1 /*attno*/);
 	}
 
-	// function arguments
-	const ULONG num_of_child = tvf_dxlnode->Arity();
-	for (ULONG ul = 1; ul < num_of_child; ++ul)
-	{
-		CDXLNode *func_arg_dxlnode = (*tvf_dxlnode)[ul];
-
-		CMappingColIdVarPlStmt colid_var_mapping(m_mp, base_table_context,
-												 nullptr, output_context,
-												 m_dxl_to_plstmt_context);
-
-		Expr *pexprFuncArg = m_translator_dxl_to_scalar->TranslateDXLToScalar(
-			func_arg_dxlnode, &colid_var_mapping);
-		func_expr->args = gpdb::LAppend(func_expr->args, pexprFuncArg);
-	}
-
-	// GPDB_91_MERGE_FIXME: collation
-	func_expr->inputcollid = gpdb::ExprCollation((Node *) func_expr->args);
-	func_expr->funccollid = gpdb::TypeCollation(func_expr->funcresulttype);
-
-	// Populate RangeTblFunction::funcparams, by walking down the entire
-	// func_expr to capture ids of all the PARAMs
-	ListCell *lc = nullptr;
-	List *param_exprs = gpdb::ExtractNodesExpression(
-		(Node *) func_expr, T_Param, false /*descend_into_subqueries */);
-	Bitmapset *funcparams = nullptr;
-	ForEach(lc, param_exprs)
-	{
-		Param *param = (Param *) lfirst(lc);
-		funcparams = gpdb::BmsAddMember(funcparams, param->paramid);
-	}
-
 	RangeTblFunction *rtfunc = MakeNode(RangeTblFunction);
-	rtfunc->funcexpr = (Node *) func_expr;
+	Bitmapset *funcparams = nullptr;
+
+	// invalid funcid indicates TVF evaluates to const
+	if (!dxlop->FuncMdId()->IsValid())
+	{
+		Const *const_expr = MakeNode(Const);
+
+		const_expr->consttype =
+			CMDIdGPDB::CastMdid(dxlop->ReturnTypeMdId())->Oid();
+		const_expr->consttypmod = -1;
+
+		CDXLNode *constVa = (*tvf_dxlnode)[1];
+		CDXLScalarConstValue *constValue =
+			CDXLScalarConstValue::Cast(constVa->GetOperator());
+		const CDXLDatum *datum_dxl = constValue->GetDatumVal();
+		CDXLDatumGeneric *datum_generic_dxl =
+			CDXLDatumGeneric::Cast(const_cast<gpdxl::CDXLDatum *>(datum_dxl));
+		const IMDType *type =
+			m_md_accessor->RetrieveType(datum_generic_dxl->MDId());
+		const_expr->constlen = type->Length();
+		Datum val = gpdb::DatumFromPointer(datum_generic_dxl->GetByteArray());
+		ULONG length =
+			(ULONG) gpdb::DatumSize(val, false, const_expr->constlen);
+		CHAR *str = (CHAR *) gpdb::GPDBAlloc(length + 1);
+		memcpy(str, datum_generic_dxl->GetByteArray(), length);
+		str[length] = '\0';
+		const_expr->constvalue = gpdb::DatumFromPointer(str);
+
+		rtfunc->funcexpr = (Node *) const_expr;
+		rtfunc->funccolcount = (int) num_of_cols;
+	}
+	else
+	{
+		FuncExpr *func_expr = MakeNode(FuncExpr);
+
+		func_expr->funcid = CMDIdGPDB::CastMdid(dxlop->FuncMdId())->Oid();
+		func_expr->funcretset = gpdb::GetFuncRetset(func_expr->funcid);
+		// this is a function call, as opposed to a cast
+		func_expr->funcformat = COERCE_EXPLICIT_CALL;
+		func_expr->funcresulttype =
+			CMDIdGPDB::CastMdid(dxlop->ReturnTypeMdId())->Oid();
+
+		// function arguments
+		const ULONG num_of_child = tvf_dxlnode->Arity();
+		for (ULONG ul = 1; ul < num_of_child; ++ul)
+		{
+			CDXLNode *func_arg_dxlnode = (*tvf_dxlnode)[ul];
+
+			CMappingColIdVarPlStmt colid_var_mapping(m_mp, base_table_context,
+													 nullptr, output_context,
+													 m_dxl_to_plstmt_context);
+
+			Expr *pexprFuncArg =
+				m_translator_dxl_to_scalar->TranslateDXLToScalar(
+					func_arg_dxlnode, &colid_var_mapping);
+			func_expr->args = gpdb::LAppend(func_expr->args, pexprFuncArg);
+		}
+
+		// GPDB_91_MERGE_FIXME: collation
+		func_expr->inputcollid = gpdb::ExprCollation((Node *) func_expr->args);
+		func_expr->funccollid = gpdb::TypeCollation(func_expr->funcresulttype);
+
+		// Populate RangeTblFunction::funcparams, by walking down the entire
+		// func_expr to capture ids of all the PARAMs
+		ListCell *lc = nullptr;
+		List *param_exprs = gpdb::ExtractNodesExpression(
+			(Node *) func_expr, T_Param, false /*descend_into_subqueries */);
+		ForEach(lc, param_exprs)
+		{
+			Param *param = (Param *) lfirst(lc);
+			funcparams = gpdb::BmsAddMember(funcparams, param->paramid);
+		}
+
+		rtfunc->funcexpr = (Node *) func_expr;
+	}
+
 	rtfunc->funcparams = funcparams;
 	// GPDB_91_MERGE_FIXME: collation
 	// set rtfunc->funccoltypemods & rtfunc->funccolcollations?
 	rte->functions = ListMake1(rtfunc);
 
 	rte->inFromCl = true;
-	rte->eref = alias;
 
+	rte->eref = alias;
 	return rte;
 }
 
@@ -2673,6 +2718,13 @@ CTranslatorDXLToPlStmt::TranslateDXLAgg(
 			GPOS_ASSERT(!"Invalid aggregation strategy");
 	}
 
+	if (agg->aggstrategy == AGG_HASHED &&
+		CTranslatorUtils::HasOrderedAggRefInProjList(project_list_dxlnode))
+	{
+		GPOS_RAISE(gpopt::ExmaDXL, gpopt::ExmiExpr2DXLUnsupportedFeature,
+				   GPOS_WSZ_LIT("Hash aggregation with ORDER BY"));
+	}
+
 	agg->streaming = dxl_phy_agg_dxlop->IsStreamSafe();
 
 	// translate grouping cols
@@ -2918,19 +2970,33 @@ CTranslatorDXLToPlStmt::TranslateDXLWindow(
 					win_frame_leading_dxlnode->GetOperator())
 					->ParseDXLFrameBoundary();
 			if (lead_boundary_type == EdxlfbUnboundedPreceding)
+			{
 				window->frameOptions |= FRAMEOPTION_END_UNBOUNDED_PRECEDING;
+			}
 			if (lead_boundary_type == EdxlfbBoundedPreceding)
+			{
 				window->frameOptions |= FRAMEOPTION_END_OFFSET_PRECEDING;
+			}
 			if (lead_boundary_type == EdxlfbCurrentRow)
+			{
 				window->frameOptions |= FRAMEOPTION_END_CURRENT_ROW;
+			}
 			if (lead_boundary_type == EdxlfbBoundedFollowing)
+			{
 				window->frameOptions |= FRAMEOPTION_END_OFFSET_FOLLOWING;
+			}
 			if (lead_boundary_type == EdxlfbUnboundedFollowing)
+			{
 				window->frameOptions |= FRAMEOPTION_END_UNBOUNDED_FOLLOWING;
+			}
 			if (lead_boundary_type == EdxlfbDelayedBoundedPreceding)
+			{
 				window->frameOptions |= FRAMEOPTION_END_OFFSET_PRECEDING;
+			}
 			if (lead_boundary_type == EdxlfbDelayedBoundedFollowing)
+			{
 				window->frameOptions |= FRAMEOPTION_END_OFFSET_FOLLOWING;
+			}
 			if (0 != win_frame_leading_dxlnode->Arity())
 			{
 				window->endOffset =
@@ -2946,19 +3012,33 @@ CTranslatorDXLToPlStmt::TranslateDXLWindow(
 					win_frame_trailing_dxlnode->GetOperator())
 					->ParseDXLFrameBoundary();
 			if (trail_boundary_type == EdxlfbUnboundedPreceding)
+			{
 				window->frameOptions |= FRAMEOPTION_START_UNBOUNDED_PRECEDING;
+			}
 			if (trail_boundary_type == EdxlfbBoundedPreceding)
+			{
 				window->frameOptions |= FRAMEOPTION_START_OFFSET_PRECEDING;
+			}
 			if (trail_boundary_type == EdxlfbCurrentRow)
+			{
 				window->frameOptions |= FRAMEOPTION_START_CURRENT_ROW;
+			}
 			if (trail_boundary_type == EdxlfbBoundedFollowing)
+			{
 				window->frameOptions |= FRAMEOPTION_START_OFFSET_FOLLOWING;
+			}
 			if (trail_boundary_type == EdxlfbUnboundedFollowing)
+			{
 				window->frameOptions |= FRAMEOPTION_START_UNBOUNDED_FOLLOWING;
+			}
 			if (trail_boundary_type == EdxlfbDelayedBoundedPreceding)
+			{
 				window->frameOptions |= FRAMEOPTION_START_OFFSET_PRECEDING;
+			}
 			if (trail_boundary_type == EdxlfbDelayedBoundedFollowing)
+			{
 				window->frameOptions |= FRAMEOPTION_START_OFFSET_FOLLOWING;
+			}
 			if (0 != win_frame_trailing_dxlnode->Arity())
 			{
 				window->startOffset =
@@ -2970,7 +3050,9 @@ CTranslatorDXLToPlStmt::TranslateDXLWindow(
 			child_contexts->Release();
 		}
 		else
+		{
 			window->frameOptions = FRAMEOPTION_DEFAULTS;
+		}
 	}
 
 	SetParamIds(plan);
@@ -3175,7 +3257,9 @@ ContainsSetReturningFuncOrOp(const CDXLNode *project_list_dxlnode,
 		{
 			case EdxlopScalarFuncExpr:
 				if (CDXLScalarFuncExpr::Cast(op)->ReturnsSet())
+				{
 					return true;
+				}
 				break;
 			case EdxlopScalarOpExpr:
 			{
@@ -3184,7 +3268,9 @@ ContainsSetReturningFuncOrOp(const CDXLNode *project_list_dxlnode,
 				const IMDFunction *md_func =
 					md_accessor->RetrieveFunc(md_sclar_op->FuncMdId());
 				if (md_func->ReturnsSet())
+				{
 					return true;
+				}
 				break;
 			}
 			default:
@@ -3208,16 +3294,24 @@ SanityCheckProjectSetTargetList(List *targetlist)
 			(IsA(expr, OpExpr) && ((OpExpr *) expr)->opretset))
 		{
 			if (IsA(expr, FuncExpr))
+			{
 				args = ((FuncExpr *) expr)->args;
+			}
 			else
+			{
 				args = ((OpExpr *) expr)->args;
+			}
 			if (gpdb::ExpressionReturnsSet((Node *) args))
+			{
 				return false;
+			}
 			continue;
 		}
 
 		if (gpdb::ExpressionReturnsSet((Node *) expr))
+		{
 			return false;
+		}
 	}
 	return true;
 }
@@ -3232,9 +3326,11 @@ CTranslatorDXLToPlStmt::TranslateDXLProjectSet(
 	// GPDB_12_MERGE_FIXME: had we generated a DXLProjectSet in ORCA we wouldn't
 	// have needed to be defensive here...
 	if ((*result_dxlnode)[EdxlresultIndexFilter]->Arity() > 0)
+	{
 		GPOS_RAISE(
 			gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 			GPOS_WSZ_LIT("Unsupported one-time filter in ProjectSet node"));
+	}
 
 	// create project set (nee result) plan node
 	ProjectSet *project_set = MakeNode(ProjectSet);
@@ -3288,9 +3384,11 @@ CTranslatorDXLToPlStmt::TranslateDXLProjectSet(
 	// double check the targetlist is kosher
 	// we are only doing this because ORCA didn't do it...
 	if (!SanityCheckProjectSetTargetList(plan->targetlist))
+	{
 		GPOS_RAISE(
 			gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 			GPOS_WSZ_LIT("Unexpected target list entries in ProjectSet node"));
+	}
 
 	return (Plan *) project_set;
 }
@@ -3314,8 +3412,10 @@ CTranslatorDXLToPlStmt::TranslateDXLResult(
 	// actual result node
 	if (ContainsSetReturningFuncOrOp((*result_dxlnode)[EdxlresultIndexProjList],
 									 m_md_accessor))
+	{
 		return TranslateDXLProjectSet(result_dxlnode, output_context,
 									  ctxt_translation_prev_siblings);
+	}
 
 	// create result plan node
 	Result *result = MakeNode(Result);
@@ -3378,9 +3478,11 @@ CTranslatorDXLToPlStmt::TranslateDXLResult(
 	// double check the targetlist is kosher
 	// we are only doing this because ORCA didn't do it...
 	if (!SanityCheckProjectSetTargetList(plan->targetlist))
+	{
 		GPOS_RAISE(
 			gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 			GPOS_WSZ_LIT("Unexpected target list entries in ProjectSet node"));
+	}
 
 	return (Plan *) result;
 }
@@ -3929,6 +4031,8 @@ CTranslatorDXLToPlStmt::TranslateDXLDml(
 	ModifyTable *dml = MakeNode(ModifyTable);
 	Plan *plan = &(dml->plan);
 	AclMode acl_mode = ACL_NO_RIGHTS;
+	BOOL isSplit = phy_dml_dxlop->FSplit();
+	List *updateCols = NIL;
 
 	switch (phy_dml_dxlop->GetDmlOpType())
 	{
@@ -3962,6 +4066,11 @@ CTranslatorDXLToPlStmt::TranslateDXLDml(
 
 	IMDId *mdid_target_table = phy_dml_dxlop->GetDXLTableDescr()->MDId();
 	const IMDRelation *md_rel = m_md_accessor->RetrieveRel(mdid_target_table);
+
+	if (md_rel->IsAORowOrColTable())
+	{
+		isSplit = true; // AO tables are always use split updates
+	}
 
 	if (IMDRelation::EreldistrMasterOnly != md_rel->GetRelDistribution())
 	{
@@ -4010,9 +4119,16 @@ CTranslatorDXLToPlStmt::TranslateDXLDml(
 							 nullptr,  // translate context for the base table
 							 child_contexts, output_context);
 
+	BOOL isNonSplitUpdate = (m_cmd_type == CMD_UPDATE && !isSplit);
+	if (isNonSplitUpdate)
+	{
+		// set all columns as updateCols for non-split updates
+		updateCols = GetRelationActiveColums(md_rel);
+	}
+
 	// pad child plan's target list with NULLs for dropped columns for all DML operator types
 	List *target_list_with_dropped_cols =
-		CreateTargetListWithNullsForDroppedCols(dml_target_list, md_rel);
+		CreateTargetListWithNullsForDroppedCols(dml_target_list, md_rel, !isNonSplitUpdate);
 	dml_target_list = target_list_with_dropped_cols;
 
 	// Add junk columns to the target list for the 'action', 'ctid',
@@ -4020,10 +4136,12 @@ CTranslatorDXLToPlStmt::TranslateDXLDml(
 	// these based on the resnames. ORCA also includes a similar column for
 	// partition Oid in the child's target list, but we don't use it for
 	// anything in GPDB.
-	if (m_cmd_type == CMD_UPDATE)
+	if (m_cmd_type == CMD_UPDATE && isSplit)
+	{
 		(void) AddJunkTargetEntryForColId(&dml_target_list, &child_context,
 										  phy_dml_dxlop->ActionColId(),
 										  "DMLAction");
+	}
 
 	if (m_cmd_type == CMD_UPDATE || m_cmd_type == CMD_DELETE)
 	{
@@ -4033,9 +4151,11 @@ CTranslatorDXLToPlStmt::TranslateDXLDml(
 								   phy_dml_dxlop->GetSegmentIdColId(),
 								   "gp_segment_id");
 	}
-	if (m_cmd_type == CMD_UPDATE && phy_dml_dxlop->IsOidsPreserved())
+	if (m_cmd_type == CMD_UPDATE && phy_dml_dxlop->IsOidsPreserved() && isSplit)
+	{
 		AddJunkTargetEntryForColId(&dml_target_list, &child_context,
 								   phy_dml_dxlop->GetTupleOid(), "oid");
+	}
 
 	// Add a Result node on top of the child plan, to coerce the target
 	// list to match the exact physical layout of the target table,
@@ -4053,7 +4173,7 @@ CTranslatorDXLToPlStmt::TranslateDXLDml(
 	result_plan->targetlist = target_list_with_dropped_cols;
 	SetParamIds(result_plan);
 
-	if (m_cmd_type == CMD_UPDATE)
+	if (m_cmd_type == CMD_UPDATE && isSplit)
 	{
 		Result *final_result = MakeNode(Result);
 		Plan *final_result_plan = &(final_result->plan);
@@ -4079,12 +4199,15 @@ CTranslatorDXLToPlStmt::TranslateDXLDml(
 	// GPDB_14_MERGE_FIXME: fix split update and missing partColsUpdated
 	dml->rootRelation = md_rel->IsPartitioned() ? index : 0;
 	//dml->plans = ListMake1(child_plan);
+	dml->updateColnosLists = ListMake1(updateCols);
 
 	dml->fdwPrivLists = ListMake1(NIL);
 
 	// ORCA plans all updates as split updates
 	if (m_cmd_type == CMD_UPDATE)
-		dml->splitUpdate = true;
+	{
+		dml->splitUpdate = isSplit;
+	}
 
 	plan->lefttree = child_plan;
 	plan->righttree = NULL;
@@ -4619,7 +4742,7 @@ CTranslatorDXLToPlStmt::TranslateDXLProjList(
 //---------------------------------------------------------------------------
 List *
 CTranslatorDXLToPlStmt::CreateTargetListWithNullsForDroppedCols(
-	List *target_list, const IMDRelation *md_rel)
+	List *target_list, const IMDRelation *md_rel, bool keepDropedAsNull)
 {
 	GPOS_ASSERT_FIXME(nullptr != target_list);
 	GPOS_ASSERT(gpdb::ListLength(target_list) <= md_rel->ColumnCount());
@@ -4642,6 +4765,11 @@ CTranslatorDXLToPlStmt::CreateTargetListWithNullsForDroppedCols(
 		Expr *expr = nullptr;
 		if (md_col->IsDropped())
 		{
+			if (!keepDropedAsNull)
+			{
+				continue;
+			}
+
 			// add a NULL element
 			OID oid_type = CMDIdGPDB::CastMdid(
 							   m_md_accessor->PtMDType<IMDTypeInt4>()->MDId())
@@ -5716,6 +5844,26 @@ CTranslatorDXLToPlStmt::TranslateNestLoopParamList(
 	return nest_params_list;
 }
 
+void
+CTranslatorDXLToPlStmt::CheckSafeTargetListForAOTables(List *target_list)
+{
+	ListCell *lc = nullptr;
+
+	ForEach(lc, target_list)
+	{
+		TargetEntry *te = (TargetEntry *) lfirst(lc);
+		if (te->resorigcol < 0 &&
+			te->resorigcol != SelfItemPointerAttributeNumber &&
+			te->resorigcol != TableOidAttributeNumber &&
+			te->resorigcol != GpSegmentIdAttributeNumber &&
+			te->resorigcol != GpForeignServerAttributeNumber)
+		{
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
+					   GPOS_WSZ_LIT("Invalid system target list found for AO table"));
+		}
+	}
+}
+
 List *
 CTranslatorDXLToPlStmt::CreateDirectCopyTargetList(List *target_list)
 {
@@ -5735,5 +5883,33 @@ CTranslatorDXLToPlStmt::CreateDirectCopyTargetList(List *target_list)
 	}
 
 	return result_target_list;
+}
+
+List *
+CTranslatorDXLToPlStmt::GetRelationActiveColums(const IMDRelation *md_rel)
+{
+	List *result_list = NIL;
+	ULONG resno = 1;
+
+	const ULONG num_of_rel_cols = md_rel->ColumnCount();
+
+	for (ULONG ul = 0; ul < num_of_rel_cols; ul++)
+	{
+		const IMDColumn *md_col = md_rel->GetMdCol(ul);
+
+		if (md_col->IsSystemColumn())
+		{
+			continue;
+		}
+
+		if (!md_col->IsDropped())
+		{
+			result_list = gpdb::LAppendInt(result_list, resno);
+		}
+
+		resno++;
+	}
+
+	return result_list;
 }
 // EOF

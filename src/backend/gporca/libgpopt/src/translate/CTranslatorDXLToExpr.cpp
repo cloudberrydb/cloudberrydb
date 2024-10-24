@@ -544,6 +544,11 @@ CTranslatorDXLToExpr::PexprLogicalTVF(const CDXLNode *dxlnode)
 	ConstructDXLColId2ColRefMapping(dxl_op->GetDXLColumnDescrArray(),
 									popTVF->PdrgpcrOutput());
 
+	if (!popTVF->FuncMdId()->IsValid())
+	{
+		return pexpr;
+	}
+
 	const IMDFunction *pmdfunc = m_pmda->RetrieveFunc(mdid_func);
 
 	if (IMDFunction::EfsVolatile == pmdfunc->GetFuncStability())
@@ -1490,12 +1495,12 @@ CTranslatorDXLToExpr::PexprLogicalUpdate(const CDXLNode *dxlnode)
 		pcrTupleOid = LookupColRef(m_phmulcr, tuple_oid);
 	}
 
-	return GPOS_NEW(m_mp)
-		CExpression(m_mp,
-					GPOS_NEW(m_mp) CLogicalUpdate(m_mp, ptabdesc, pdrgpcrDelete,
-												  pdrgpcrInsert, pcrCtid,
-												  pcrSegmentId, pcrTupleOid),
-					pexprChild);
+	return GPOS_NEW(m_mp) CExpression(
+		m_mp,
+		GPOS_NEW(m_mp)
+			CLogicalUpdate(m_mp, ptabdesc, pdrgpcrDelete, pdrgpcrInsert,
+						   pcrCtid, pcrSegmentId, pcrTupleOid, true),
+		pexprChild);
 }
 
 //---------------------------------------------------------------------------
