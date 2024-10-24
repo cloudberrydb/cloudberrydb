@@ -1721,60 +1721,42 @@ cdbexplain_showExecStats(struct PlanState *planstate, ExplainState *es)
 	 */
 
 	if (gp_enable_explain_rows_out && es->analyze && ns->ninst > 0) {
-		double alltuples = 0;
-		double maxtuples = ns->insts[0].ntuples;
-		int maxseg = 0;
-		double mintuples = ns->insts[0].ntuples;
-		int minseg = 0;
+        double ntuples_max = ns->ntuples.vmax;
+        int ntuples_imax = ns->ntuples.imax;
+        double ntuples_min = ns->ntuples.vmax; /// TODO
+        int ntuples_imin = ns->ntuples.imax; /// TODO
+        double ntuples_avg = ns->ntuples.vsum / ns->ntuples.vcnt;
+        int ntuples_cnt = ns->ntuples.vcnt;
 
-		for (i = 0; i < ns->ninst; i++)
-		{
-			CdbExplain_StatInst *nsi = &ns->insts[i];
+        if (es->format == EXPLAIN_FORMAT_TEXT)
+        {
+            /*
+             * create a header for all stats: separate each individual stat by an
+             * underscore, separate the grouped stats for each node by a slash
+             */
+            appendStringInfoSpaces(es->str, es->indent * 2);
+            appendStringInfoString(es->str, "Rows out: ");
 
-			alltuples += nsi->ntuples;
-
-			if (nsi->ntuples > maxtuples) {
-				maxtuples = nsi->ntuples;
-				maxseg = ns->segindex0 + i;
-			}
-
-			if (nsi->ntuples < mintuples) {
-				mintuples = nsi->ntuples;
-				minseg = ns->segindex0 + i;
-			}
-		}
-
-		double avgtuples = alltuples / ns->ninst;
-
-		if (es->format == EXPLAIN_FORMAT_TEXT)
-		{
-			/*
-			 * create a header for all stats: separate each individual stat by an
-			 * underscore, separate the grouped stats for each node by a slash
-			 */
-			appendStringInfoSpaces(es->str, es->indent * 2);
-			appendStringInfoString(es->str, "Rows out: ");
-
-			appendStringInfo(es->str,
-								 "%0.2f rows avg x %d workers, %0.f rows max (seg%d), %0.f rows min (seg%d).\n",
-								 avgtuples,
-								 ns->ninst,
-								 maxtuples,
-								 maxseg,
-								 mintuples,
-								 minseg);
-		}
-		else {
-			// ExplainOpenGroup("Rows Out", NULL, false, es);
-			ExplainPropertyInteger("Workers", ns->ninst, es);
-			ExplainPropertyFloat("Average Rows", avgtuples, 1, es);
-			ExplainPropertyFloat("Max Rows", maxtuples, 0, es);
-			ExplainPropertyInteger("Max Rows Segment", maxseg, es);
-			ExplainPropertyFloat("Min Rows", mintuples, 0, es);
-			ExplainPropertyInteger("Min Rows Segment", minseg, es);
-			// ExplainCloseGroup("Rows out", NULL, false, es);
-		}
-	}
+            appendStringInfo(es->str,
+                                 "%.2f rows avg x %d workers, %.0f rows max (seg%d), %.0f rows min (seg%d).\n",
+                                 ntuples_avg,
+                                 ntuples_cnt,
+                                 ntuples_max,
+                                 ntuples_imax,
+                                 ntuples_min,
+                                 ntuples_imin);
+        }
+        else {
+            // ExplainOpenGroup("Rows Out", NULL, false, es);
+            ExplainPropertyInteger("Workers", NULL, ntuples_cnt, es);
+            ExplainPropertyFloat("Average Rows", NULL, ntuples_avg, 1, es);
+            ExplainPropertyFloat("Max Rows", NULL, ntuples_max, 0, es);
+            ExplainPropertyInteger("Max Rows Segment", NULL, ntuples_imax, es);
+            ExplainPropertyFloat("Min Rows", NULL, ntuples_min, 0, es);
+            ExplainPropertyInteger("Min Rows Segment", NULL, ntuples_imin, es);
+            // ExplainCloseGroup("Rows out", NULL, false, es);
+        }
+    }
 
 	/*
 	 * Dump stats for all workers.
