@@ -24,6 +24,7 @@ ifeq "$(enable_debug_extensions)" "yes"
                gp_exttable_fdw \
                gp_legacy_string_agg \
 			   gp_relsizes_stats \
+			   gp_relaccess_stats \
                gp_replica_check \
                gp_toolkit \
                pg_hint_plan \
@@ -35,6 +36,7 @@ else
                gp_internal_tools \
                gp_legacy_string_agg \
 			   gp_relsizes_stats \
+			   gp_relaccess_stats \
                gp_exttable_fdw \
                gp_toolkit \
                pg_hint_plan
