@@ -1946,6 +1946,7 @@ code or new licensing patterns.
                 LICENSE file.  These are license grants, not source files, so
                 they carry no license header of their own.
             -->
+            <exclude>licenses/LICENSE-amalgamate.txt</exclude>
             <exclude>licenses/LICENSE-boost.txt</exclude>
             <exclude>licenses/LICENSE-termcolor.txt</exclude>
 

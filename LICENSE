@@ -377,18 +377,24 @@ Apache Cloudberry includes codes from
       see licenses/LICENSE-cpp-stub.txt
 
       contrib/pax_storage/src/cpp/contrib/tabulate
-      (tabulate's own code only; the third-party code bundled and
-       embedded within it is listed below under its own licenses)
+      (tabulate's own code only; the third-party code bundled and embedded
+       within it is listed below under its own licenses)
       see licenses/LICENSE-tabulate.txt
+
+      Note that tabulate's amalgamated single header,
+      contrib/pax_storage/src/cpp/contrib/tabulate/single_include/tabulate/tabulate.hpp,
+      is a composite file: the portions carrying tabulate's own
+      "SPDX-License-Identifier: MIT" notices are under this MIT license,
+      while the third-party portions embedded in the same file are under
+      the licenses identified below.
 
 ----------------------------
    Boost Software License - Version 1.0
 
-      The bundled tabulate library embeds the following third-party
+      The bundled tabulate library includes the following third-party
       header-only libraries by Martin Moene, which are distributed under
       the Boost Software License, Version 1.0, rather than under
-      tabulate's own MIT license.  The amalgamated single-header build of
-      tabulate also contains copies of all three.
+      tabulate's own MIT license:
 
       optional-lite (https://github.com/martinmoene/optional-lite)
          contrib/pax_storage/src/cpp/contrib/tabulate/include/tabulate/optional_lite.hpp
@@ -399,7 +405,11 @@ Apache Cloudberry includes codes from
       string-view-lite (https://github.com/martinmoene/string-view-lite)
          contrib/pax_storage/src/cpp/contrib/tabulate/include/tabulate/string_view_lite.hpp
 
-      amalgamated copy of all of the above
+      Verbatim copies of all three are also embedded in tabulate's
+      amalgamated single header.  This license covers those embedded
+      portions -- the ones bearing the Martin Moene copyright notices and
+      the accompanying "Distributed under the Boost Software License,
+      Version 1.0" grants -- and not the file as a whole:
          contrib/pax_storage/src/cpp/contrib/tabulate/single_include/tabulate/tabulate.hpp
 
       see licenses/LICENSE-boost.txt
@@ -414,9 +424,15 @@ Apache Cloudberry includes codes from
       see licenses/LICENSE-googletest.txt
 
       termcolor (https://github.com/ikalnytskyi/termcolor), bundled by
-      tabulate and also embedded in tabulate's amalgamated single header:
+      tabulate rather than under tabulate's own MIT license:
 
          contrib/pax_storage/src/cpp/contrib/tabulate/include/tabulate/termcolor.hpp
+
+      A verbatim copy of termcolor is also embedded in tabulate's
+      amalgamated single header.  This license covers that embedded
+      portion -- the one bearing the "copyright: (c) 2013 by Ihor
+      Kalnytskyi" notice, comprising the termcolor namespace -- and not
+      the file as a whole:
          contrib/pax_storage/src/cpp/contrib/tabulate/single_include/tabulate/tabulate.hpp
 
       see licenses/LICENSE-termcolor.txt
