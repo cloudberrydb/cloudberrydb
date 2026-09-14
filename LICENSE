@@ -281,7 +281,7 @@ The PostgreSQL software includes:
 ----------------------------
    PostgreSQL-style License
 
-      src/port/gettimeofday.c
+      src/port/win32gettimeofday.c
       see licenses/LICENSE-gettimeofday.txt
 
 ----------------------------
