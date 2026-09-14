@@ -131,12 +131,31 @@ jobs:
           fi
           getent hosts minio
 
-          # Download MinIO server binary and mc client
-          curl -fsSL -o minio https://dl.min.io/server/minio/release/linux-amd64/minio
+          # Download MinIO server binary and mc client.
+          #
+          # dl.min.io now returns HTTP 410 for every artifact: MinIO archived
+          # the open-source Server and Client and no longer serves them from
+          # that host.  The final open-source releases are still published as
+          # GitHub release assets, so pin them there and verify the checksums
+          # MinIO publishes alongside each binary.
+          #
+          # These are plain shell variables on purpose: exporting anything
+          # with a MINIO_ prefix would leak into the server's configuration
+          # environment below.
+          minio_release="RELEASE.2025-09-07T16-13-09Z"
+          minio_sha256="7c5bd8512c6e966455b1d198209358b2d191c77a83ab377c4073281065fb855f"
+          mc_release="RELEASE.2025-08-13T08-35-41Z"
+          mc_sha256="01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891"
+
+          curl -fsSL -o minio \
+            "https://github.com/minio/minio/releases/download/${minio_release}/minio.linux-amd64.${minio_release}"
+          echo "${minio_sha256}  minio" | sha256sum -c -
           chmod +x minio
           sudo mv minio /usr/local/bin/minio
 
-          curl -fsSL -o mc https://dl.min.io/client/mc/release/linux-amd64/mc
+          curl -fsSL -o mc \
+            "https://github.com/minio/mc/releases/download/${mc_release}/mc.linux-amd64.${mc_release}"
+          echo "${mc_sha256}  mc" | sha256sum -c -
           chmod +x mc
           sudo mv mc /usr/local/bin/mc
 
