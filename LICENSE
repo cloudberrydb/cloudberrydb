@@ -377,7 +377,8 @@ Apache Cloudberry includes codes from
       see licenses/LICENSE-cpp-stub.txt
 
       contrib/pax_storage/src/cpp/contrib/tabulate
-      (excluding the bundled third-party components listed below)
+      (tabulate's own code only; the third-party code bundled and
+       embedded within it is listed below under its own licenses)
       see licenses/LICENSE-tabulate.txt
 
 ----------------------------
@@ -421,3 +422,13 @@ Apache Cloudberry includes codes from
       see licenses/LICENSE-termcolor.txt
       (also shipped in-tree as
        contrib/pax_storage/src/cpp/contrib/tabulate/LICENSE.termcolor)
+
+      amalgamate.py (https://github.com/edlund/amalgamate), copyright
+      2012 Erik Edlund, the source amalgamation tool bundled by tabulate
+      and used to generate its single header:
+
+         contrib/pax_storage/src/cpp/contrib/tabulate/utils/amalgamate
+
+      see licenses/LICENSE-amalgamate.txt
+      (also shipped in-tree as
+       contrib/pax_storage/src/cpp/contrib/tabulate/utils/amalgamate/LICENSE.md)
