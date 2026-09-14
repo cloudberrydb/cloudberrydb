@@ -272,7 +272,9 @@ jobs:
                 "enable_core_check":false
               },
               {"test":"gpcontrib-gp-stats-collector",
-               "make_configs":["gpcontrib/gp_stats_collector:installcheck"],
+               "make_configs":["gpcontrib/gp_stats_collector:installcheck",
+                               "gpcontrib/gp_stats_collector/test:installcheck",
+                               "gpcontrib/gp_stats_collector/test/isolation2:installcheck"],
                "extension":"gp_stats_collector"
               },
               {"test":"ic-expandshrink",

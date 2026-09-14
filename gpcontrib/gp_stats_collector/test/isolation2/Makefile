@@ -4,11 +4,13 @@
 # polling another).  Reuses the core pg_isolation2_regress harness rather than
 # rebuilding it.
 #
-# Prerequisites (handled by the CI isolation2 job):
+# Prerequisites:
 #   - gp_inject_fault available (--enable-faultinjector, on by default) for the
 #     happy-path spec.
 #   - Extension installed and gp_stats_collector in shared_preload_libraries.
-#   - Harness built: make -C $(top_builddir)/src/test/isolation2 install
+#
+# The core harness is built on demand by the "harness" target below, so this
+# suite runs from a clean tree with no extra CI step.
 #
 # Run:
 #   make -C gpcontrib/gp_stats_collector/test/isolation2 installcheck
@@ -18,9 +20,15 @@ include $(top_builddir)/src/Makefile.global
 
 ISO2 = $(top_builddir)/src/test/isolation2
 
+# pg_isolation2_regress is not produced by the gpcontrib build; build it here
+# rather than in CI.  Mirrors src/test/isolation2, whose installcheck-* targets
+# all depend on "install".
+harness:
+	$(MAKE) -C $(ISO2) install
+
 # isolation2_main.c hardcodes "python3 ./sql_isolation_testcase.py", resolved
 # from the current directory, so symlink the core driver here before running.
-installcheck:
+installcheck: harness
 	@ln -sf $(ISO2)/sql_isolation_testcase.py ./sql_isolation_testcase.py
 	$(ISO2)/pg_isolation2_regress \
 	  --init-file=$(top_builddir)/src/test/regress/init_file \
@@ -31,3 +39,5 @@ installcheck:
 
 clean:
 	rm -rf results/ regression.diffs regression.out sql_isolation_testcase.py
+
+.PHONY: harness installcheck clean
