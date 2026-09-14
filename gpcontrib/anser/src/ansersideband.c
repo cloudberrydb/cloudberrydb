@@ -248,6 +248,7 @@ anser_sideband_read_one(long timeout_ms)
 
 	if (retval == EOF)
 	{
+		pq_endmsgread();
 		elog(LOG, "anser: dispatch connection closed while awaiting a filter");
 		return false;
 	}
@@ -255,14 +256,31 @@ anser_sideband_read_one(long timeout_ms)
 	if (qtype != GP_SIDEBAND_MESSAGE)
 	{
 		/*
-		 * Nothing else should reach us here.  Do not try to interpret or skip
-		 * it: message-boundary sync is at stake, so leave it for the command
-		 * loop and give up on the filter.
+		 * Nothing else should reach us here, and if it does there is no way
+		 * back: pq_getbyte_if_available() has already taken the byte and the
+		 * backend has no means of pushing one in front of the stream, so this
+		 * message can neither be handed to the command loop nor skipped
+		 * safely.  The connection is one byte short from here on.
+		 *
+		 * Terminating is therefore the only honest outcome.  Returning and
+		 * running unfiltered -- the instinct everywhere else in this code --
+		 * would be much worse than losing the filter: every later read lands
+		 * at the wrong offset, and the failure surfaces somewhere else
+		 * entirely as an absurd allocation request or "invalid frontend
+		 * message type".  It has to be FATAL rather than ERROR because the
+		 * connection cannot be reused: an ERROR would return this QE to the
+		 * gang pool with a desynchronised stream, poisoning a later query.
+		 *
+		 * cdb_sequence_nextval_qe() reaches the same conclusion at
+		 * sequence.c:438, one level milder, because it runs where the gang is
+		 * about to be torn down anyway.
 		 */
 		pq_endmsgread();
-		elog(LOG, "anser: unexpected message type '%c' while awaiting a filter",
-			 (char) qtype);
-		return false;
+		ereport(FATAL,
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("anser: unexpected message type '%c' while awaiting a filter",
+						(char) qtype),
+				 errdetail("The message boundary was lost; this connection cannot be used further.")));
 	}
 
 	initStringInfo(&buf);
