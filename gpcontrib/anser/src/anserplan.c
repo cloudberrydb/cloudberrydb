@@ -53,6 +53,8 @@
 /* Per-statement state for the injection pass. */
 typedef struct AnserInjectCtx
 {
+	PlannedStmt *stmt;			/* for slices[]: see anser_slice_producers */
+	int			slice_index;	/* slice the subtree being walked runs in */
 	uint32		next_condition_id;
 	int			next_plan_node_id;
 	List	   *consumer_keys;	/* condition_keys already given a consumer node;
@@ -61,11 +63,13 @@ typedef struct AnserInjectCtx
 } AnserInjectCtx;
 
 static int	anser_max_plan_node_id(Plan *plan);
+static int	anser_slice_producers(AnserInjectCtx *ctx, int slice_index);
 static bool anser_hashjoin_keys(HashJoin *hj, AttrNumber *inner_attno,
 								AttrNumber *outer_attno);
 static bool anser_resolve_build_scan(Plan *hash, AttrNumber inner_attno,
-									 Plan **parent_out, Plan **scan_out,
-									 AttrNumber *attno_out);
+									 int slice_index, Plan **parent_out,
+									 Plan **scan_out, AttrNumber *attno_out,
+									 int *slice_out);
 static void anser_try_inject(HashJoin *hj, AnserInjectCtx *ctx);
 static void anser_inject_walk(Plan *plan, AnserInjectCtx *ctx);
 
@@ -110,6 +114,8 @@ AnserApplyRuntimeFilters(PlannedStmt *stmt)
 		foreach(lc, stmt->subplans)
 			maxid = Max(maxid, anser_max_plan_node_id((Plan *) lfirst(lc)));
 
+		ctx.stmt = stmt;
+		ctx.slice_index = 0;	/* the root runs in the coordinator's slice */
 		ctx.next_condition_id = 0;
 		ctx.next_plan_node_id = maxid + 1;
 		ctx.consumer_keys = NIL;
@@ -286,8 +292,9 @@ anser_hashjoin_keys(HashJoin *hj, AttrNumber *inner_attno, AttrNumber *outer_att
  * On success *parent_out is the node whose outerPlan is the base scan.
  */
 static bool
-anser_resolve_build_scan(Plan *hash, AttrNumber inner_attno, Plan **parent_out,
-						 Plan **scan_out, AttrNumber *attno_out)
+anser_resolve_build_scan(Plan *hash, AttrNumber inner_attno, int slice_index,
+						 Plan **parent_out, Plan **scan_out,
+						 AttrNumber *attno_out, int *slice_out)
 {
 	Plan	   *node = hash;
 	AttrNumber	attno = inner_attno;
@@ -318,10 +325,19 @@ anser_resolve_build_scan(Plan *hash, AttrNumber inner_attno, Plan **parent_out,
 			*parent_out = node;
 			*scan_out = child;
 			*attno_out = var->varattno;
+			*slice_out = slice_index;
 			return true;
 		}
 		if (!IsA(child, Hash) && !IsA(child, Motion))
 			return false;
+
+		/*
+		 * Descending through a Motion moves us into its sending slice, which
+		 * is where the producer will end up -- and whose width decides how
+		 * many parts the coordinator has to wait for.
+		 */
+		if (IsA(child, Motion))
+			slice_index = ((Motion *) child)->motionID;
 
 		node = child;
 		attno = var->varattno;
@@ -342,6 +358,8 @@ anser_try_inject(HashJoin *hj, AnserInjectCtx *ctx)
 	AttrNumber	inner_attno;
 	AttrNumber	outer_attno;
 	AttrNumber	build_attno;
+	int			build_slice;
+	int			n_producers;
 	int64		total_elems;
 	int64		max_payload;
 	int64		planned_bytes;
@@ -360,8 +378,19 @@ anser_try_inject(HashJoin *hj, AnserInjectCtx *ctx)
 
 	if (!anser_hashjoin_keys(hj, &inner_attno, &outer_attno))
 		return;
-	if (!anser_resolve_build_scan(hash, inner_attno, &build_parent, &build_scan,
-								  &build_attno))
+	if (!anser_resolve_build_scan(hash, inner_attno, ctx->slice_index,
+								  &build_parent, &build_scan, &build_attno,
+								  &build_slice))
+		return;
+
+	/*
+	 * How many producers will there be?  One per process of the build scan's
+	 * slice.  Declining when we cannot tell is the safe direction: a count that
+	 * is too low makes the coordinator complete the channel early and ship a
+	 * filter missing keys, which drops joinable rows.
+	 */
+	n_producers = anser_slice_producers(ctx, build_slice);
+	if (n_producers <= 0)
 		return;
 	if (!AnserRuntimeFilterSize(hash->plan_rows, &total_elems, &max_payload, &planned_bytes))
 		return;
@@ -392,14 +421,14 @@ anser_try_inject(HashJoin *hj, AnserInjectCtx *ctx)
 	/* Producer wraps the build base scan; keyed by the mapped build attno. */
 	producer = AnserBuildBloomProducerScan(build_scan, build_attno, condition_id,
 										   condition_key, total_elems, max_payload,
-										   planned_bytes);
+										   planned_bytes, n_producers);
 	producer->scan.plan.plan_node_id = ctx->next_plan_node_id++;
 	outerPlan(build_parent) = (Plan *) producer;
 
 	/* Consumer wraps the probe scan; keyed by the outer (probe) attno. */
 	consumer = AnserBuildBloomConsumerScan(probe, outer_attno, condition_id,
 										   condition_key, total_elems, max_payload,
-										   planned_bytes);
+										   planned_bytes, n_producers);
 	consumer->scan.plan.plan_node_id = ctx->next_plan_node_id++;
 	outerPlan(hj) = (Plan *) consumer;
 
@@ -414,8 +443,20 @@ anser_try_inject(HashJoin *hj, AnserInjectCtx *ctx)
 static void
 anser_inject_walk(Plan *plan, AnserInjectCtx *ctx)
 {
+	int			save_slice = ctx->slice_index;
+
 	if (plan == NULL)
 		return;
+
+	/*
+	 * A Motion is the boundary between slices, and everything below one runs
+	 * in the sending slice.  cdbllize stamps that slice's index into motionID
+	 * (cdbllize.c: "motion->motionID = sendSlice->sliceIndex") and then clears
+	 * senderSliceInfo, so motionID is the only durable way to get here from a
+	 * finished plan.
+	 */
+	if (IsA(plan, Motion))
+		ctx->slice_index = ((Motion *) plan)->motionID;
 
 	if (IsA(plan, HashJoin))
 		anser_try_inject((HashJoin *) plan, ctx);
@@ -429,4 +470,42 @@ anser_inject_walk(Plan *plan, AnserInjectCtx *ctx)
 		foreach(lc, ((CustomScan *) plan)->custom_plans)
 			anser_inject_walk((Plan *) lfirst(lc), ctx);
 	}
+
+	ctx->slice_index = save_slice;
+}
+
+/*
+ * How many processes execute a slice -- which is how many producers will
+ * publish a part, and therefore how many the coordinator must wait for.
+ *
+ * This mirrors FillSliceGangInfo (execUtils.c): a slice runs
+ * numsegments * parallel_workers processes, with parallel_workers == 0 meaning
+ * one.  Both optimizers are covered, and they do differ: for the same query the
+ * Postgres planner may give a serial build slice (Broadcast Motion 2:8 over a
+ * plain Seq Scan, so 2 producers) where GPORCA gives a parallel one (Broadcast
+ * Motion 16:16 over a Parallel Seq Scan, so 16).  Reading it from the slice
+ * means neither case needs special handling.
+ */
+static int
+anser_slice_producers(AnserInjectCtx *ctx, int slice_index)
+{
+	PlanSlice  *slice;
+	int			factor;
+
+	if (ctx->stmt->slices == NULL ||
+		slice_index < 0 || slice_index >= ctx->stmt->numSlices)
+		return 0;				/* unknown: caller declines to inject */
+
+	slice = &ctx->stmt->slices[slice_index];
+
+	/* The coordinator's own slice is one process and has no gang. */
+	if (slice->gangType == GANGTYPE_UNALLOCATED ||
+		slice->gangType == GANGTYPE_ENTRYDB_READER)
+		return 1;
+
+	factor = slice->parallel_workers > 0 ? slice->parallel_workers : 1;
+	if (slice->numsegments <= 0)
+		return 0;
+
+	return slice->numsegments * factor;
 }

@@ -52,20 +52,24 @@ extern void AnserRegisterRuntimeFilterMethods(void);
  * tables live).  Each wraps `child` in a pass-through CustomScan carrying the
  * runtime-filter parameters in custom_private; the caller assigns plan_node_id.
  * `key_attno` is the build (producer) / probe (consumer) join-key attno in the
- * child's output tuple.
+ * child's output tuple.  `n_producers` is how many processes will publish a
+ * part -- the width of the build scan's slice, which under parallel execution
+ * is numsegments * parallel_workers rather than the segment count.
  */
 extern CustomScan *AnserBuildBloomProducerScan(Plan *child, AttrNumber key_attno,
 											   uint32 condition_id,
 											   const char *condition_key,
 											   int64 total_elems,
 											   Size max_payload_bytes,
-											   int64 planned_bytes);
+											   int64 planned_bytes,
+											   int n_producers);
 extern CustomScan *AnserBuildBloomConsumerScan(Plan *child, AttrNumber key_attno,
 											   uint32 condition_id,
 											   const char *condition_key,
 											   int64 total_elems,
 											   Size max_payload_bytes,
-											   int64 planned_bytes);
+											   int64 planned_bytes,
+											   int n_producers);
 
 /*
  * Bloom sizing for one join, from its estimated build cardinality.  False means

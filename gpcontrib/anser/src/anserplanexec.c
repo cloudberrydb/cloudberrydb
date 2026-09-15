@@ -66,6 +66,7 @@ typedef enum AnserRfPrivateIndex
 	ANSER_RF_PRIV_TOTAL_ELEMS,			/* Integer: bloom sizing (producer) */
 	ANSER_RF_PRIV_MAX_PAYLOAD,			/* Integer: bloom sizing (producer) */
 	ANSER_RF_PRIV_PLANNED_BYTES,		/* Integer: planned bitset bytes (EXPLAIN) */
+	ANSER_RF_PRIV_N_PRODUCERS,			/* Integer: processes publishing a part */
 	ANSER_RF_PRIV_CONDITION_KEY,		/* String:  channel condition_key */
 	ANSER_RF_PRIV__COUNT
 } AnserRfPrivateIndex;
@@ -199,7 +200,8 @@ static CustomScan *
 anser_build_rf_scan(const CustomScanMethods *methods, Plan *child,
 					AttrNumber key_attno, uint32 condition_id,
 					const char *condition_key, int64 total_elems,
-					Size max_payload_bytes, int64 planned_bytes)
+					Size max_payload_bytes, int64 planned_bytes,
+					int n_producers)
 {
 	CustomScan *cs = makeNode(CustomScan);
 	List	   *priv = NIL;
@@ -210,6 +212,7 @@ anser_build_rf_scan(const CustomScanMethods *methods, Plan *child,
 	priv = lappend(priv, makeInteger((int) total_elems));
 	priv = lappend(priv, makeInteger((int) max_payload_bytes));
 	priv = lappend(priv, makeInteger((int) planned_bytes));
+	priv = lappend(priv, makeInteger(n_producers));
 	priv = lappend(priv, makeString(pstrdup(condition_key)));
 
 	cs->scan.plan.targetlist = anser_rf_identity_tlist(child->targetlist);
@@ -220,6 +223,15 @@ anser_build_rf_scan(const CustomScanMethods *methods, Plan *child,
 	cs->scan.plan.total_cost = child->total_cost;
 	cs->scan.plan.plan_rows = child->plan_rows;
 	cs->scan.plan.plan_width = child->plan_width;
+	/*
+	 * Not parallel-aware, and that is not an omission.  parallel_aware only
+	 * drives PostgreSQL's DSM callbacks, which are reached from Gather; an MPP
+	 * parallel slice has no Gather and no ParallelContext, so the callbacks
+	 * would never fire.  Each process of the slice is a full QE with its own
+	 * dispatch connection, so each publishes and subscribes for itself and the
+	 * coordinator folds the lot -- which is why n_producers above has to be the
+	 * slice's process count rather than the segment count.
+	 */
 	cs->scan.plan.parallel_aware = false;
 	cs->scan.plan.parallel_safe = child->parallel_safe;
 	cs->scan.plan.flow = (Flow *) copyObject(child->flow);
@@ -238,22 +250,22 @@ CustomScan *
 AnserBuildBloomProducerScan(Plan *child, AttrNumber key_attno,
 							uint32 condition_id, const char *condition_key,
 							int64 total_elems, Size max_payload_bytes,
-							int64 planned_bytes)
+							int64 planned_bytes, int n_producers)
 {
 	return anser_build_rf_scan(&anser_produce_scan_methods, child, key_attno,
 							   condition_id, condition_key, total_elems,
-							   max_payload_bytes, planned_bytes);
+							   max_payload_bytes, planned_bytes, n_producers);
 }
 
 CustomScan *
 AnserBuildBloomConsumerScan(Plan *child, AttrNumber key_attno,
 							uint32 condition_id, const char *condition_key,
 							int64 total_elems, Size max_payload_bytes,
-							int64 planned_bytes)
+							int64 planned_bytes, int n_producers)
 {
 	return anser_build_rf_scan(&anser_consume_scan_methods, child, key_attno,
 							   condition_id, condition_key, total_elems,
-							   max_payload_bytes, planned_bytes);
+							   max_payload_bytes, planned_bytes, n_producers);
 }
 
 /* ---- shared helpers ---- */
@@ -273,20 +285,38 @@ anser_rf_build_key(CustomScan *cscan, AnserChannelKey *key)
 }
 
 /*
- * Number of producing segments for this slice, and this backend's part index.
- * On a segment the slice runs on the whole gang; on the coordinator the filter
- * is produced locally as a single part.
+ * How many parts the coordinator must fold, and this backend's part index.
+ *
+ * The count comes from the plan, not from getgpsegmentCount(), because a
+ * parallel slice runs numsegments * parallel_workers processes and every one
+ * of them publishes its own part.  Counting segments instead would make the
+ * coordinator declare the channel complete after the first nsegments parts
+ * and hand consumers a filter missing most of the build keys -- a bloom filter
+ * short of keys gives false negatives, which silently drops joinable rows.
+ * Only the planner knows the slice width, so it stamps it into custom_private
+ * (see AnserRuntimeFilterSize's caller in anserplan.c).
+ *
+ * part_index is diagnostics only: completion is by count, and the serialized
+ * part carries its own (0, 1).  Under parallel execution the workers of one
+ * segment therefore share an index, which is why the trace prints the pid too.
  */
 static void
-anser_rf_part_info(uint32 *part_index, uint32 *total_parts)
+anser_rf_part_info(CustomScan *cscan, uint32 *part_index, uint32 *total_parts)
 {
+	int			n_producers = intVal(list_nth(cscan->custom_private,
+											  ANSER_RF_PRIV_N_PRODUCERS));
+
 	if (Gp_role == GP_ROLE_EXECUTE)
 	{
 		*part_index = (uint32) GpIdentity.segindex;
-		*total_parts = (uint32) getgpsegmentCount();
+		*total_parts = (uint32) Max(n_producers, 1);
 	}
 	else
 	{
+		/*
+		 * The coordinator produces locally as a single part.  This is the
+		 * whole-plan-on-the-QD case (no gang), not the parallel one.
+		 */
 		*part_index = 0;
 		*total_parts = 1;
 	}
@@ -337,7 +367,7 @@ anser_produce_begin(CustomScanState *node, EState *estate, int eflags)
 	st->published = false;
 
 	anser_rf_build_key(cscan, &key);
-	anser_rf_part_info(&part_index, &total_parts);
+	anser_rf_part_info(cscan, &part_index, &total_parts);
 
 	st->produce = ExecInitAnserBloomFilterProduce(&key, total_elems, max_payload,
 												  part_index, total_parts);
@@ -502,7 +532,7 @@ anser_consume_begin(CustomScanState *node, EState *estate, int eflags)
 	st->pushed_down = false;
 
 	anser_rf_build_key(cscan, &key);
-	anser_rf_part_info(&part_index, &expected_parts);
+	anser_rf_part_info(cscan, &part_index, &expected_parts);
 
 	st->consume = ExecInitAnserBloomFilterConsume(&key, total_elems, max_payload,
 												  expected_parts);

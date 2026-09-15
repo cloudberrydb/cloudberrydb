@@ -90,6 +90,21 @@ build side declared as 33.5M gets `k=10` where the optimum is `k=3`, turning a
 13% false positive rate into 38%. The keys all go in regardless of what was
 written down. Clamp the *size*; keep the count honest.
 
+### Parallel execution
+
+A parallel slice runs `numsegments × parallel_workers` processes, and **every
+one of them is a full QE with its own dispatch connection** — not a PostgreSQL
+background worker. So each publishes and subscribes for itself, and the
+coordinator folds however many parts arrive. Nothing about the transport or the
+merge changes.
+
+Only the number of parts to expect differs, and it is not the segment count: it
+is the width of the build scan's slice, `numsegments × parallel_workers`. The
+planner computes that while injecting and stamps it into the plan node
+(`ANSER_RF_PRIV_N_PRODUCERS`); the executor reads it from there. Both optimizers
+go through the same path, and a join whose slice cannot be identified is not
+injected into.
+
 ### Payload types
 
 A channel carries one **payload type**, declared on the wire and registered in
