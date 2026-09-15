@@ -357,7 +357,6 @@ RESET min_parallel_table_scan_size;
 RESET parallel_setup_cost;
 RESET parallel_tuple_cost;
 RESET max_parallel_workers_per_gather;
-
 RESET anser.runtime_filter;
 RESET optimizer;
 RESET enable_nestloop;
