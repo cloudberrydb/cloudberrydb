@@ -200,7 +200,90 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
+
 ================================================================================
+APACHE CLOUDBERRY (INCUBATING) BINARY DISTRIBUTION
+================================================================================
+
+This LICENSE file applies to the binary convenience packages (RPM and DEB)
+of Apache Cloudberry (Incubating).  It describes the contents of those
+packages, which differ from the contents of the source release: some
+third-party components are downloaded and built during packaging and are
+therefore absent from the source release, while other components present in
+the source release are used only by tests or only on platforms that these
+packages do not target, and are therefore absent from the packages.
+
+For the source release, see the LICENSE file instead.
+
+Unless noted otherwise, paths below are relative to the installation root
+(GPHOME), which defaults to /usr/local/cloudberry-db.
+
+================================================================================
+Third-party software shipped as separate files
+================================================================================
+
+----------------------------
+   Apache License 2.0
+
+      lib/libxerces-c.so
+      lib/libxerces-c-3.3.so
+
+      Apache Xerces-C++ 3.3.0, built from the Apache source release and
+      bundled because the query optimizer (ORCA) links against it.
+      RPM packages only: DEB packages link against the libxerces-c
+      provided by the distribution and do not bundle it.
+
+      Covered by the Apache License 2.0 reproduced above.  Its required
+      attribution is reproduced in the NOTICE file.
+
+----------------------------
+   BSD 3 Clause License
+
+      lib/python/psutil/
+
+      psutil 5.7.0, downloaded and built during packaging.
+      see licenses/LICENSE-psutil.txt
+
+----------------------------
+   MIT License
+
+      lib/python/yaml/
+
+      PyYAML 5.4.1, downloaded and built during packaging.
+      see licenses/LICENSE-pyyaml.txt
+
+----------------------------
+   PostgreSQL License
+
+      lib/python/pg.py
+      lib/python/pgdb.py
+      lib/python/_pg*.so
+
+      PyGreSQL 5.2, downloaded and built during packaging.
+      see licenses/LICENSE-pygresql.txt
+
+----------------------------
+   Internet Systems Consortium/Internet Software Consortium (ISC) LICENSE
+
+      bin/lib/pexpect/__init__.py
+      bin/lib/pexpect/pxssh.py
+      see licenses/LICENSE-pexpect.txt
+
+----------------------------
+   Stream License
+
+      bin/lib/stream
+      see licenses/LICENSE-stream.txt
+
+================================================================================
+Third-party software compiled into Apache Cloudberry binaries
+================================================================================
+
+The components below have no separate file in these packages.  They are
+compiled into bin/postgres, lib/libpostgres.so, the loadable modules under
+lib/postgresql/, or the other executables under bin/.  Source paths are
+given as they appear in the Apache Cloudberry source release.
+
 This product includes software from PostgreSQL, under the PostgreSQL License:
 
    see licenses/LICENSE-postgresql.txt
@@ -209,80 +292,55 @@ The PostgreSQL software includes:
 
 ----------------------------
    BSD License
-      
+
       src/bin/pg_controldata/pg_controldata.c
       copyright (c) Oliver Elphick <olly@lfix.co.uk>, 2001
 
 ----------------------------
-   BSD-4-Clause (University of California-Specific)
-      
-      src/include/port/win32_msvc/glob.h
-      src/port/glob.c
-      see licenses/LICENSE-glob.txt
-
-----------------------------
    BSD 3 Clause License
-      
-      src/port/inet_aton.c
-      see licenses/LICENSE-bsd3-inet_aton.txt
-      
+
       src/port/snprintf.c
       see licenses/LICENSE-bsd3-snprintf.txt
-      
+
       src/backend/utils/mb/wstrcmp.c
       see licenses/LICENSE-bsd3-wstrcmp.txt
-      
+
       src/backend/utils/mb/wstrncmp.c
       see licenses/LICENSE-bsd3-wstrncmp.txt
-      
-      src/backend/libpq/sha2.h
-      see licenses/LICENSE-bsd3-sha2.txt
 
 ----------------------------
    Internet Systems Consortium/Internet Software Consortium (ISC) LICENSE
-      
+
       src/port/strlcpy.c
       see licenses/LICENSE-strlcpy.txt
-      
+
       src/backend/utils/adt/inet_cidr_ntop.c
       src/backend/utils/adt/inet_net_pton.c
       see licenses/LICENSE-isc.txt
 
 ----------------------------
    Perl Artistic License 2.0 (exception)
-      
+
       src/pl/plperl/ppport.h
 
       Pursuant to https://issues.apache.org/jira/browse/LEGAL-79 and
       PL/Perl's use of a generated header file, we declare this file to
       be an exception to the Perl Artistic License.  This file is
       derived from the PostgreSQL code base.
-  
+
       For completeness sake, we have provided the Perl Artistic License
       for the Perl Devel-PPPort module
       (http://search.cpan.org/~wolfsage/Devel-PPPort-3.32/PPPort.pm).
       This module was used to generate the src/pl/plperl/ppport.h header
       file. The license is available:
-  
+
       see licenses/LICENSE-ppport.txt
 
 ----------------------------
-   test-ctype LICENSE
-
-      src/test/locale/test-ctype.c
-      see licenses/LICENSE-test-ctype.txt
-
-----------------------------
    regex LICENSE
-      
-      src/backend/regex 
+
+      src/backend/regex
       see licenses/LICENSE-regex.txt
-
-----------------------------
-   PostgreSQL-style License
-
-      src/port/win32gettimeofday.c
-      see licenses/LICENSE-gettimeofday.txt
 
 ================================================================================
 This product contains significant parts that were originally based on software
@@ -300,12 +358,6 @@ Greenplum Database is licensed under the Apache License Version 2.0
 The Greenplum Database software includes:
 
 ----------------------------
-   Stream License
-
-      gpMgmt/bin/stream/*
-      see licenses/LICENSE-stream.txt
-
-----------------------------
    0-clause license ("Zero Clause BSD")
 
       gpcontrib/orafce/*
@@ -314,18 +366,8 @@ The Greenplum Database software includes:
 ----------------------------
    BSD 3 Clause License
 
-      gpcontrib/gpcloud/test/googletest
-      see licenses/LICENSE-googletest.txt
-
       gpcontrib/pg_hint_plan/*
       see licenses/LICENSE-pg-hint-plan.txt
-
-----------------------------
-   Internet Systems Consortium/Internet Software Consortium (ISC) LICENSE
-
-      gpMgmt/bin/lib/pexpect/__init__.py
-      gpMgmt/bin/lib/pexpect/pxssh.py
-      see licenses/LICENSE-pexpect.txt
 
 ----------------------------
    MIT LICENSE
@@ -350,35 +392,17 @@ Apache Cloudberry includes codes from
 ----------------------------
    pg_cron under PostgreSQL license:
 
-      /src/include/task/pg_cron.h
-      /src/include/task/task_states.h
-      /src/include/task/job_metadata.h
-      /src/backend/task/task_states.c
-      /src/backend/task/job_metadata.c
-      /src/backend/task/pg_cron.c
+      src/include/task/pg_cron.h
+      src/include/task/task_states.h
+      src/include/task/job_metadata.h
+      src/backend/task/task_states.c
+      src/backend/task/job_metadata.c
+      src/backend/task/pg_cron.c
 
       see licenses/LICENSE-citusdata.txt
 
 ----------------------------
-   Apache License - Version 2.0
-
-      contrib/pax_storage/src/cpp/contrib/googlebench
-      see licenses/LICENSE-googlebench.txt
-
-----------------------------
    MIT LICENSE
-
-      dependency/yyjson
-      see licenses/LICENSE-yyjson.txt
-
-      contrib/pax_storage/src/cpp/cpp-stub
-      see licenses/LICENSE-cpp-stub.txt
 
       contrib/pax_storage/src/cpp/contrib/tabulate
       see licenses/LICENSE-tabulate.txt
-
- ----------------------------
-   BSD 3 Clause License 
-
-      contrib/pax_storage/src/cpp/contrib/googletest
-      see licenses/LICENSE-googletest.txt
